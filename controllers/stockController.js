@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import { StatusCodes } from 'http-status-codes';
 import { errors } from '../utils/errorHandler.js';
 import Stock from '../models/Stock.js';
+import { executePaginatedQuery } from '../utils/pagination.js';
 
 // Create new stock item
 export const createStock = asyncHandler(async (req, res) => {
@@ -19,14 +20,11 @@ export const createStock = asyncHandler(async (req, res) => {
 // Get all stock items with filtering and pagination
 export const getAllStock = asyncHandler(async (req, res) => {
     const {
-        page = 1,
-        limit = 10,
         search,
         category,
-        sortBy = 'itemName',
-        sortOrder = 'asc',
         lowStock,
-        expired
+        expired,
+        ...paginationOptions
     } = req.query;
 
     // Build query
@@ -48,28 +46,14 @@ export const getAllStock = asyncHandler(async (req, res) => {
         query.expiryDate = { $lt: new Date() };
     }
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
+    const result = await executePaginatedQuery(
+        Stock,
+        query,
+        paginationOptions,
+        { path: 'lastUpdatedBy', select: 'username email' }
+    );
 
-    // Execute query with pagination and sorting
-    const stock = await Stock.find(query)
-        .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .populate('lastUpdatedBy', 'username email');
-
-    // Get total count for pagination
-    const total = await Stock.countDocuments(query);
-
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        data: stock,
-        pagination: {
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / limit)
-        }
-    });
+    res.status(StatusCodes.OK).json(result);
 });
 
 // Get single stock item
@@ -178,24 +162,34 @@ export const deleteStock = asyncHandler(async (req, res) => {
 
 // Get low stock items
 export const getLowStock = asyncHandler(async (req, res) => {
-    const lowStock = await Stock.find({
+    const { ...paginationOptions } = req.query;
+    const query = {
         $expr: { $lte: ['$quantity', '$minimumQuantity'] }
-    }).populate('lastUpdatedBy', 'username email');
+    };
 
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        data: lowStock
-    });
+    const result = await executePaginatedQuery(
+        Stock,
+        query,
+        paginationOptions,
+        { path: 'lastUpdatedBy', select: 'username email' }
+    );
+
+    res.status(StatusCodes.OK).json(result);
 });
 
 // Get expired items
 export const getExpiredItems = asyncHandler(async (req, res) => {
-    const expiredItems = await Stock.find({
+    const { ...paginationOptions } = req.query;
+    const query = {
         expiryDate: { $lt: new Date() }
-    }).populate('lastUpdatedBy', 'username email');
+    };
 
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        data: expiredItems
-    });
+    const result = await executePaginatedQuery(
+        Stock,
+        query,
+        paginationOptions,
+        { path: 'lastUpdatedBy', select: 'username email' }
+    );
+
+    res.status(StatusCodes.OK).json(result);
 }); 

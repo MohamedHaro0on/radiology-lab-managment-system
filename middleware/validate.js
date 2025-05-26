@@ -3,24 +3,44 @@ import Joi from "joi"
 
 export const validate = (schema) => {
     return (req, res, next) => {
-        console.log('DEBUG validate req.body:', req.body); // Debug log
-        const validationOptions = {
-            abortEarly: false,
-            allowUnknown: true,
-            stripUnknown: true
-        };
+        try {
+            // Validate request body
+            if (schema.body) {
+                const { error } = schema.body.validate(req.body, {
+                    abortEarly: false,
+                    stripUnknown: true
+                });
+                if (error) {
+                    throw errors.ValidationError(error.details.map(detail => detail.message).join('. '));
+                }
+            }
 
-        const { error, value } = schema.validate(req.body, validationOptions);
+            // Validate request params
+            if (schema.params) {
+                const { error } = schema.params.validate(req.params, {
+                    abortEarly: false,
+                    stripUnknown: true
+                });
+                if (error) {
+                    throw errors.ValidationError(error.details.map(detail => detail.message).join('. '));
+                }
+            }
 
-        if (error) {
-            const errorMessage = error.details
-                .map((detail) => detail.message)
-                .join(', ');
-            return next(errors.BadRequest(errorMessage));
+            // Validate request query
+            if (schema.query) {
+                const { error } = schema.query.validate(req.query, {
+                    abortEarly: false,
+                    stripUnknown: true
+                });
+                if (error) {
+                    throw errors.ValidationError(error.details.map(detail => detail.message).join('. '));
+                }
+            }
+
+            next();
+        } catch (error) {
+            next(error);
         }
-
-        req.body = value;
-        next();
     };
 };
 

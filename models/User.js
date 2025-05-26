@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import speakeasy from 'speakeasy';
+import { errors } from '../utils/errorHandler.js';
+import { MODULES, OPERATIONS, validatePrivilege } from '../config/privileges.js';
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -15,38 +16,92 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Email is required'],
         unique: true,
-        lowercase: true,
         trim: true,
-        match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email']
+        lowercase: true,
+        match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
     },
     password: {
         type: String,
         required: [true, 'Password is required'],
-        minlength: [6, 'Password must be at least 6 characters long'],
-        select: false
-    },
-    role: {
-        type: String,
-        enum: ['admin', 'doctor', 'receptionist', 'technician'],
-        required: true
-    },
-    twoFactorSecret: {
-        type: String,
-        required: false,
+        minlength: [8, 'Password must be at least 8 characters long'],
         select: false
     },
     isActive: {
         type: Boolean,
         default: true
     },
+    isSuperAdmin: {
+        type: Boolean,
+        default: false
+    },
+    privileges: [{
+        module: {
+            type: String,
+            required: true,
+            enum: Object.keys(MODULES)
+        },
+        operations: [{
+            type: String,
+            enum: OPERATIONS
+        }],
+        grantedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        grantedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+    twoFactorSecret: {
+        type: String,
+        select: false
+    },
+    twoFactorEnabled: {
+        type: Boolean,
+        default: false
+    },
     lastLogin: {
         type: Date
+    },
+    passwordChangedAt: {
+        type: Date
+    },
+    passwordResetToken: {
+        type: String,
+        select: false
+    },
+    passwordResetExpires: {
+        type: Date,
+        select: false
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
-// Hash password before saving
+// Indexes (only for non-unique fields)
+userSchema.index({ 'privileges.module': 1, 'privileges.operations': 1 });
+userSchema.index({ isActive: 1 });
+userSchema.index({ isSuperAdmin: 1 });
+
+// Virtual for full user info (excluding sensitive data)
+userSchema.virtual('info').get(function () {
+    return {
+        id: this._id,
+        username: this.username,
+        email: this.email,
+        isActive: this.isActive,
+        isSuperAdmin: this.isSuperAdmin,
+        privileges: this.privileges,
+        createdAt: this.createdAt,
+        updatedAt: this.updatedAt
+    };
+});
+
+// Pre-save middleware to hash password
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
@@ -59,42 +114,129 @@ userSchema.pre('save', async function (next) {
     }
 });
 
-// Compare password method
+// Pre-save middleware to update passwordChangedAt
+userSchema.pre('save', function (next) {
+    if (!this.isModified('password') || this.isNew) return next();
+    this.passwordChangedAt = Date.now() - 1000; // Subtract 1 second to ensure token is created after password change
+    next();
+});
+
+// Method to check if password is correct
 userSchema.methods.comparePassword = async function (candidatePassword) {
     try {
-        console.log('DEBUG comparePassword - this.password:', this.password);
-        console.log('DEBUG comparePassword - candidatePassword:', candidatePassword);
-        const result = await bcrypt.compare(candidatePassword, this.password);
-        console.log('DEBUG comparePassword - result:', result);
-        return result;
+        return await bcrypt.compare(candidatePassword, this.password);
     } catch (error) {
-        console.error('DEBUG comparePassword - error:', error);
-        throw error;
+        throw errors.InternalServerError('Error comparing passwords');
     }
 };
 
-// Generate 2FA secret
-userSchema.methods.generateTwoFactorSecret = function () {
-    const secret = speakeasy.generateSecret({
-        name: `RadiologyLab:${this.email}`
-    });
-
-    this.twoFactorSecret = secret.base32;
-    return secret;
+// Method to check if password was changed after token was issued
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+    if (this.passwordChangedAt) {
+        const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
+        return JWTTimestamp < changedTimestamp;
+    }
+    return false;
 };
 
-// Verify 2FA token
-userSchema.methods.verifyTwoFactorToken = function (token) {
-    return speakeasy.totp.verify({
-        secret: this.twoFactorSecret,
-        encoding: 'base32',
-        token: token,
-        window: 1 // Allow 30 seconds clock skew
-    });
+// Method to check if user has privilege
+userSchema.methods.hasPrivilege = function (module, operation) {
+    if (this.isSuperAdmin) return true;
+
+    try {
+        validatePrivilege(module, operation);
+        const privilege = this.privileges.find(p => p.module === module);
+        return privilege?.operations.includes(operation) || false;
+    } catch (error) {
+        return false;
+    }
 };
 
-// Indexes for faster queries
-userSchema.index({ role: 1 });
+// Method to grant privilege
+userSchema.methods.grantPrivilege = async function (module, operations, grantedBy) {
+    if (!this.isActive) {
+        throw errors.BadRequest('Cannot grant privileges to inactive user');
+    }
+
+    try {
+        // Validate module and operations
+        validatePrivilege(module, operations[0]); // Check first operation to validate module
+        operations.forEach(op => validatePrivilege(module, op));
+
+        const existingPrivilege = this.privileges.find(p => p.module === module);
+        if (existingPrivilege) {
+            existingPrivilege.operations = [...new Set([...existingPrivilege.operations, ...operations])];
+            existingPrivilege.grantedBy = grantedBy;
+            existingPrivilege.grantedAt = Date.now();
+        } else {
+            this.privileges.push({
+                module,
+                operations,
+                grantedBy,
+                grantedAt: Date.now()
+            });
+        }
+
+        await this.save();
+        return this;
+    } catch (error) {
+        throw errors.BadRequest(error.message);
+    }
+};
+
+// Method to revoke privilege
+userSchema.methods.revokePrivilege = async function (module, operations) {
+    try {
+        if (operations) {
+            // Validate module and operations
+            validatePrivilege(module, operations[0]); // Check first operation to validate module
+            operations.forEach(op => validatePrivilege(module, op));
+        } else {
+            validatePrivilege(module, 'view'); // Just validate module exists
+        }
+
+        const privilege = this.privileges.find(p => p.module === module);
+        if (!privilege) {
+            throw errors.NotFound(`No privileges found for module: ${module}`);
+        }
+
+        if (operations) {
+            privilege.operations = privilege.operations.filter(op => !operations.includes(op));
+            if (privilege.operations.length === 0) {
+                this.privileges = this.privileges.filter(p => p.module !== module);
+            }
+        } else {
+            this.privileges = this.privileges.filter(p => p.module !== module);
+        }
+
+        await this.save();
+        return this;
+    } catch (error) {
+        throw errors.BadRequest(error.message);
+    }
+};
+
+// Static method to find user by credentials
+userSchema.statics.findByCredentials = async function (email, password) {
+    const user = await this.findOne({ email }).select('+password');
+    if (!user) {
+        throw errors.Unauthorized('Invalid email or password');
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        throw errors.Unauthorized('Invalid email or password');
+    }
+
+    if (!user.isActive) {
+        throw errors.Forbidden('Account is inactive');
+    }
+
+    user.lastLogin = Date.now();
+    await user.save({ validateBeforeSave: false });
+
+    return user;
+};
 
 const User = mongoose.model('User', userSchema);
 

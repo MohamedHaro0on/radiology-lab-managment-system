@@ -9,6 +9,9 @@ import doctorRoutes from './routes/doctorRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import stockRoutes from './routes/stockRoutes.js';
 import patientHistoryRoutes from './routes/patientHistoryRoutes.js';
+import radiologistRoutes from './routes/radiologistRoutes.js';
+import scanRoutes from './routes/scanRoutes.js';
+import privilegeRoutes from './routes/privilegeRoutes.js';
 
 const app = express();
 
@@ -35,6 +38,9 @@ app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/patient-history', patientHistoryRoutes);
+app.use('/api/radiologists', radiologistRoutes);
+app.use('/api/scans', scanRoutes);
+app.use('/api/privileges', privilegeRoutes);
 
 // API Documentation Route
 app.get('/api-docs', (req, res) => {
@@ -110,6 +116,72 @@ app.get('/api-docs', (req, res) => {
                     delete: { method: 'DELETE', path: '/:id' },
                     getByPatient: { method: 'GET', path: '/patient/:patientId' }
                 }
+            },
+            radiologists: {
+                base: '/api/radiologists',
+                routes: {
+                    create: { method: 'POST', path: '/' },
+                    getAll: { method: 'GET', path: '/' },
+                    getOne: { method: 'GET', path: '/:id' },
+                    update: { method: 'PUT', path: '/:id' },
+                    delete: { method: 'DELETE', path: '/:id' },
+                    getStats: { method: 'GET', path: '/stats' }
+                }
+            },
+            scans: {
+                base: '/api/scans',
+                routes: {
+                    create: { method: 'POST', path: '/' },
+                    getAll: { method: 'GET', path: '/' },
+                    getOne: { method: 'GET', path: '/:id' },
+                    update: { method: 'PUT', path: '/:id' },
+                    delete: { method: 'DELETE', path: '/:id' },
+                    checkStock: { method: 'GET', path: '/:id/stock-availability' },
+                    getStats: { method: 'GET', path: '/stats' }
+                }
+            },
+            privileges: {
+                description: 'Privilege management endpoints (Super Admin only)',
+                basePath: '/api/privileges',
+                endpoints: [
+                    {
+                        method: 'GET',
+                        path: '/users',
+                        description: 'Get all users with their privileges'
+                    },
+                    {
+                        method: 'GET',
+                        path: '/users/:userId/privileges',
+                        description: 'Get privileges for a specific user'
+                    },
+                    {
+                        method: 'POST',
+                        path: '/users/:userId/privileges',
+                        description: 'Grant privileges to a user',
+                        body: {
+                            module: 'string (required)',
+                            operations: {
+                                view: 'boolean',
+                                create: 'boolean',
+                                update: 'boolean',
+                                delete: 'boolean'
+                            }
+                        }
+                    },
+                    {
+                        method: 'DELETE',
+                        path: '/users/:userId/privileges',
+                        description: 'Revoke privileges from a user',
+                        body: {
+                            module: 'string (required)'
+                        }
+                    },
+                    {
+                        method: 'GET',
+                        path: '/modules',
+                        description: 'Get available modules and their operations'
+                    }
+                ]
             }
         }
     });

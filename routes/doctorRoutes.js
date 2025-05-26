@@ -1,64 +1,80 @@
 import express from 'express';
 import { validate } from '../middleware/validate.js';
-import { auth, authorize } from '../middleware/auth.js';
-import doctorValidation from '../validations/doctorValidation.js';
-import {
-    createDoctor,
-    getAllDoctors,
-    getDoctor,
-    updateDoctor,
-    deleteDoctor,
-    getTopReferringDoctors
-} from '../controllers/doctorController.js';
+import { auth } from '../middleware/auth.js';
+import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
+import { doctorValidation } from '../validations/doctorValidation.js';
+import * as doctorController from '../controllers/doctorController.js';
 
 const router = express.Router();
 
 // Apply auth middleware to all routes
 router.use(auth);
 
-// Create doctor (admin only)
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
+
+// Create new doctor
 router.post(
     '/',
-    authorize(['admin']),
+    checkPrivilege('doctors', 'create'),
     validate(doctorValidation.createDoctor),
-    createDoctor
+    doctorController.createDoctor
 );
 
 // Get all doctors
 router.get(
     '/',
-    validate(doctorValidation.listDoctors),
-    getAllDoctors
-);
-
-// Get top referring doctors
-router.get(
-    '/top',
-    validate(doctorValidation.listDoctors),
-    getTopReferringDoctors
+    checkPrivilege('doctors', 'view'),
+    validate(doctorValidation.getAllDoctors),
+    doctorController.getAllDoctors
 );
 
 // Get single doctor
 router.get(
     '/:id',
+    checkPrivilege('doctors', 'view'),
     validate(doctorValidation.getDoctor),
-    getDoctor
+    doctorController.getDoctor
 );
 
-// Update doctor (admin only)
-router.put(
+// Update doctor
+router.patch(
     '/:id',
-    authorize(['admin']),
+    checkPrivilege('doctors', 'update'),
     validate(doctorValidation.updateDoctor),
-    updateDoctor
+    doctorController.updateDoctor
 );
 
-// Delete doctor (admin only)
+// Delete doctor
 router.delete(
     '/:id',
-    authorize(['admin']),
+    checkPrivilege('doctors', 'delete'),
     validate(doctorValidation.deleteDoctor),
-    deleteDoctor
+    doctorController.deleteDoctor
+);
+
+// Get top referring doctors
+router.get(
+    '/stats/top-referring',
+    checkPrivilege('doctors', 'view'),
+    validate(doctorValidation.getTopReferringDoctors),
+    doctorController.getTopReferringDoctors
+);
+
+// Update doctor availability
+router.patch(
+    '/:id/availability',
+    checkPrivilege('doctors', 'update'),
+    validate(doctorValidation.updateAvailability),
+    doctorController.updateAvailability
+);
+
+// Get doctor schedule
+router.get(
+    '/:id/schedule',
+    checkPrivilege('doctors', 'view'),
+    validate(doctorValidation.getDoctorSchedule),
+    doctorController.getDoctorSchedule
 );
 
 export default router; 

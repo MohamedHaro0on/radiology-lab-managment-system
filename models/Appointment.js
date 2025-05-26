@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { errors } from '../utils/errorHandler.js';
 
 const appointmentSchema = new mongoose.Schema({
     patient: {
@@ -11,46 +12,47 @@ const appointmentSchema = new mongoose.Schema({
         ref: 'Doctor',
         required: [true, 'Doctor is required']
     },
+    scanType: {
+        type: String,
+        required: [true, 'Scan type is required'],
+        trim: true
+    },
     appointmentDate: {
         type: Date,
         required: [true, 'Appointment date is required']
     },
-    timeSlot: {
-        start: {
-            type: String,
-            required: [true, 'Start time is required'],
-            match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please enter a valid time in HH:MM format']
-        },
-        end: {
-            type: String,
-            required: [true, 'End time is required'],
-            match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please enter a valid time in HH:MM format']
-        }
-    },
-    type: {
+    appointmentTime: {
         type: String,
-        required: [true, 'Appointment type is required'],
-        enum: ['X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other'],
-        trim: true
+        required: [true, 'Appointment time is required'],
+        match: [/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please provide a valid time in HH:MM format']
     },
     status: {
         type: String,
-        required: true,
-        enum: ['scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+        enum: {
+            values: ['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show'],
+            message: 'Invalid appointment status'
+        },
         default: 'scheduled'
     },
     priority: {
         type: String,
-        enum: ['routine', 'urgent', 'emergency'],
+        enum: {
+            values: ['routine', 'urgent', 'emergency'],
+            message: 'Invalid priority level'
+        },
         default: 'routine'
     },
     notes: {
         type: String,
         trim: true
     },
-    referralSource: {
-        type: String,
-        trim: true
+    scan: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Scan'
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -59,72 +61,158 @@ const appointmentSchema = new mongoose.Schema({
     },
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
-// Indexes for faster queries
-appointmentSchema.index({ appointmentDate: 1, 'timeSlot.start': 1, 'timeSlot.end': 1 });
+// Indexes
+appointmentSchema.index({ patient: 1 });
+appointmentSchema.index({ doctor: 1 });
+appointmentSchema.index({ appointmentDate: 1 });
+appointmentSchema.index({ status: 1 });
+appointmentSchema.index({ priority: 1 });
+appointmentSchema.index({ isActive: 1 });
+appointmentSchema.index({ createdBy: 1 });
+appointmentSchema.index({ scan: 1 });
+
+// Compound indexes for common queries
+appointmentSchema.index({ appointmentDate: 1, appointmentTime: 1 });
 appointmentSchema.index({ patient: 1, status: 1 });
 appointmentSchema.index({ doctor: 1, status: 1 });
-appointmentSchema.index({ status: 1 });
+appointmentSchema.index({ appointmentDate: 1, status: 1 });
+appointmentSchema.index({ isActive: 1, status: 1 });
 
-// Virtual for checking if appointment is in the past
-appointmentSchema.virtual('isPast').get(function () {
-    const appointmentDateTime = new Date(this.appointmentDate);
-    const [hours, minutes] = this.timeSlot.start.split(':');
-    appointmentDateTime.setHours(parseInt(hours), parseInt(minutes));
-    return appointmentDateTime < new Date();
+// Virtual for appointment datetime
+appointmentSchema.virtual('appointmentDateTime').get(function () {
+    if (!this.appointmentDate || !this.appointmentTime) return null;
+
+    const [hours, minutes] = this.appointmentTime.split(':');
+    const date = new Date(this.appointmentDate);
+    date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+
+    return date;
 });
 
-// Virtual for checking if appointment is today
-appointmentSchema.virtual('isToday').get(function () {
-    const today = new Date();
-    const appointmentDate = new Date(this.appointmentDate);
-    return appointmentDate.toDateString() === today.toDateString();
-});
-
-// Pre-save middleware to validate time slot
+// Pre-save middleware to validate appointment datetime
 appointmentSchema.pre('save', function (next) {
-    const start = this.timeSlot.start.split(':').map(Number);
-    const end = this.timeSlot.end.split(':').map(Number);
+    if (this.isModified('appointmentDate') || this.isModified('appointmentTime')) {
+        const appointmentDateTime = this.appointmentDateTime;
+        const now = new Date();
 
-    const startMinutes = start[0] * 60 + start[1];
-    const endMinutes = end[0] * 60 + end[1];
-
-    if (endMinutes <= startMinutes) {
-        next(new Error('End time must be after start time'));
+        if (appointmentDateTime < now) {
+            next(new Error('Appointment cannot be scheduled in the past'));
+            return;
+        }
     }
-
-    // Check if appointment is in the past
-    const appointmentDateTime = new Date(this.appointmentDate);
-    appointmentDateTime.setHours(start[0], start[1]);
-    if (appointmentDateTime < new Date()) {
-        next(new Error('Cannot create appointment in the past'));
-    }
-
     next();
 });
 
-// Method to check for scheduling conflicts
-appointmentSchema.methods.hasConflict = async function () {
-    const conflictingAppointment = await this.constructor.findOne({
-        _id: { $ne: this._id },
-        doctor: this.doctor,
-        appointmentDate: this.appointmentDate,
-        status: { $nin: ['cancelled', 'no-show'] },
-        $or: [
-            {
-                'timeSlot.start': { $lt: this.timeSlot.end },
-                'timeSlot.end': { $gt: this.timeSlot.start }
-            }
-        ]
+// Method to check if appointment slot is available
+appointmentSchema.statics.isSlotAvailable = async function (doctorId, date, time) {
+    const existingAppointment = await this.findOne({
+        doctor: doctorId,
+        appointmentDate: date,
+        appointmentTime: time,
+        status: { $in: ['scheduled', 'confirmed'] },
+        isActive: true
     });
 
-    return !!conflictingAppointment;
+    return !existingAppointment;
+};
+
+// Method to update appointment status
+appointmentSchema.methods.updateStatus = async function (status, updatedBy) {
+    if (!['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show'].includes(status)) {
+        throw errors.BadRequest('Invalid appointment status');
+    }
+
+    this.status = status;
+    this.updatedBy = updatedBy;
+    await this.save();
+    return this;
+};
+
+// Method to cancel appointment
+appointmentSchema.methods.cancel = async function (reason, updatedBy) {
+    if (this.status === 'completed') {
+        throw errors.BadRequest('Cannot cancel a completed appointment');
+    }
+
+    this.status = 'cancelled';
+    this.notes = reason ? `${this.notes ? this.notes + '\n' : ''}Cancellation reason: ${reason}` : this.notes;
+    this.updatedBy = updatedBy;
+    await this.save();
+    return this;
+};
+
+// Method to mark as no-show
+appointmentSchema.methods.markAsNoShow = async function (updatedBy) {
+    if (this.status === 'completed') {
+        throw errors.BadRequest('Cannot mark a completed appointment as no-show');
+    }
+
+    this.status = 'no-show';
+    this.updatedBy = updatedBy;
+    await this.save();
+    return this;
+};
+
+// Method to complete appointment
+appointmentSchema.methods.complete = async function (scanId, updatedBy) {
+    if (this.status === 'cancelled' || this.status === 'no-show') {
+        throw errors.BadRequest('Cannot complete a cancelled or no-show appointment');
+    }
+
+    this.status = 'completed';
+    this.scan = scanId;
+    this.updatedBy = updatedBy;
+    await this.save();
+    return this;
+};
+
+// Static method to find active appointments
+appointmentSchema.statics.findActive = function () {
+    return this.find({ isActive: true });
+};
+
+// Static method to find appointments by date range
+appointmentSchema.statics.findByDateRange = function (startDate, endDate) {
+    return this.find({
+        appointmentDate: {
+            $gte: startDate,
+            $lte: endDate
+        },
+        isActive: true
+    });
+};
+
+// Static method to find appointments by status
+appointmentSchema.statics.findByStatus = function (status) {
+    return this.find({
+        status,
+        isActive: true
+    });
+};
+
+// Static method to find doctor's appointments
+appointmentSchema.statics.findDoctorAppointments = function (doctorId, date) {
+    return this.find({
+        doctor: doctorId,
+        appointmentDate: date,
+        isActive: true
+    }).sort({ appointmentTime: 1 });
+};
+
+// Static method to find patient's appointments
+appointmentSchema.statics.findPatientAppointments = function (patientId) {
+    return this.find({
+        patient: patientId,
+        isActive: true
+    }).sort({ appointmentDate: -1, appointmentTime: -1 });
 };
 
 const Appointment = mongoose.model('Appointment', appointmentSchema);

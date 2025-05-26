@@ -105,40 +105,50 @@ export const createAppointment = asyncHandler(async (req, res) => {
 // @returns Paginated list of appointments with populated references
 export const getAllAppointments = asyncHandler(async (req, res) => {
     const {
-        patient,
-        doctor,
+        search,
         status,
-        type,
-        priority,
         startDate,
         endDate,
-        sortBy = 'appointmentDate',
-        sortOrder = 'asc',
+        patientId,
+        doctorId,
         ...paginationOptions
     } = req.query;
 
     // Build query
     const query = {};
-    if (patient) query.patient = patient;
-    if (doctor) query.doctor = doctor;
-    if (status) query.status = status;
-    if (type) query.type = type;
-    if (priority) query.priority = priority;
+    if (search) {
+        query.$or = [
+            { 'patient.name': { $regex: search, $options: 'i' } },
+            { 'patient.phone': { $regex: search, $options: 'i' } },
+            { 'doctor.name': { $regex: search, $options: 'i' } }
+        ];
+    }
+    if (status) {
+        query.status = status;
+    }
     if (startDate || endDate) {
         query.appointmentDate = {};
-        if (startDate) query.appointmentDate.$gte = new Date(startDate);
-        if (endDate) query.appointmentDate.$lte = new Date(endDate);
+        if (startDate) {
+            query.appointmentDate.$gte = new Date(startDate);
+        }
+        if (endDate) {
+            query.appointmentDate.$lte = new Date(endDate);
+        }
+    }
+    if (patientId) {
+        query['patient._id'] = patientId;
+    }
+    if (doctorId) {
+        query['doctor._id'] = doctorId;
     }
 
-    // Execute paginated query with population
     const result = await executePaginatedQuery(
         Appointment,
         query,
-        { ...paginationOptions, sortBy, sortOrder },
+        paginationOptions,
         [
-            { path: 'patient', select: 'firstName lastName email phoneNumber' },
-            { path: 'doctor', select: 'firstName lastName specialization' },
-            { path: 'createdBy', select: 'username email' }
+            { path: 'patient', select: 'name phone gender dateOfBirth' },
+            { path: 'doctor', select: 'name specialization' }
         ]
     );
 

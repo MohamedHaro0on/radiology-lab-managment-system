@@ -4,6 +4,7 @@ import { errors } from '../utils/errorHandler.js';
 import PatientHistory from '../models/PatientHistory.js';
 import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
+import { executePaginatedQuery } from '../utils/pagination.js';
 
 // Create a new patient history record
 export const createPatientHistory = asyncHandler(async (req, res) => {
@@ -18,17 +19,43 @@ export const createPatientHistory = asyncHandler(async (req, res) => {
     res.status(StatusCodes.CREATED).json({ status: "success", data: history });
 });
 
-// Get all patient history records (with filtering and pagination)
+// Get all patient histories with filtering and pagination
 export const getAllPatientHistories = asyncHandler(async (req, res) => {
-    const { patientId, doctorId, date, page = 1, limit = 10, sortBy = "date", sortOrder = "desc" } = req.query;
+    const {
+        search,
+        patientId,
+        scanType,
+        ...paginationOptions
+    } = req.query;
+
+    // Build query
     const query = {};
-    if (patientId) query.patientId = patientId;
-    if (doctorId) query.doctorId = doctorId;
-    if (date) query.date = new Date(date);
-    const skip = (page - 1) * limit;
-    const histories = await PatientHistory.find(query).sort({ [sortBy]: (sortOrder === "asc" ? 1 : -1) }).skip(skip).limit(parseInt(limit));
-    const total = await PatientHistory.countDocuments(query);
-    res.status(StatusCodes.OK).json({ status: "success", data: histories, pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) } });
+    if (search) {
+        query.$or = [
+            { 'patient.name': { $regex: search, $options: 'i' } },
+            { 'patient.phone': { $regex: search, $options: 'i' } },
+            { diagnosis: { $regex: search, $options: 'i' } }
+        ];
+    }
+    if (patientId) {
+        query['patient._id'] = patientId;
+    }
+    if (scanType) {
+        query.scanType = scanType;
+    }
+
+    const result = await executePaginatedQuery(
+        PatientHistory,
+        query,
+        paginationOptions,
+        [
+            { path: 'patient', select: 'name phone gender dateOfBirth' },
+            { path: 'doctor', select: 'name specialization' },
+            { path: 'radiologist', select: 'name specialization' }
+        ]
+    );
+
+    res.status(StatusCodes.OK).json(result);
 });
 
 // Get a single patient history record by id

@@ -1,26 +1,80 @@
 import express from 'express';
-import { auth, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import stockValidation from '../validations/stockValidation.js';
-import {
-    createStock,
-    getAllStock,
-    getStock,
-    updateStock,
-    deleteStock,
-    getLowStock,
-    getExpiredItems
-} from '../controllers/stockController.js';
+import { auth } from '../middleware/auth.js';
+import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
+import { stockValidation } from '../validations/stockValidation.js';
+import * as stockController from '../controllers/stockController.js';
 
 const router = express.Router();
 
-// CRUD routes
-router.post('/', auth, authorize('admin', 'technician'), validate(stockValidation.createStock.body), createStock);
-router.get('/', auth, authorize('admin', 'technician', 'receptionist'), validate(stockValidation.listStock.query), getAllStock);
-router.get('/low', auth, authorize('admin', 'technician'), getLowStock);
-router.get('/expired', auth, authorize('admin', 'technician'), getExpiredItems);
-router.get('/:id', auth, authorize('admin', 'technician', 'receptionist'), validate(stockValidation.getStock.params), getStock);
-router.patch('/:id', auth, authorize('admin', 'technician'), validate(stockValidation.updateStock.params), validate(stockValidation.updateStock.body), updateStock);
-router.delete('/:id', auth, authorize('admin'), validate(stockValidation.deleteStock.params), deleteStock);
+// Apply auth middleware to all routes
+router.use(auth);
+
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
+
+// Create new stock item
+router.post(
+    '/',
+    checkPrivilege('stock', 'create'),
+    validate(stockValidation.createStock),
+    stockController.createStock
+);
+
+// Get all stock items
+router.get(
+    '/',
+    checkPrivilege('stock', 'view'),
+    validate(stockValidation.getAllStock),
+    stockController.getAllStock
+);
+
+// Get low stock items
+router.get(
+    '/low',
+    checkPrivilege('stock', 'view'),
+    validate(stockValidation.getLowStock),
+    stockController.getLowStock
+);
+
+// Get expired items
+router.get(
+    '/expired',
+    checkPrivilege('stock', 'view'),
+    validate(stockValidation.getExpiredItems),
+    stockController.getExpiredItems
+);
+
+// Get single stock item
+router.get(
+    '/:id',
+    checkPrivilege('stock', 'view'),
+    validate(stockValidation.getStock),
+    stockController.getStock
+);
+
+// Update stock item
+router.patch(
+    '/:id',
+    checkPrivilege('stock', 'update'),
+    validate(stockValidation.updateStock),
+    stockController.updateStock
+);
+
+// Update stock quantity
+router.patch(
+    '/:id/quantity',
+    checkPrivilege('stock', 'update'),
+    validate(stockValidation.updateQuantity),
+    stockController.updateQuantity
+);
+
+// Delete stock item
+router.delete(
+    '/:id',
+    checkPrivilege('stock', 'delete'),
+    validate(stockValidation.deleteStock),
+    stockController.deleteStock
+);
 
 export default router; 

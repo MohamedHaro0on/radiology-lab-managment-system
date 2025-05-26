@@ -1,69 +1,72 @@
 import express from 'express';
 import { validate } from '../middleware/validate.js';
-import { authorize } from '../middleware/auth.js';
+import { auth } from '../middleware/auth.js';
+import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
 import { appointmentValidation } from '../validations/appointmentValidation.js';
-import {
-    createAppointment,
-    getAllAppointments,
-    getAppointment,
-    updateAppointment,
-    updateAppointmentStatus,
-    deleteAppointment,
-    getAppointmentsByDateRange
-} from '../controllers/appointmentController.js';
+import * as appointmentController from '../controllers/appointmentController.js';
 
 const router = express.Router();
 
-// Protect all routes
-router.use(authorize('admin', 'manager', 'doctor'));
+// Apply auth middleware to all routes
+router.use(auth);
 
-// Create appointment
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
+
+// Create new appointment
 router.post(
     '/',
+    checkPrivilege('appointments', 'create'),
     validate(appointmentValidation.createAppointment),
-    createAppointment
+    appointmentController.createAppointment
 );
 
 // Get all appointments
 router.get(
     '/',
-    validate(appointmentValidation.listAppointments),
-    getAllAppointments
+    checkPrivilege('appointments', 'view'),
+    validate(appointmentValidation.getAllAppointments),
+    appointmentController.getAllAppointments
 );
 
 // Get appointments by date range
 router.get(
     '/date-range',
-    validate(appointmentValidation.listAppointments),
-    getAppointmentsByDateRange
+    checkPrivilege('appointments', 'view'),
+    validate(appointmentValidation.getAppointmentsByDateRange),
+    appointmentController.getAppointmentsByDateRange
 );
 
 // Get single appointment
 router.get(
     '/:id',
+    checkPrivilege('appointments', 'view'),
     validate(appointmentValidation.getAppointment),
-    getAppointment
+    appointmentController.getAppointment
 );
 
 // Update appointment
 router.patch(
     '/:id',
+    checkPrivilege('appointments', 'update'),
     validate(appointmentValidation.updateAppointment),
-    updateAppointment
+    appointmentController.updateAppointment
 );
 
 // Update appointment status
 router.patch(
     '/:id/status',
-    validate(appointmentValidation.updateStatus),
-    updateAppointmentStatus
+    checkPrivilege('appointments', 'update'),
+    validate(appointmentValidation.updateAppointmentStatus),
+    appointmentController.updateAppointmentStatus
 );
 
 // Delete appointment
 router.delete(
     '/:id',
+    checkPrivilege('appointments', 'delete'),
     validate(appointmentValidation.deleteAppointment),
-    deleteAppointment
+    appointmentController.deleteAppointment
 );
 
 export default router; 

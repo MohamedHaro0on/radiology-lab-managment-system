@@ -5,172 +5,280 @@ import { errors } from '../utils/errorHandler.js';
 import User from '../models/User.js';
 import QRCode from 'qrcode';
 import bcrypt from 'bcryptjs';
+import speakeasy from 'speakeasy';
 
-// Register new user (public endpoint – for testing only)
-const register = asyncHandler(async (req, res) => {
-    const { username, email, password, role } = req.body;
+// Generate JWT token
+const generateToken = (userId) => {
+    return jwt.sign(
+        { id: userId },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+};
+
+// Generate refresh token
+const generateRefreshToken = (userId) => {
+    return jwt.sign(
+        { id: userId },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '7d' }
+    );
+};
+
+// Register new user
+export const register = asyncHandler(async (req, res) => {
+    const { username, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({
-        $or: [{ email }, { username }]
-    });
-
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
         throw errors.Conflict('User with this email or username already exists');
     }
 
-    // Generate 2FA secret during registration (for testing, we're not enforcing admin-only registration)
-    const user = new User({
+    // Create user
+    const user = await User.create({
         username,
         email,
         password,
-        role
+        createdBy: req.user?._id // If registering through admin
     });
 
-    // Generate and set 2FA secret
-    const secret = user.generateTwoFactorSecret();
-    await user.save();
+    // Generate tokens
+    const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    // Generate QR code for initial setup
-    const otpauth = secret.otpauth_url;
-    const qrCode = await QRCode.toDataURL(otpauth);
-
-    res.status(StatusCodes.CREATED).json({
-        status: 'success',
-        message: 'User registered successfully (public endpoint – for testing). Please scan QR code to complete 2FA setup.',
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            role: user.role
-        },
-        qrCode,
-        secret: secret.base32
+    // Return user info and tokens
+    res.status(201).json({
+        user: user.info,
+        token,
+        refreshToken
     });
 });
 
 // Login user
-const login = asyncHandler(async (req, res) => {
+export const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    console.log('DEBUG Login attempt for:', email);
 
-    // Find user and explicitly select password field
-    const user = await User.findOne({ email }).select('+password +twoFactorSecret');
-    console.log('DEBUG User found:', user ? 'yes' : 'no');
-    console.log('DEBUG User document:', JSON.stringify(user, null, 2));
+    // Find user and check password
+    const user = await User.findByCredentials(email, password);
 
-    if (!user) {
-        throw errors.Unauthorized('Invalid credentials');
-    }
+    // Generate tokens
+    const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    // Check password directly using bcrypt
-    console.log('DEBUG About to compare passwords');
-    console.log('DEBUG Candidate password:', password);
-    console.log('DEBUG Stored password:', user.password);
-
-    try {
-        const isMatch = await bcrypt.compare(password, user.password);
-        console.log('DEBUG Password match:', isMatch);
-
-        if (!isMatch) {
-            throw errors.Unauthorized('Invalid credentials');
-        }
-    } catch (error) {
-        console.error('DEBUG Password comparison error:', error);
-        throw error;
-    }
-
-    // Check if user is active
-    if (!user.isActive) {
-        throw errors.Unauthorized('Account is inactive');
-    }
-
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Generate token (requires 2FA verification)
-    const token = jwt.sign(
-        {
-            userId: user._id,
-            role: user.role,
-            twoFactorVerified: false
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        message: 'Login successful, 2FA verification required',
+    // Return user info and tokens
+    res.json({
+        user: user.info,
         token,
-        requiresTwoFactor: true,
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            role: user.role
-        }
+        refreshToken
     });
 });
 
-// Setup 2FA (Initial setup only)
-const setupTwoFactor = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id).select('+twoFactorSecret');
+// Refresh token
+export const refreshToken = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
 
-    // Generate new secret
-    const secret = user.generateTwoFactorSecret();
+    try {
+        // Verify refresh token
+        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+        // Check if user exists
+        const user = await User.findById(decoded.id);
+        if (!user || !user.isActive) {
+            throw errors.Unauthorized('Invalid refresh token');
+        }
+
+        // Generate new tokens
+        const newToken = generateToken(user._id);
+        const newRefreshToken = generateRefreshToken(user._id);
+
+        res.json({
+            token: newToken,
+            refreshToken: newRefreshToken
+        });
+    } catch (error) {
+        throw errors.Unauthorized('Invalid refresh token');
+    }
+});
+
+// Logout user
+export const logout = asyncHandler(async (req, res) => {
+    // In a real application, you might want to blacklist the token
+    // For now, we'll just send a success response
+    res.json({ message: 'Logged out successfully' });
+});
+
+// Forgot password
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+        // Don't reveal that the user doesn't exist
+        return res.json({ message: 'If your email is registered, you will receive a password reset link' });
+    }
+
+    // Generate reset token
+    const resetToken = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+    );
+
+    // Save reset token
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = Date.now() + 3600000; // 1 hour
+    await user.save({ validateBeforeSave: false });
+
+    // In a real application, send email with reset link
+    // For now, we'll just return the token
+    res.json({
+        message: 'If your email is registered, you will receive a password reset link',
+        resetToken // Remove this in production
+    });
+});
+
+// Reset password
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { token, password } = req.body;
+
+    try {
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Find user
+        const user = await User.findById(decoded.id);
+        if (!user || user.passwordResetToken !== token || user.passwordResetExpires < Date.now()) {
+            throw errors.BadRequest('Invalid or expired reset token');
+        }
+
+        // Update password
+        user.password = password;
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save();
+
+        // Generate new tokens
+        const newToken = generateToken(user._id);
+        const newRefreshToken = generateRefreshToken(user._id);
+
+        res.json({
+            message: 'Password reset successful',
+            token: newToken,
+            refreshToken: newRefreshToken
+        });
+    } catch (error) {
+        throw errors.BadRequest('Invalid or expired reset token');
+    }
+});
+
+// Change password
+export const changePassword = asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const user = req.user;
+
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+        throw errors.BadRequest('Current password is incorrect');
+    }
+
+    // Update password
+    user.password = newPassword;
     await user.save();
 
-    // Generate QR code
-    const otpauth = secret.otpauth_url;
-    const qrCode = await QRCode.toDataURL(otpauth);
+    res.json({ message: 'Password changed successfully' });
+});
 
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        message: 'Please scan QR code to complete 2FA setup.',
+// Enable 2FA
+export const enable2FA = asyncHandler(async (req, res) => {
+    const { password } = req.body;
+    const user = req.user;
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        throw errors.BadRequest('Password is incorrect');
+    }
+
+    // Generate secret
+    const secret = speakeasy.generateSecret({
+        name: `RadiologyLab:${user.email}`
+    });
+
+    // Save secret
+    user.twoFactorSecret = secret.base32;
+    await user.save({ validateBeforeSave: false });
+
+    // Generate QR code
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+    res.json({
         secret: secret.base32,
         qrCode
     });
 });
 
-// Verify 2FA token
-const verifyTwoFactor = asyncHandler(async (req, res) => {
+// Verify 2FA
+export const verify2FA = asyncHandler(async (req, res) => {
     const { token } = req.body;
-    const user = await User.findById(req.user._id).select('+twoFactorSecret');
+    const user = req.user;
 
-    const isValid = user.verifyTwoFactorToken(token);
-    if (!isValid) {
+    // Verify token
+    const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token
+    });
+
+    if (!verified) {
         throw errors.BadRequest('Invalid token');
     }
 
-    // Generate new token with 2FA verified
-    const newToken = jwt.sign(
-        {
-            userId: user._id,
-            role: user.role,
-            twoFactorVerified: true
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
+    // Enable 2FA
+    user.twoFactorEnabled = true;
+    await user.save();
 
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        message: '2FA verification successful',
-        token: newToken,
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            role: user.role
-        }
+    res.json({ message: '2FA enabled successfully' });
+});
+
+// Disable 2FA
+export const disable2FA = asyncHandler(async (req, res) => {
+    const { password, token } = req.body;
+    const user = req.user;
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        throw errors.BadRequest('Password is incorrect');
+    }
+
+    // Verify token
+    const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token
     });
+
+    if (!verified) {
+        throw errors.BadRequest('Invalid token');
+    }
+
+    // Disable 2FA
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = undefined;
+    await user.save();
+
+    res.json({ message: '2FA disabled successfully' });
 });
 
 // Get current user profile
 const getProfile = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id).select('-password -twoFactorSecret');
+    const user = await User.findById(req.user._id)
+        .select('-password -twoFactorSecret')
+        .populate('privileges.grantedBy', 'username email');
+
     if (!user) {
         throw errors.NotFound('User not found');
     }
@@ -202,7 +310,7 @@ const updateProfile = asyncHandler(async (req, res) => {
             id: user._id,
             username: user.username,
             email: user.email,
-            role: user.role
+            isSuperAdmin: user.isSuperAdmin
         }
     });
 });
@@ -220,11 +328,107 @@ export const getUserById = asyncHandler(async (req, res) => {
     res.status(StatusCodes.OK).json({ status: 'success', data: user });
 });
 
+// Verify email
+export const verifyEmail = asyncHandler(async (req, res) => {
+    const { token } = req.body;
+
+    try {
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Find user
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            throw errors.BadRequest('Invalid verification token');
+        }
+
+        // Check if email is already verified
+        if (user.isEmailVerified) {
+            return res.json({ message: 'Email is already verified' });
+        }
+
+        // Update user
+        user.isEmailVerified = true;
+        await user.save();
+
+        res.json({ message: 'Email verified successfully' });
+    } catch (error) {
+        throw errors.BadRequest('Invalid or expired verification token');
+    }
+});
+
+// Get current user
+export const getCurrentUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id)
+        .select('-password -twoFactorSecret')
+        .populate('privileges.grantedBy', 'username email');
+
+    if (!user) {
+        throw errors.NotFound('User not found');
+    }
+
+    res.json({
+        user: user.info
+    });
+});
+
+// Update user by ID (admin only)
+export const updateUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const updates = Object.keys(req.body);
+    const allowedUpdates = ['username', 'email', 'isActive'];
+    const isValidOperation = updates.every(update => allowedUpdates.includes(update));
+
+    if (!isValidOperation) {
+        throw errors.BadRequest('Invalid updates');
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+        throw errors.NotFound('User not found');
+    }
+
+    // Don't allow updating super admin status through this endpoint
+    if (user.isSuperAdmin && !req.user.isSuperAdmin) {
+        throw errors.Forbidden('Cannot update super admin user');
+    }
+
+    updates.forEach(update => user[update] = req.body[update]);
+    await user.save();
+
+    res.json({
+        message: 'User updated successfully',
+        user: user.info
+    });
+});
+
+// Delete user by ID (admin only)
+export const deleteUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    if (!user) {
+        throw errors.NotFound('User not found');
+    }
+
+    // Don't allow deleting super admin
+    if (user.isSuperAdmin) {
+        throw errors.Forbidden('Cannot delete super admin user');
+    }
+
+    // Don't allow deleting self
+    if (user._id.equals(req.user._id)) {
+        throw errors.Forbidden('Cannot delete your own account');
+    }
+
+    await user.deleteOne();
+
+    res.json({
+        message: 'User deleted successfully'
+    });
+});
+
 export {
-    register,
-    login,
-    setupTwoFactor,
-    verifyTwoFactor,
     getProfile,
     updateProfile
 }; 

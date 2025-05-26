@@ -1,34 +1,121 @@
 import express from 'express';
-import { validate, schemas } from '../middleware/validate.js';
-import { auth, authorize } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { auth } from '../middleware/auth.js';
+import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
+import { authValidation } from '../validations/authValidation.js';
+import * as authController from '../controllers/authController.js';
 import {
-    register,
-    login,
-    setupTwoFactor,
-    verifyTwoFactor,
-    getProfile,
-    updateProfile,
-    getAllUsers,
-    getUserById
-} from '../controllers/authController.js';
+    authLimiter,
+    passwordResetLimiter,
+    twoFactorLimiter
+} from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-// Public routes
-router.post('/login', validate(schemas.userLogin), login);
+// Public routes with rate limiting
+router.post('/register',
+    authLimiter,
+    validate(authValidation.register),
+    authController.register
+);
 
-// Public (for testing) – register endpoint (no auth)
-router.post('/register', auth, validate(schemas.userCreate), register);
+router.post('/login',
+    authLimiter,
+    validate(authValidation.login),
+    authController.login
+);
 
-router.get('/profile', auth, getProfile);
-router.patch('/profile', auth, updateProfile);
+router.post('/refresh-token',
+    authLimiter,
+    validate(authValidation.refreshToken),
+    authController.refreshToken
+);
 
-// 2FA routes
-router.post('/2fa/setup', auth, setupTwoFactor);
-router.post('/2fa/verify', auth, verifyTwoFactor);
+router.post('/forgot-password',
+    passwordResetLimiter,
+    validate(authValidation.forgotPassword),
+    authController.forgotPassword
+);
 
-// Admin-only user management routes
-router.get('/users', auth, authorize('admin'), getAllUsers);
-router.get('/users/:id', auth, authorize('admin'), getUserById);
+router.post('/reset-password',
+    passwordResetLimiter,
+    validate(authValidation.resetPassword),
+    authController.resetPassword
+);
+
+router.post('/verify-email',
+    authLimiter,
+    validate(authValidation.verifyEmail),
+    authController.verifyEmail
+);
+
+// Protected routes
+router.use(auth);
+
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
+
+// Get current user
+router.get('/me', authController.getCurrentUser);
+
+// Update current user
+router.patch('/me',
+    validate(authValidation.updateProfile),
+    authController.updateProfile
+);
+
+// Change password
+router.post('/change-password',
+    validate(authValidation.changePassword),
+    authController.changePassword
+);
+
+// 2FA routes with rate limiting
+router.post('/2fa/enable',
+    validate(authValidation.enable2FA),
+    authController.enable2FA
+);
+
+router.post('/2fa/disable',
+    validate(authValidation.disable2FA),
+    authController.disable2FA
+);
+
+router.post('/2fa/verify',
+    twoFactorLimiter,
+    validate(authValidation.verify2FA),
+    authController.verify2FA
+);
+
+// User management routes (super admin only)
+router.get(
+    '/users',
+    checkPrivilege('users', 'view'),
+    validate(authValidation.getAllUsers),
+    authController.getAllUsers
+);
+
+router.get(
+    '/users/:id',
+    checkPrivilege('users', 'view'),
+    validate(authValidation.getUserById),
+    authController.getUserById
+);
+
+router.patch(
+    '/users/:id',
+    checkPrivilege('users', 'update'),
+    validate(authValidation.updateUser),
+    authController.updateUser
+);
+
+router.delete(
+    '/users/:id',
+    checkPrivilege('users', 'delete'),
+    validate(authValidation.deleteUser),
+    authController.deleteUser
+);
+
+router.post('/logout', authController.logout);
 
 export default router; 

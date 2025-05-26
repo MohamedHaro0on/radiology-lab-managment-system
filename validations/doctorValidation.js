@@ -1,95 +1,215 @@
 import Joi from 'joi';
+import { objectId } from './commonValidation.js';
+import { errors } from '../utils/errorHandler.js';
 
-const doctorValidation = {
-    // Create doctor validation
-    createDoctor: Joi.object({
-        body: Joi.object({
-            name: Joi.string().required().trim().min(2).max(100)
-                .messages({
-                    'string.empty': 'Doctor name is required',
-                    'string.min': 'Doctor name must be at least 2 characters long',
-                    'string.max': 'Doctor name cannot exceed 100 characters'
-                }),
-            email: Joi.string().required().email().trim().lowercase()
-                .messages({
-                    'string.empty': 'Email is required',
-                    'string.email': 'Please enter a valid email address'
-                }),
-            contactNumber: Joi.string().required().trim().pattern(/^[0-9+\-\s()]{10,15}$/)
-                .messages({
-                    'string.empty': 'Contact number is required',
-                    'string.pattern.base': 'Please enter a valid contact number'
-                }),
-            specialization: Joi.string().required().trim().min(2).max(100)
-                .messages({
-                    'string.empty': 'Specialization is required',
-                    'string.min': 'Specialization must be at least 2 characters long',
-                    'string.max': 'Specialization cannot exceed 100 characters'
-                }),
-            licenseNumber: Joi.string().required().trim().min(5).max(20)
-                .messages({
-                    'string.empty': 'License number is required',
-                    'string.min': 'License number must be at least 5 characters long',
-                    'string.max': 'License number cannot exceed 20 characters'
-                })
-        })
-    }),
-
-    // Update doctor validation
-    updateDoctor: Joi.object({
-        params: Joi.object({
-            id: Joi.string().required().pattern(/^[0-9a-fA-F]{24}$/)
-                .messages({
-                    'string.empty': 'Doctor ID is required',
-                    'string.pattern.base': 'Invalid doctor ID format'
-                })
+// Validation schemas for doctors
+export const doctorValidation = {
+    // Create doctor
+    create: Joi.object({
+        name: Joi.string().required().min(2).max(100).messages({
+            'any.required': 'Name is required',
+            'string.min': 'Name must be at least 2 characters long',
+            'string.max': 'Name cannot exceed 100 characters'
         }),
-        body: Joi.object({
-            name: Joi.string().trim().min(2).max(100),
-            email: Joi.string().email().trim().lowercase(),
-            contactNumber: Joi.string().trim().pattern(/^[0-9+\-\s()]{10,15}$/),
-            specialization: Joi.string().trim().min(2).max(100),
-            licenseNumber: Joi.string().trim().min(5).max(20),
-            isActive: Joi.boolean()
-        }).min(1).messages({
-            'object.min': 'At least one field must be provided for update'
-        })
-    }),
-
-    // Get doctor validation
-    getDoctor: Joi.object({
-        params: Joi.object({
-            id: Joi.string().required().pattern(/^[0-9a-fA-F]{24}$/)
-                .messages({
-                    'string.empty': 'Doctor ID is required',
-                    'string.pattern.base': 'Invalid doctor ID format'
+        specialization: Joi.string().required().min(2).max(100).messages({
+            'any.required': 'Specialization is required',
+            'string.min': 'Specialization must be at least 2 characters long',
+            'string.max': 'Specialization cannot exceed 100 characters'
+        }),
+        licenseNumber: Joi.string().required().min(3).max(50).messages({
+            'any.required': 'License number is required',
+            'string.min': 'License number must be at least 3 characters long',
+            'string.max': 'License number cannot exceed 50 characters'
+        }),
+        contactNumber: Joi.string().required().pattern(/^\+?[\d\s-]{10,}$/).messages({
+            'any.required': 'Contact number is required',
+            'string.pattern.base': 'Invalid contact number format'
+        }),
+        email: Joi.string().required().email().messages({
+            'any.required': 'Email is required',
+            'string.email': 'Invalid email format'
+        }),
+        address: Joi.object({
+            street: Joi.string().required().min(3).max(200).messages({
+                'any.required': 'Street address is required',
+                'string.min': 'Street address must be at least 3 characters long',
+                'string.max': 'Street address cannot exceed 200 characters'
+            }),
+            city: Joi.string().required().min(2).max(100).messages({
+                'any.required': 'City is required',
+                'string.min': 'City must be at least 2 characters long',
+                'string.max': 'City cannot exceed 100 characters'
+            }),
+            state: Joi.string().required().min(2).max(100).messages({
+                'any.required': 'State is required',
+                'string.min': 'State must be at least 2 characters long',
+                'string.max': 'State cannot exceed 100 characters'
+            }),
+            country: Joi.string().required().min(2).max(100).messages({
+                'any.required': 'Country is required',
+                'string.min': 'Country must be at least 2 characters long',
+                'string.max': 'Country cannot exceed 100 characters'
+            }),
+            postalCode: Joi.string().required().min(3).max(20).messages({
+                'any.required': 'Postal code is required',
+                'string.min': 'Postal code must be at least 3 characters long',
+                'string.max': 'Postal code cannot exceed 20 characters'
+            })
+        }).required().messages({
+            'any.required': 'Address is required'
+        }),
+        qualifications: Joi.array().items(
+            Joi.object({
+                degree: Joi.string().required().min(2).max(100).messages({
+                    'any.required': 'Degree is required',
+                    'string.min': 'Degree must be at least 2 characters long',
+                    'string.max': 'Degree cannot exceed 100 characters'
+                }),
+                institution: Joi.string().required().min(2).max(200).messages({
+                    'any.required': 'Institution is required',
+                    'string.min': 'Institution must be at least 2 characters long',
+                    'string.max': 'Institution cannot exceed 200 characters'
+                }),
+                year: Joi.number().integer().min(1900).max(new Date().getFullYear()).required().messages({
+                    'any.required': 'Year is required',
+                    'number.min': 'Year must be after 1900',
+                    'number.max': 'Year cannot be in the future'
                 })
-        })
+            })
+        ).min(1).required().messages({
+            'any.required': 'At least one qualification is required',
+            'array.min': 'At least one qualification is required'
+        }),
+        experience: Joi.number().integer().min(0).required().messages({
+            'any.required': 'Experience is required',
+            'number.min': 'Experience cannot be negative'
+        }),
+        isActive: Joi.boolean().default(true)
     }),
 
-    // List doctors validation
-    listDoctors: Joi.object({
-        query: Joi.object({
-            page: Joi.number().integer().min(1).default(1),
-            limit: Joi.number().integer().min(1).max(100).default(10),
-            search: Joi.string().trim().min(1).max(100),
-            specialization: Joi.string().trim(),
-            sortBy: Joi.string().valid('name', 'referralCount', 'createdAt').default('name'),
-            sortOrder: Joi.string().valid('asc', 'desc').default('asc'),
-            isActive: Joi.boolean()
-        })
-    }),
-
-    // Delete doctor validation
-    deleteDoctor: Joi.object({
-        params: Joi.object({
-            id: Joi.string().required().pattern(/^[0-9a-fA-F]{24}$/)
-                .messages({
-                    'string.empty': 'Doctor ID is required',
-                    'string.pattern.base': 'Invalid doctor ID format'
+    // Update doctor
+    update: Joi.object({
+        name: Joi.string().min(2).max(100).messages({
+            'string.min': 'Name must be at least 2 characters long',
+            'string.max': 'Name cannot exceed 100 characters'
+        }),
+        specialization: Joi.string().min(2).max(100).messages({
+            'string.min': 'Specialization must be at least 2 characters long',
+            'string.max': 'Specialization cannot exceed 100 characters'
+        }),
+        licenseNumber: Joi.string().min(3).max(50).messages({
+            'string.min': 'License number must be at least 3 characters long',
+            'string.max': 'License number cannot exceed 50 characters'
+        }),
+        contactNumber: Joi.string().pattern(/^\+?[\d\s-]{10,}$/).messages({
+            'string.pattern.base': 'Invalid contact number format'
+        }),
+        email: Joi.string().email().messages({
+            'string.email': 'Invalid email format'
+        }),
+        address: Joi.object({
+            street: Joi.string().min(3).max(200).messages({
+                'string.min': 'Street address must be at least 3 characters long',
+                'string.max': 'Street address cannot exceed 200 characters'
+            }),
+            city: Joi.string().min(2).max(100).messages({
+                'string.min': 'City must be at least 2 characters long',
+                'string.max': 'City cannot exceed 100 characters'
+            }),
+            state: Joi.string().min(2).max(100).messages({
+                'string.min': 'State must be at least 2 characters long',
+                'string.max': 'State cannot exceed 100 characters'
+            }),
+            country: Joi.string().min(2).max(100).messages({
+                'string.min': 'Country must be at least 2 characters long',
+                'string.max': 'Country cannot exceed 100 characters'
+            }),
+            postalCode: Joi.string().min(3).max(20).messages({
+                'string.min': 'Postal code must be at least 3 characters long',
+                'string.max': 'Postal code cannot exceed 20 characters'
+            })
+        }),
+        qualifications: Joi.array().items(
+            Joi.object({
+                degree: Joi.string().required().min(2).max(100).messages({
+                    'any.required': 'Degree is required',
+                    'string.min': 'Degree must be at least 2 characters long',
+                    'string.max': 'Degree cannot exceed 100 characters'
+                }),
+                institution: Joi.string().required().min(2).max(200).messages({
+                    'any.required': 'Institution is required',
+                    'string.min': 'Institution must be at least 2 characters long',
+                    'string.max': 'Institution cannot exceed 200 characters'
+                }),
+                year: Joi.number().integer().min(1900).max(new Date().getFullYear()).required().messages({
+                    'any.required': 'Year is required',
+                    'number.min': 'Year must be after 1900',
+                    'number.max': 'Year cannot be in the future'
                 })
+            })
+        ).min(1).messages({
+            'array.min': 'At least one qualification is required'
+        }),
+        experience: Joi.number().integer().min(0).messages({
+            'number.min': 'Experience cannot be negative'
+        }),
+        isActive: Joi.boolean()
+    }).min(1).messages({
+        'object.min': 'At least one field must be provided for update'
+    }),
+
+    // Get doctor by ID
+    getById: Joi.object({
+        id: objectId.required().messages({
+            'any.required': 'Doctor ID is required',
+            'string.pattern.base': 'Invalid doctor ID format'
+        })
+    }),
+
+    // Delete doctor
+    delete: Joi.object({
+        id: objectId.required().messages({
+            'any.required': 'Doctor ID is required',
+            'string.pattern.base': 'Invalid doctor ID format'
+        })
+    }),
+
+    // Add qualification
+    addQualification: Joi.object({
+        id: objectId.required().messages({
+            'any.required': 'Doctor ID is required',
+            'string.pattern.base': 'Invalid doctor ID format'
+        }),
+        qualification: Joi.object({
+            degree: Joi.string().required().min(2).max(100).messages({
+                'any.required': 'Degree is required',
+                'string.min': 'Degree must be at least 2 characters long',
+                'string.max': 'Degree cannot exceed 100 characters'
+            }),
+            institution: Joi.string().required().min(2).max(200).messages({
+                'any.required': 'Institution is required',
+                'string.min': 'Institution must be at least 2 characters long',
+                'string.max': 'Institution cannot exceed 200 characters'
+            }),
+            year: Joi.number().integer().min(1900).max(new Date().getFullYear()).required().messages({
+                'any.required': 'Year is required',
+                'number.min': 'Year must be after 1900',
+                'number.max': 'Year cannot be in the future'
+            })
+        }).required().messages({
+            'any.required': 'Qualification details are required'
+        })
+    }),
+
+    // Remove qualification
+    removeQualification: Joi.object({
+        id: objectId.required().messages({
+            'any.required': 'Doctor ID is required',
+            'string.pattern.base': 'Invalid doctor ID format'
+        }),
+        qualificationId: objectId.required().messages({
+            'any.required': 'Qualification ID is required',
+            'string.pattern.base': 'Invalid qualification ID format'
         })
     })
-};
-
-export default doctorValidation; 
+}; 

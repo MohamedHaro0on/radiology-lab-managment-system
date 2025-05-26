@@ -1,54 +1,56 @@
 import express from 'express';
-import { auth, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import {
-    createPatient,
-    getAllPatients,
-    getPatient,
-    updatePatient,
-    deletePatient
-} from '../controllers/patientController.js';
+import { auth } from '../middleware/auth.js';
+import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
 import { patientValidation } from '../validations/patientValidation.js';
+import * as patientController from '../controllers/patientController.js';
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes
+// Apply auth middleware to all routes
 router.use(auth);
 
-// Patient CRUD routes
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
+
+// Create new patient
 router.post(
     '/',
-    authorize(['admin', 'manager']),
+    checkPrivilege('patients', 'create'),
     validate(patientValidation.createPatient),
-    createPatient
+    patientController.createPatient
 );
 
+// Get all patients
 router.get(
     '/',
-    authorize(['admin', 'manager', 'doctor', 'staff']),
+    checkPrivilege('patients', 'view'),
     validate(patientValidation.getAllPatients),
-    getAllPatients
+    patientController.getAllPatients
 );
 
+// Get single patient
 router.get(
     '/:id',
-    authorize(['admin', 'manager', 'doctor', 'staff']),
+    checkPrivilege('patients', 'view'),
     validate(patientValidation.getPatient),
-    getPatient
+    patientController.getPatient
 );
 
+// Update patient
 router.patch(
     '/:id',
-    authorize(['admin', 'manager']),
+    checkPrivilege('patients', 'update'),
     validate(patientValidation.updatePatient),
-    updatePatient
+    patientController.updatePatient
 );
 
+// Delete patient
 router.delete(
     '/:id',
-    authorize(['admin']),
+    checkPrivilege('patients', 'delete'),
     validate(patientValidation.deletePatient),
-    deletePatient
+    patientController.deletePatient
 );
 
 export default router; 

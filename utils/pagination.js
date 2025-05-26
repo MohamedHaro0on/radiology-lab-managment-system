@@ -1,3 +1,5 @@
+import { errors } from './errorHandler.js';
+
 /**
  * @desc    Creates pagination options and metadata for MongoDB queries
  * @param   {Object} query - MongoDB query object
@@ -64,38 +66,106 @@ export const createPaginatedResponse = (data, total, metadata) => {
 };
 
 /**
- * @desc    Executes a paginated query and returns formatted response
- * @param   {Object} Model - Mongoose model
- * @param   {Object} query - MongoDB query object
- * @param   {Object} options - Pagination options
- * @param   {Object} populateOptions - Options for populating references
- * @returns {Promise<Object>} Paginated response
+ * Execute a paginated query with sorting and filtering
+ * @param {Model} Model - Mongoose model
+ * @param {Object} query - Query conditions
+ * @param {Object} options - Pagination options
+ * @param {number} options.page - Page number (default: 1)
+ * @param {number} options.limit - Items per page (default: 10)
+ * @param {Object} options.sort - Sort options (default: { createdAt: -1 })
+ * @param {string|Object} options.select - Fields to select
+ * @param {Object} options.populate - Population options
+ * @returns {Object} Paginated results
  */
-export const executePaginatedQuery = async (Model, query, options = {}, populateOptions = null) => {
-    // Create pagination options
-    const { query: finalQuery, options: paginationOptions, metadata } = createPaginationOptions(query, options);
+export const executePaginatedQuery = async (Model, query = {}, options = {}) => {
+    const {
+        page = 1,
+        limit = 10,
+        sort = { createdAt: -1 },
+        select,
+        populate
+    } = options;
 
-    // Execute query with pagination
-    let queryBuilder = Model.find(finalQuery)
-        .skip(paginationOptions.skip)
-        .limit(paginationOptions.limit)
-        .sort(paginationOptions.sort);
-
-    // Add population if specified
-    if (populateOptions) {
-        if (Array.isArray(populateOptions)) {
-            queryBuilder = queryBuilder.populate(populateOptions);
-        } else {
-            queryBuilder = queryBuilder.populate(populateOptions);
-        }
+    // Validate inputs
+    if (page < 1) {
+        throw errors.BadRequest('Page number must be greater than 0');
+    }
+    if (limit < 1) {
+        throw errors.BadRequest('Limit must be greater than 0');
+    }
+    if (limit > 100) {
+        throw errors.BadRequest('Limit cannot exceed 100 items per page');
     }
 
-    // Execute query and get total count in parallel
-    const [data, total] = await Promise.all([
-        queryBuilder.exec(),
-        Model.countDocuments(finalQuery)
+    // Calculate skip value
+    const skip = (page - 1) * limit;
+
+    // Execute query with pagination
+    const [total, items] = await Promise.all([
+        Model.countDocuments(query),
+        Model.find(query)
+            .select(select)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .populate(populate)
     ]);
 
-    // Return formatted response
-    return createPaginatedResponse(data, total, metadata);
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return {
+        items,
+        pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages,
+            hasNextPage,
+            hasPrevPage
+        }
+    };
+};
+
+/**
+ * Create a pagination middleware
+ * @param {Object} defaultOptions - Default pagination options
+ * @returns {Function} Express middleware
+ */
+export const paginationMiddleware = (defaultOptions = {}) => {
+    return (req, res, next) => {
+        const {
+            page = 1,
+            limit = 10,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
+        } = req.query;
+
+        // Parse and validate pagination parameters
+        const parsedPage = parseInt(page);
+        const parsedLimit = parseInt(limit);
+
+        if (isNaN(parsedPage) || parsedPage < 1) {
+            throw errors.BadRequest('Invalid page number');
+        }
+        if (isNaN(parsedLimit) || parsedLimit < 1) {
+            throw errors.BadRequest('Invalid limit');
+        }
+        if (parsedLimit > 100) {
+            throw errors.BadRequest('Limit cannot exceed 100 items per page');
+        }
+
+        // Set pagination options
+        req.pagination = {
+            page: parsedPage,
+            limit: parsedLimit,
+            sortBy,
+            sortOrder: sortOrder.toLowerCase() === 'asc' ? 'asc' : 'desc',
+            ...defaultOptions
+        };
+
+        next();
+    };
 }; 

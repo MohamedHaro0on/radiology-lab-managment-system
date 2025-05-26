@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { errors } from '../utils/errorHandler.js';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
+import { executePaginatedQuery } from '../utils/pagination.js';
 
 // Create a new referring doctor
 export const createDoctor = asyncHandler(async (req, res) => {
@@ -29,16 +30,12 @@ export const createDoctor = asyncHandler(async (req, res) => {
     });
 });
 
-// Get all referring doctors with filtering and pagination
+// Get all doctors with filtering and pagination
 export const getAllDoctors = asyncHandler(async (req, res) => {
     const {
-        page = 1,
-        limit = 10,
         search,
         specialization,
-        sortBy = 'name',
-        sortOrder = 'asc',
-        isActive
+        ...paginationOptions
     } = req.query;
 
     // Build query
@@ -47,37 +44,20 @@ export const getAllDoctors = asyncHandler(async (req, res) => {
         query.$or = [
             { name: { $regex: search, $options: 'i' } },
             { email: { $regex: search, $options: 'i' } },
-            { specialization: { $regex: search, $options: 'i' } }
+            { phone: { $regex: search, $options: 'i' } }
         ];
     }
     if (specialization) {
         query.specialization = specialization;
     }
-    if (typeof isActive === 'boolean') {
-        query.isActive = isActive;
-    }
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
+    const result = await executePaginatedQuery(
+        Doctor,
+        query,
+        paginationOptions
+    );
 
-    // Execute query with pagination and sorting
-    const doctors = await Doctor.find(query)
-        .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
-        .skip(skip)
-        .limit(parseInt(limit));
-
-    // Get total count for pagination
-    const total = await Doctor.countDocuments(query);
-
-    res.status(StatusCodes.OK).json({
-        status: 'success',
-        data: doctors,
-        pagination: {
-            total,
-            page: parseInt(page),
-            pages: Math.ceil(total / limit)
-        }
-    });
+    res.status(StatusCodes.OK).json(result);
 });
 
 // Get a single referring doctor

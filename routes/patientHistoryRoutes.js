@@ -1,22 +1,56 @@
 import express from 'express';
-import { auth, authorize } from '../middleware/auth.js';
-import { createPatientHistory, getAllPatientHistories, getPatientHistoryById, updatePatientHistory, deletePatientHistory } from '../controllers/patientHistoryController.js';
+import { validate } from '../middleware/validate.js';
+import { auth } from '../middleware/auth.js';
+import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
+import { patientHistoryValidation } from '../validations/patientHistoryValidation.js';
+import * as patientHistoryController from '../controllers/patientHistoryController.js';
 
 const router = express.Router();
 
-// Create a new patient history record (admin or doctor only)
-router.post('/', auth, authorize('admin', 'doctor'), createPatientHistory);
+// Apply auth middleware to all routes
+router.use(auth);
 
-// Get all patient history records (with filtering and pagination) (authenticated users only)
-router.get('/', auth, getAllPatientHistories);
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
 
-// Get a single patient history record (authenticated users only)
-router.get('/:id', auth, getPatientHistoryById);
+// Create new patient history
+router.post(
+    '/',
+    checkPrivilege('patientHistory', 'create'),
+    validate(patientHistoryValidation.createPatientHistory),
+    patientHistoryController.createPatientHistory
+);
 
-// Update a patient history record (admin or doctor only)
-router.patch('/:id', auth, authorize('admin', 'doctor'), updatePatientHistory);
+// Get all patient histories
+router.get(
+    '/',
+    checkPrivilege('patientHistory', 'view'),
+    validate(patientHistoryValidation.getAllPatientHistories),
+    patientHistoryController.getAllPatientHistories
+);
 
-// Delete a patient history record (admin or doctor only)
-router.delete('/:id', auth, authorize('admin', 'doctor'), deletePatientHistory);
+// Get single patient history
+router.get(
+    '/:id',
+    checkPrivilege('patientHistory', 'view'),
+    validate(patientHistoryValidation.getPatientHistoryById),
+    patientHistoryController.getPatientHistoryById
+);
+
+// Update patient history
+router.patch(
+    '/:id',
+    checkPrivilege('patientHistory', 'update'),
+    validate(patientHistoryValidation.updatePatientHistory),
+    patientHistoryController.updatePatientHistory
+);
+
+// Delete patient history
+router.delete(
+    '/:id',
+    checkPrivilege('patientHistory', 'delete'),
+    validate(patientHistoryValidation.deletePatientHistory),
+    patientHistoryController.deletePatientHistory
+);
 
 export default router; 
