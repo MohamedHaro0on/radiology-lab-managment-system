@@ -4,6 +4,51 @@ import { errors } from '../utils/errorHandler.js';
 
 // Validation schemas for doctors
 export const doctorValidation = {
+    // Get all doctors
+    getAllDoctors: Joi.object({
+        search: Joi.string().trim(),
+        specialization: Joi.string().trim(),
+        page: Joi.number().integer().min(1).default(1),
+        limit: Joi.number().integer().min(1).max(100).default(10),
+        sortBy: Joi.string().valid('name', 'specialization', 'createdAt', 'updatedAt').default('createdAt'),
+        sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+    }),
+
+    // Get single doctor
+    getDoctor: Joi.object({
+        id: objectId.required().messages({
+            'any.required': 'Doctor ID is required',
+            'string.pattern.base': 'Invalid doctor ID format'
+        })
+    }),
+
+    // Get top referring doctors
+    getTopReferringDoctors: Joi.object({
+        limit: Joi.number().integer().min(1).max(100).default(10).messages({
+            'number.min': 'Limit must be at least 1',
+            'number.max': 'Limit cannot exceed 100'
+        })
+    }),
+
+    // Get doctor schedule
+    getDoctorSchedule: Joi.object({
+        id: objectId.required().messages({
+            'any.required': 'Doctor ID is required',
+            'string.pattern.base': 'Invalid doctor ID format'
+        }),
+        startDate: Joi.date().iso().required().messages({
+            'any.required': 'Start date is required',
+            'date.base': 'Invalid start date format',
+            'date.format': 'Start date must be in ISO format'
+        }),
+        endDate: Joi.date().iso().min(Joi.ref('startDate')).required().messages({
+            'any.required': 'End date is required',
+            'date.base': 'Invalid end date format',
+            'date.format': 'End date must be in ISO format',
+            'date.min': 'End date must be after start date'
+        })
+    }),
+
     // Create doctor
     create: Joi.object({
         name: Joi.string().required().min(2).max(100).messages({
@@ -212,4 +257,4 @@ export const doctorValidation = {
             'string.pattern.base': 'Invalid qualification ID format'
         })
     })
-}; 
+};

@@ -6,6 +6,7 @@ import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
 import PatientHistory from '../models/PatientHistory.js';
 import { executePaginatedQuery } from '../utils/pagination.js';
+import websocketManager from '../utils/websocket.js';
 
 // @desc    Create a new appointment
 // @route   POST /api/appointments
@@ -25,65 +26,94 @@ import { executePaginatedQuery } from '../utils/pagination.js';
 // }
 // @returns Created appointment object
 // @note    Increments referralCount for referring doctor if patient was referred
-export const createAppointment = asyncHandler(async (req, res) => {
-    const { patientId, doctorId, appointmentDate, timeSlot, type, priority, notes, referralSource } = req.body;
+export const createAppointment = asyncHandler(async (req, res, next) => {
+    try {
+        const { patientId, doctorId, appointmentDate, timeSlot, type, priority, notes, referralSource } = req.body;
 
-    // Check if doctor and patient exist
-    const [doctor, patient] = await Promise.all([
-        Doctor.findById(doctorId),
-        Patient.findById(patientId)
-    ]);
+        // Check if doctor and patient exist
+        const [doctor, patient] = await Promise.all([
+            Doctor.findById(doctorId),
+            Patient.findById(patientId)
+        ]);
 
-    if (!doctor) {
-        throw errors.NotFound('Doctor not found');
-    }
-    if (!patient) {
-        throw errors.NotFound('Patient not found');
-    }
+        if (!doctor) {
+            throw errors.NotFound('Doctor not found');
+        }
+        if (!patient) {
+            throw errors.NotFound('Patient not found');
+        }
 
-    // Check doctor availability
-    if (!doctor.isActive) {
-        throw errors.BadRequest('Doctor is not available');
-    }
+        // Check doctor availability
+        if (!doctor.isActive) {
+            throw errors.BadRequest('Doctor is not available');
+        }
 
-    // Check for scheduling conflicts
-    const existingAppointment = await Appointment.findOne({
-        doctor: doctorId,
-        appointmentDate,
-        timeSlot,
-        status: { $in: ['scheduled', 'confirmed'] }
-    });
-
-    if (existingAppointment) {
-        throw errors.Conflict('Time slot is already booked');
-    }
-
-    // Create appointment
-    const appointment = await Appointment.create({
-        patient: patientId,
-        doctor: doctorId,
-        appointmentDate,
-        timeSlot,
-        type,
-        priority,
-        notes,
-        referralSource,
-        status: 'scheduled',
-        createdBy: req.user._id
-    });
-
-    // If this is a referral appointment (patient was referred by a doctor)
-    if (patient.referredBy) {
-        // Increment the referring doctor's referral count
-        await Doctor.findByIdAndUpdate(patient.referredBy, {
-            $inc: { referralCount: 1 }
+        // Check for scheduling conflicts
+        const existingAppointment = await Appointment.findOne({
+            doctor: doctorId,
+            appointmentDate,
+            timeSlot,
+            status: { $in: ['scheduled', 'confirmed'] }
         });
-    }
 
-    res.status(StatusCodes.CREATED).json({
-        status: 'success',
-        data: appointment
-    });
+        if (existingAppointment) {
+            throw errors.Conflict('Time slot is already booked');
+        }
+
+        const appointmentData = {
+            patient: patientId,
+            doctor: doctorId,
+            appointmentDate,
+            timeSlot,
+            type,
+            priority,
+            notes,
+            referralSource,
+            status: 'scheduled',
+            createdBy: req.user._id
+        };
+
+        // Check if slot is available
+        const isAvailable = await Appointment.isSlotAvailable(
+            doctorId,
+            appointmentDate,
+            timeSlot
+        );
+
+        if (!isAvailable) {
+            throw errors.BadRequest('Appointment slot is not available');
+        }
+
+        const appointment = await Appointment.create(appointmentData);
+
+        // Send WebSocket notification to the assigned doctor
+        websocketManager.sendNotification(doctorId.toString(), {
+            type: 'new_appointment',
+            data: {
+                appointmentId: appointment._id,
+                patientName: patient.name,
+                appointmentDate: appointment.appointmentDate,
+                appointmentTime: appointment.timeSlot,
+                scanType: appointment.type,
+                priority: appointment.priority
+            }
+        });
+
+        // If this is a referral appointment (patient was referred by a doctor)
+        if (patient.referredBy) {
+            // Increment the referring doctor's referral count
+            await Doctor.findByIdAndUpdate(patient.referredBy, {
+                $inc: { referralCount: 1 }
+            });
+        }
+
+        res.status(StatusCodes.CREATED).json({
+            status: 'success',
+            data: appointment
+        });
+    } catch (error) {
+        next(error);
+    }
 });
 
 // @desc    Get all appointments with filtering and pagination

@@ -1,5 +1,5 @@
 import { errors } from '../utils/errorHandler.js';
-import Joi from "joi"
+import Joi from 'joi';
 
 export const validate = (schema) => {
     return (req, res, next) => {

@@ -4,6 +4,18 @@ import { errors } from '../utils/errorHandler.js';
 
 // Validation schemas for stock
 export const stockValidation = {
+    // Get all stock items
+    getAllStock: Joi.object({
+        search: Joi.string().trim(),
+        category: Joi.string().valid('X-Ray Film', 'Contrast Media', 'Medical Supplies', 'Equipment', 'Other'),
+        lowStock: Joi.boolean(),
+        expired: Joi.boolean(),
+        page: Joi.number().integer().min(1).default(1),
+        limit: Joi.number().integer().min(1).max(100).default(10),
+        sortBy: Joi.string().valid('itemName', 'category', 'quantity', 'createdAt', 'updatedAt').default('createdAt'),
+        sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+    }),
+
     // Create stock item
     create: Joi.object({
         name: Joi.string().required().min(2).max(100).messages({

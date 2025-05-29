@@ -13,50 +13,68 @@ const scanItemSchema = new mongoose.Schema({
     }
 });
 
-const imageSchema = new mongoose.Schema({
-    url: {
-        type: String,
-        required: [true, 'Image URL is required']
-    },
-    type: {
-        type: String,
-        required: [true, 'Image type is required'],
-        enum: ['dicom', 'jpeg', 'png']
-    },
-    description: {
-        type: String,
-        maxlength: [200, 'Description cannot exceed 200 characters']
-    },
-    uploadedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    uploadedAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
 const scanSchema = new mongoose.Schema({
-    patient: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Patient',
-        required: [true, 'Patient is required']
-    },
-    doctor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Doctor',
-        required: [true, 'Doctor is required']
-    },
-    radiologist: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Radiologist'
-    },
     appointment: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Appointment',
-        required: [true, 'Appointment is required']
+        required: true
+    },
+    category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ScanCategory',
+        required: true
+    },
+    patient: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Patient',
+        required: true
+    },
+    radiologist: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Radiologist',
+        required: true
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'in_progress', 'completed', 'cancelled'],
+        default: 'pending'
+    },
+    notes: {
+        type: String,
+        trim: true,
+        maxlength: [1000, 'Notes cannot exceed 1000 characters']
+    },
+    results: {
+        findings: {
+            type: String,
+            trim: true,
+            maxlength: [2000, 'Findings cannot exceed 2000 characters']
+        },
+        impression: {
+            type: String,
+            trim: true,
+            maxlength: [2000, 'Impression cannot exceed 2000 characters']
+        },
+        recommendations: {
+            type: String,
+            trim: true,
+            maxlength: [1000, 'Recommendations cannot exceed 1000 characters']
+        }
+    },
+    completedAt: {
+        type: Date
+    },
+    cancelledAt: {
+        type: Date
+    },
+    cancelledBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    cancellationReason: {
+        type: String,
+        trim: true,
+        maxlength: [500, 'Cancellation reason cannot exceed 500 characters']
     },
     name: {
         type: String,
@@ -73,14 +91,6 @@ const scanSchema = new mongoose.Schema({
         trim: true,
         minlength: [2, 'Scan type must be at least 2 characters long'],
         maxlength: [100, 'Scan type cannot exceed 100 characters']
-    },
-    status: {
-        type: String,
-        enum: {
-            values: ['pending', 'in-progress', 'completed', 'cancelled'],
-            message: 'Invalid scan status'
-        },
-        default: 'pending'
     },
     priority: {
         type: String,
@@ -106,12 +116,6 @@ const scanSchema = new mongoose.Schema({
         min: [0, 'Maximum price cannot be negative']
     },
     items: [scanItemSchema],
-    category: {
-        type: String,
-        required: [true, 'Category is required'],
-        enum: ['X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other'],
-        trim: true
-    },
     preparationInstructions: {
         type: String,
         trim: true
@@ -121,11 +125,6 @@ const scanSchema = new mongoose.Schema({
         required: [true, 'Duration is required'],
         min: [1, 'Duration must be at least 1 minute']
     },
-    notes: {
-        type: String,
-        maxlength: [1000, 'Notes cannot exceed 1000 characters']
-    },
-    images: [imageSchema],
     findings: {
         type: String,
         maxlength: [2000, 'Findings cannot exceed 2000 characters']
@@ -155,13 +154,32 @@ const scanSchema = new mongoose.Schema({
 // Indexes for faster queries
 scanSchema.index({ name: 1 });
 scanSchema.index({ patient: 1 });
-scanSchema.index({ doctor: 1 });
 scanSchema.index({ radiologist: 1 });
 scanSchema.index({ appointment: 1 });
 scanSchema.index({ status: 1 });
 scanSchema.index({ category: 1 });
 scanSchema.index({ isActive: 1 });
 scanSchema.index({ createdAt: -1 });
+
+// Virtual for scan info
+scanSchema.virtual('info').get(function () {
+    return {
+        id: this._id,
+        appointment: this.appointment,
+        category: this.category,
+        patient: this.patient,
+        radiologist: this.radiologist,
+        status: this.status,
+        notes: this.notes,
+        results: this.results,
+        completedAt: this.completedAt,
+        cancelledAt: this.cancelledAt,
+        cancelledBy: this.cancelledBy,
+        cancellationReason: this.cancellationReason,
+        createdAt: this.createdAt,
+        updatedAt: this.updatedAt
+    };
+});
 
 // Method to check stock availability
 scanSchema.methods.checkStockAvailability = async function () {
@@ -184,6 +202,16 @@ scanSchema.pre('save', function (next) {
     }
     next();
 });
+
+// Method to check if scan can be cancelled
+scanSchema.methods.canBeCancelled = function () {
+    return ['pending', 'in_progress'].includes(this.status);
+};
+
+// Method to check if scan can be completed
+scanSchema.methods.canBeCompleted = function () {
+    return ['pending', 'in_progress'].includes(this.status);
+};
 
 const Scan = mongoose.model('Scan', scanSchema);
 

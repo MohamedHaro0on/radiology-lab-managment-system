@@ -28,7 +28,6 @@ const generateRefreshToken = (userId) => {
 // Register new user
 export const register = asyncHandler(async (req, res) => {
     const { username, email, password } = req.body;
-
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
@@ -48,10 +47,18 @@ export const register = asyncHandler(async (req, res) => {
     const refreshToken = generateRefreshToken(user._id);
 
     // Return user info and tokens
-    res.status(201).json({
-        user: user.info,
-        token,
-        refreshToken
+    res.status(StatusCodes.CREATED).json({
+        status: 'success',
+        message: 'User registered successfully',
+        data: {
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            },
+            token
+        }
     });
 });
 

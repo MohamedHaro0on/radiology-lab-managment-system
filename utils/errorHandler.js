@@ -20,7 +20,8 @@ export const errors = {
     NotFound: (message) => new AppError(message, StatusCodes.NOT_FOUND),
     Conflict: (message) => new AppError(message, StatusCodes.CONFLICT),
     ValidationError: (message) => new AppError(message, StatusCodes.UNPROCESSABLE_ENTITY),
-    InternalServerError: (message) => new AppError(message, StatusCodes.INTERNAL_SERVER_ERROR)
+    InternalServerError: (message) => new AppError(message, StatusCodes.INTERNAL_SERVER_ERROR),
+    ServiceUnavailable: (message) => new AppError(message, StatusCodes.SERVICE_UNAVAILABLE)
 };
 
 // Error handling middleware

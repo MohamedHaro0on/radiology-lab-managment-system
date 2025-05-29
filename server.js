@@ -12,22 +12,42 @@ import patientHistoryRoutes from './routes/patientHistoryRoutes.js';
 import radiologistRoutes from './routes/radiologistRoutes.js';
 import scanRoutes from './routes/scanRoutes.js';
 import privilegeRoutes from './routes/privilegeRoutes.js';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { setupSecurityMiddleware } from './config/security.js';
+import { initializeDatabase, checkDatabaseHealth } from './config/database.js';
+
+// Get current file and directory paths
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 
+// CORS configuration
+// const corsOptions = {
+//     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+//     credentials: true,
+//     maxAge: 86400 // 24 hours
+// };
+
+// Apply CORS middleware
+// app.use(cors(corsOptions));
+
+// Initialize security middleware
+setupSecurityMiddleware(app);
+
 // Middleware
-app.use(cors({
-    origin: config.cors.origin,
-    methods: config.cors.methods,
-    credentials: config.cors.credentials
-}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Test route for debugging request body parsing
 app.post('/test-body', (req, res) => {
-    console.log('Test route - Request body:', req.body);
-    console.log('Test route - Content-Type:', req.headers['content-type']);
     res.json({ receivedBody: req.body });
 });
 
@@ -193,27 +213,22 @@ app.use(errorHandler);
 // Connect to MongoDB
 mongoose.connect(config.mongodb.uri)
     .then(() => {
-        console.log('Connected to MongoDB');
         // Start server
         app.listen(config.port, () => {
-            console.log(`Server is running in ${config.env} mode on port ${config.port}`);
         });
     })
     .catch((err) => {
-        console.error('MongoDB connection error:', err);
         process.exit(1);
     });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-    console.error('Unhandled Rejection:', err);
     // Close server & exit process
     process.exit(1);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
     // Close server & exit process
     process.exit(1);
 });

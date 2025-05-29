@@ -24,7 +24,7 @@ router.post(
 // Get all stock items
 router.get(
     '/',
-    checkPrivilege('stock', 'view'),
+    // checkPrivilege('stock', 'view'),
     validate(stockValidation.getAllStock),
     stockController.getAllStock
 );
@@ -75,6 +75,15 @@ router.delete(
     checkPrivilege('stock', 'delete'),
     validate(stockValidation.deleteStock),
     stockController.deleteStock
+);
+
+// @route   GET /api/stock/check-low-stock
+// @desc    Check for low stock items and send notifications
+// @access  Private (Admin)
+router.get(
+    '/check-low-stock',
+    checkPrivilege('stock', 'update'),
+    stockController.checkLowStock
 );
 
 export default router; 

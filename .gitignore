@@ -1,5 +1,5 @@
 ./scripts
-./node_modules/*
-./env
+./.env
 ./logs
 ./uploads
+node_modules

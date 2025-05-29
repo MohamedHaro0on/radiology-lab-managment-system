@@ -32,13 +32,13 @@ export const authValidation = {
                     'any.required': 'Email is required'
                 }),
             password: passwordSchema.required(),
-            confirmPassword: Joi.string()
-                .valid(Joi.ref('password'))
-                .required()
-                .messages({
-                    'any.only': 'Passwords do not match',
-                    'any.required': 'Please confirm your password'
-                })
+            // confirmPassword: Joi.string()
+            // .valid(Joi.ref('password'))
+            // .required()
+            // .messages({
+            // 'any.only': 'Passwords do not match',
+            // 'any.required': 'Please confirm your password'
+            // })
         })
     },
 
@@ -175,15 +175,41 @@ export const authValidation = {
             username: Joi.string()
                 .min(3)
                 .max(30)
+                .trim()
                 .messages({
                     'string.min': 'Username must be at least 3 characters long',
-                    'string.max': 'Username cannot exceed 30 characters'
+                    'string.max': 'Username cannot exceed 30 characters',
+                    'string.empty': 'Username cannot be empty'
                 }),
             email: Joi.string()
                 .email()
+                .trim()
+                .lowercase()
                 .messages({
-                    'string.email': 'Please provide a valid email address'
+                    'string.email': 'Please provide a valid email address',
+                    'string.empty': 'Email cannot be empty'
+                }),
+            phoneNumber: Joi.string()
+                .pattern(/^\+?[\d\s-]{10,}$/)
+                .trim()
+                .messages({
+                    'string.pattern.base': 'Please provide a valid phone number'
+                }),
+            address: Joi.object({
+                street: Joi.string().trim().max(200),
+                city: Joi.string().trim().max(100),
+                state: Joi.string().trim().max(100),
+                country: Joi.string().trim().max(100),
+                postalCode: Joi.string().trim().max(20)
+            }),
+            preferences: Joi.object({
+                language: Joi.string().valid('en', 'ar').default('en'),
+                theme: Joi.string().valid('light', 'dark', 'system').default('system'),
+                notifications: Joi.object({
+                    email: Joi.boolean().default(true),
+                    push: Joi.boolean().default(true)
                 })
+            })
         }).min(1).messages({
             'object.min': 'At least one field must be provided for update'
         })

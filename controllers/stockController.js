@@ -3,6 +3,8 @@ import { StatusCodes } from 'http-status-codes';
 import { errors } from '../utils/errorHandler.js';
 import Stock from '../models/Stock.js';
 import { executePaginatedQuery } from '../utils/pagination.js';
+import websocketManager from '../utils/websocket.js';
+import User from '../models/User.js';
 
 // Create new stock item
 export const createStock = asyncHandler(async (req, res) => {
@@ -192,4 +194,51 @@ export const getExpiredItems = asyncHandler(async (req, res) => {
     );
 
     res.status(StatusCodes.OK).json(result);
+});
+
+// Check for low stock items and send notifications
+export const checkLowStock = asyncHandler(async (req, res) => {
+    try {
+        const lowStockItems = await Stock.find({
+            $expr: { $lte: ['$quantity', '$minimumQuantity'] },
+            isActive: true
+        }).populate('lastUpdatedBy', 'username email');
+
+        // Send notifications to all admin users
+        const adminUsers = await User.find({
+            'privileges.module': 'stock',
+            'privileges.operations': { $in: ['manage', 'update'] }
+        });
+
+        if (lowStockItems.length > 0) {
+            const notification = {
+                type: 'low_stock_alert',
+                data: {
+                    items: lowStockItems.map(item => ({
+                        id: item._id,
+                        name: item.itemName,
+                        quantity: item.quantity,
+                        minimumQuantity: item.minimumQuantity,
+                        category: item.category,
+                        unit: item.unit
+                    }))
+                }
+            };
+
+            // Send notification to all admin users
+            adminUsers.forEach(admin => {
+                websocketManager.sendNotification(admin._id.toString(), notification);
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                lowStockItems,
+                count: lowStockItems.length
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
 }); 

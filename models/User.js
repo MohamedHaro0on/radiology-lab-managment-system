@@ -26,6 +26,34 @@ const userSchema = new mongoose.Schema({
         minlength: [8, 'Password must be at least 8 characters long'],
         select: false
     },
+    phoneNumber: {
+        type: String,
+        trim: true,
+        match: [/^\+?[\d\s-]{10,}$/, 'Please provide a valid phone number']
+    },
+    address: {
+        street: { type: String, trim: true, maxlength: 200 },
+        city: { type: String, trim: true, maxlength: 100 },
+        state: { type: String, trim: true, maxlength: 100 },
+        country: { type: String, trim: true, maxlength: 100 },
+        postalCode: { type: String, trim: true, maxlength: 20 }
+    },
+    preferences: {
+        language: {
+            type: String,
+            enum: ['en', 'ar'],
+            default: 'en'
+        },
+        theme: {
+            type: String,
+            enum: ['light', 'dark', 'system'],
+            default: 'system'
+        },
+        notifications: {
+            email: { type: Boolean, default: true },
+            push: { type: Boolean, default: true }
+        }
+    },
     isActive: {
         type: Boolean,
         default: true
@@ -143,13 +171,17 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
 userSchema.methods.hasPrivilege = function (module, operation) {
     if (this.isSuperAdmin) return true;
 
-    try {
-        validatePrivilege(module, operation);
-        const privilege = this.privileges.find(p => p.module === module);
-        return privilege?.operations.includes(operation) || false;
-    } catch (error) {
-        return false;
+    // Validate module and operation first
+    if (!MODULES[module]) {
+        throw new Error(`Invalid module: ${module}`);
     }
+    if (!OPERATIONS.includes(operation)) {
+        throw new Error(`Invalid operation: ${operation}`);
+    }
+
+    // Check if user has the privilege
+    const privilege = this.privileges.find(p => p.module === module);
+    return privilege?.operations.includes(operation) || false;
 };
 
 // Method to grant privilege
@@ -237,6 +269,26 @@ userSchema.statics.findByCredentials = async function (email, password) {
 
     return user;
 };
+
+// Default privileges for new users (view privileges for stock, appointments, doctors, patients)
+const DEFAULT_VIEW_PRIVILEGES = [
+    { module: 'stock', operations: ['view'] },
+    { module: 'appointments', operations: ['view'] },
+    { module: 'doctors', operations: ['view'] },
+    { module: 'patients', operations: ['view'] }
+];
+
+// Pre-save hook: grant default view privileges to new users (granted by the user's own _id)
+userSchema.pre('save', function (next) {
+    if (this.isNew && (!this.privileges || this.privileges.length === 0)) {
+        this.privileges = DEFAULT_VIEW_PRIVILEGES.map(priv => ({
+            ...priv,
+            grantedBy: this._id,
+            grantedAt: new Date()
+        }));
+    }
+    next();
+});
 
 const User = mongoose.model('User', userSchema);
 

@@ -25,6 +25,11 @@ export const MODULES = {
         description: 'Scan management',
         operations: ['view', 'create', 'update', 'delete']
     },
+    scanCategories: {
+        name: 'scanCategories',
+        description: 'Scan category management',
+        operations: ['view', 'create', 'update', 'delete']
+    },
     stock: {
         name: 'stock',
         description: 'Stock management',

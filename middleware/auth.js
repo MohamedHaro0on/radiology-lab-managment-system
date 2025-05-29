@@ -6,22 +6,22 @@ import User from '../models/User.js';
 import { MODULES } from '../config/privileges.js';
 
 // Authentication middleware
-export const auth = async (req, res, next) => {
+export const auth = asyncHandler(async (req, res, next) => {
+    // Get token from header
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        throw errors.Unauthorized('No token provided');
+    }
+
+    const token = authHeader.split(' ')[1];
+
     try {
-        // Get token from header
-        const authHeader = req.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
-            throw errors.Unauthorized('No token provided');
-        }
-
-        const token = authHeader.split(' ')[1];
-
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // Check if user still exists and is active
         const user = await User.findById(decoded.id)
-            .select('+passwordChangedAt')
+            .select('+passwordChangedAt +privileges')
             .populate('privileges.grantedBy', 'username email');
 
         if (!user) {
@@ -42,28 +42,29 @@ export const auth = async (req, res, next) => {
         next();
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {
-            next(errors.Unauthorized('Invalid token. Please log in again'));
+            throw errors.Unauthorized('Invalid token. Please log in again');
         } else if (error.name === 'TokenExpiredError') {
-            next(errors.Unauthorized('Token expired. Please log in again'));
-        } else {
-            next(error);
+            throw errors.Unauthorized('Token expired. Please log in again');
         }
+        throw error;
     }
-};
+});
 
 // Middleware to check if user is super admin
-export const isSuperAdmin = (req, res, next) => {
+export const isSuperAdmin = asyncHandler(async (req, res, next) => {
     if (!req.user?.isSuperAdmin) {
         throw errors.Forbidden('Access denied. Super admin privileges required.');
     }
     next();
-};
+});
 
-// Helper function to get module from request path
+// Helper function to get module from path
 export const getModuleFromPath = (path) => {
-    const pathParts = path.split('/').filter(Boolean);
-    const module = pathParts.find(part => Object.keys(MODULES).includes(part));
-    return module || null;
+    const pathParts = path.split('/');
+    if (pathParts.length < 3) return null;
+
+    const module = pathParts[2].replace(/^api-/, '').replace(/s$/, '');
+    return Object.keys(MODULES).includes(module) ? module : null;
 };
 
 // Refresh token middleware

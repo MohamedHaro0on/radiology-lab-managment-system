@@ -1,3 +1,4 @@
+import { StatusCodes } from 'http-status-codes';
 import { errors } from './errorHandler.js';
 
 /**
@@ -65,43 +66,42 @@ export const createPaginatedResponse = (data, total, metadata) => {
     };
 };
 
-/**
- * Execute a paginated query with sorting and filtering
- * @param {Model} Model - Mongoose model
- * @param {Object} query - Query conditions
- * @param {Object} options - Pagination options
- * @param {number} options.page - Page number (default: 1)
- * @param {number} options.limit - Items per page (default: 10)
- * @param {Object} options.sort - Sort options (default: { createdAt: -1 })
- * @param {string|Object} options.select - Fields to select
- * @param {Object} options.populate - Population options
- * @returns {Object} Paginated results
- */
-export const executePaginatedQuery = async (Model, query = {}, options = {}) => {
+// Helper function to get model name in plural form
+const getModelName = (Model) => {
+    return Model.modelName.toLowerCase() + 's';
+};
+
+// Execute paginated query with optional population
+export const executePaginatedQuery = async (
+    Model,
+    query = {},
+    options = {},
+    populate = []
+) => {
     const {
         page = 1,
         limit = 10,
-        sort = { createdAt: -1 },
-        select,
-        populate
+        sortBy = 'createdAt',
+        sortOrder = 'desc',
+        select = '-__v'
     } = options;
 
-    // Validate inputs
+    // Validate pagination parameters
     if (page < 1) {
         throw errors.BadRequest('Page number must be greater than 0');
     }
-    if (limit < 1) {
-        throw errors.BadRequest('Limit must be greater than 0');
-    }
-    if (limit > 100) {
-        throw errors.BadRequest('Limit cannot exceed 100 items per page');
+    if (limit < 1 || limit > 100) {
+        throw errors.BadRequest('Limit must be between 1 and 100');
     }
 
     // Calculate skip value
     const skip = (page - 1) * limit;
 
+    // Build sort object
+    const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
     // Execute query with pagination
-    const [total, items] = await Promise.all([
+    const [total, data] = await Promise.all([
         Model.countDocuments(query),
         Model.find(query)
             .select(select)
@@ -116,15 +116,21 @@ export const executePaginatedQuery = async (Model, query = {}, options = {}) => 
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
+    // Get model name for response
+    const modelName = getModelName(Model);
+
     return {
-        items,
-        pagination: {
-            total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-            totalPages,
-            hasNextPage,
-            hasPrevPage
+        status: 'success',
+        data: {
+            [modelName]: data,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages,
+                hasNextPage,
+                hasPrevPage
+            }
         }
     };
 };

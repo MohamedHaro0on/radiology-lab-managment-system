@@ -8,8 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load environment variables based on NODE_ENV
-const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : '.env';
-dotenv.config({ path: join(__dirname, '..', envFile) });
+const envFile = process.env.NODE_ENV ? `.env.${psrocess.env.NODE_ENV}` : '.env';
+const envPath = join(process.cwd(), envFile);
+dotenv.config({ path: envPath });
 
 // Define validation schema
 const envSchema = Joi.object({

@@ -1,4 +1,5 @@
-import Joi from 'joi';
+import pkg from 'joi';
+const Joi = pkg;
 import { objectId } from './commonValidation.js';
 import { errors } from '../utils/errorHandler.js';
 

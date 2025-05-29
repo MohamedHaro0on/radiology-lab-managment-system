@@ -204,11 +204,11 @@ The application uses a centralized error handling system with appropriate HTTP s
 
 ## Security Features
 
-- JWT-based authentication
+   - JWT-based authentication
 - Password hashing with bcrypt
-- Two-factor authentication
+   - Two-factor authentication
 - CORS protection
-- Rate limiting
+   - Rate limiting
 - Input validation
 - XSS protection
 - MongoDB injection protection
