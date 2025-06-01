@@ -1,0 +1,36 @@
+/* RTL Toast Styles */
+.toast-rtl {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+.toast-body-rtl {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+/* RTL Toast Progress Bar */
+.toast-rtl .Toastify__progress-bar {
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* RTL Toast Close Button */
+.toast-rtl .Toastify__close-button {
+  left: 0 !important;
+  right: auto !important;
+}
+
+/* RTL Toast Icon */
+.toast-rtl .Toastify__toast-icon {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+
+/* RTL Toast Content */
+.toast-rtl .Toastify__toast-body {
+  padding-right: 8px !important;
+  padding-left: 0 !important;
+} 
