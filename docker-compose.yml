@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: radiology-lab-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/radiology_lab
+      - PORT=3000
+    volumes:
+      - ./logs:/usr/src/app/logs
+      - ./uploads:/usr/src/app/uploads
+    depends_on:
+      - mongodb
+    networks:
+      - radiology-network
+
+  mongodb:
+    image: mongo:6
+    container_name: radiology-lab-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - radiology-network
+
+volumes:
+  mongodb_data:
+    name: radiology-lab-mongodb-data
+
+networks:
+  radiology-network:
+    name: radiology-lab-network
+    driver: bridge 
