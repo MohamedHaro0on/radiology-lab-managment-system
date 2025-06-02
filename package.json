@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "nodemailer": "^7.0.3",
-    "qrcode.react": "^4.2.0"
-  }
-}
