@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useFormik } from 'formik';
 import {
   Box,
   Grid,
@@ -16,6 +18,11 @@ import {
   CircularProgress,
   Fab,
   Chip,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -24,12 +31,16 @@ import {
   Person as PersonIcon,
   CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { authAPI } from '../../services/api';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { format } from 'date-fns';
+import { patientAPI } from '../../services/api';
+import { patientSchema } from '../../validations/schemas';
+import SearchBar from '../../components/common/SearchBar';
 import NoContent from '../../components/common/NoContent';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 /**
  * Patients component for managing patients
@@ -38,65 +49,89 @@ const Patients = () => {
   const { t } = useTranslation();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    dateOfBirth: '',
-    gender: '',
-    phone: '',
-    email: '',
-    address: '',
-    medicalHistory: '',
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const formik = useFormik({
+    initialValues: {
+      firstName: '',
+      lastName: '',
+      dateOfBirth: null,
+      gender: '',
+      phoneNumber: '',
+      email: '',
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: 'India',
+      },
+      medicalHistory: [],
+    },
+    validationSchema: patientSchema,
+    onSubmit: async (values) => {
+      try {
+        setLoading(true);
+        if (selectedPatient) {
+          await patientAPI.update(selectedPatient._id, values);
+          toast.success(t('patients.updateSuccess'));
+        } else {
+          await patientAPI.create(values);
+          toast.success(t('patients.createSuccess'));
+        }
+        handleCloseDialog();
+        fetchPatients();
+      } catch (err) {
+        toast.error(err.response?.data?.message || t('patients.error'));
+      } finally {
+        setLoading(false);
+      }
+    },
   });
 
   useEffect(() => {
     fetchPatients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [/* Add dependencies if needed, or keep empty if desired */]);
+  }, [page, rowsPerPage, searchQuery]);
 
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const response = await authAPI.getPatients();
-      if (response.data && response.data.patients) {
-        setPatients(response.data.patients);
-      } else {
-        setPatients([]); // Ensure patients is always an array
-      }
-    } catch (error) {
+      const response = await patientAPI.getAll({
+        page: page + 1,
+        limit: rowsPerPage,
+        search: searchQuery,
+      });
+      setPatients(response.data.patients);
+      setTotal(response.data.total);
+    } catch (err) {
       toast.error(t('patients.fetchError'));
-      console.error('Error fetching patients:', error);
-      setPatients([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setPage(0);
+  };
+
   const handleOpenDialog = (patient = null) => {
     if (patient) {
-      setFormData({
-        name: patient.name,
-        dateOfBirth: patient.dateOfBirth,
-        gender: patient.gender,
-        phone: patient.phone,
-        email: patient.email,
-        address: patient.address,
-        medicalHistory: patient.medicalHistory,
-      });
       setSelectedPatient(patient);
-    } else {
-      setFormData({
-        name: '',
-        dateOfBirth: '',
-        gender: '',
-        phone: '',
-        email: '',
-        address: '',
-        medicalHistory: '',
+      formik.setValues({
+        ...patient,
+        dateOfBirth: new Date(patient.dateOfBirth),
       });
+    } else {
       setSelectedPatient(null);
+      formik.resetForm();
     }
     setOpenDialog(true);
   };
@@ -104,56 +139,20 @@ const Patients = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedPatient(null);
-    setFormData({
-      name: '',
-      dateOfBirth: '',
-      gender: '',
-      phone: '',
-      email: '',
-      address: '',
-      medicalHistory: '',
-    });
+    formik.resetForm();
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const handleDelete = async () => {
     try {
-      if (selectedPatient) {
-        await authAPI.updatePatient(selectedPatient.id, formData);
-        toast.success(t('patients.updateSuccess'));
-      } else {
-        await authAPI.createPatient(formData);
-        toast.success(t('patients.createSuccess'));
-      }
-      handleCloseDialog();
-      fetchPatients();
-    } catch (error) {
-      toast.error(t('patients.saveError'));
-    }
-  };
-
-  const handleDelete = async (patient) => {
-    setSelectedPatient(patient);
-    setOpenConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      await authAPI.deletePatient(selectedPatient.id);
+      setLoading(true);
+      await patientAPI.delete(selectedPatient._id);
       toast.success(t('patients.deleteSuccess'));
-      fetchPatients();
-    } catch (error) {
-      toast.error(t('patients.deleteError'));
-    } finally {
       setOpenConfirm(false);
-      setSelectedPatient(null);
+      fetchPatients();
+    } catch (err) {
+      toast.error(err.response?.data?.message || t('patients.deleteError'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -168,17 +167,11 @@ const Patients = () => {
     return age;
   };
 
-  if (loading) {
+  if (loading && !patients.length) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
         <CircularProgress />
       </Box>
-    );
-  }
-
-  if (patients.length === 0) {
-    return (
-      <NoContent message={t('patients.noPatientsFound')} />
     );
   }
 
@@ -198,163 +191,253 @@ const Patients = () => {
         </Fab>
       </Box>
 
-      <Grid container spacing={3}>
-        {patients.map((patient) => (
-          <Grid item xs={12} sm={6} md={4} key={patient.id}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-                  <Box>
-                    <Typography variant="h6" component="h2">
-                      {patient.name}
-                    </Typography>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <CalendarIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="textSecondary">
-                        {format(new Date(patient.dateOfBirth), 'dd/MM/yyyy')} ({calculateAge(patient.dateOfBirth)} {t('patients.years')})
+      <SearchBar
+        onSearch={handleSearch}
+        loading={searchLoading}
+        placeholder={t('patients.searchPlaceholder')}
+      />
+
+      {patients.length === 0 ? (
+        <NoContent message={t('patients.noPatientsFound')} />
+      ) : (
+        <Grid container spacing={3}>
+          {patients.map((patient) => (
+            <Grid item xs={12} sm={6} md={4} key={patient._id}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
+                    <Box>
+                      <Typography variant="h6" component="h2">
+                        {`${patient.firstName} ${patient.lastName}`}
                       </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <CalendarIcon fontSize="small" color="action" />
+                        <Typography variant="body2" color="textSecondary">
+                          {format(new Date(patient.dateOfBirth), 'dd/MM/yyyy')} ({calculateAge(patient.dateOfBirth)} {t('patients.years')})
+                        </Typography>
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
-                <Box mb={2}>
-                  <Chip
-                    label={patient.gender}
-                    color={patient.gender.toLowerCase() === 'male' ? 'primary' : 'secondary'}
+                  <Box mb={2}>
+                    <Chip
+                      label={t(`patients.genders.${patient.gender}`)}
+                      color={patient.gender === 'male' ? 'primary' : 'secondary'}
+                      size="small"
+                    />
+                  </Box>
+                  <Typography variant="body2" color="textSecondary" paragraph>
+                    {t('patients.phone')}: {patient.phoneNumber}
+                  </Typography>
+                  {patient.email && (
+                    <Typography variant="body2" color="textSecondary" paragraph>
+                      {t('patients.email')}: {patient.email}
+                    </Typography>
+                  )}
+                  {patient.address?.city && (
+                    <Typography variant="body2" color="textSecondary" noWrap>
+                      {t('patients.address')}: {`${patient.address.city}, ${patient.address.state}`}
+                    </Typography>
+                  )}
+                </CardContent>
+                <CardActions>
+                  <Button
                     size="small"
-                  />
-                </Box>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  {t('patients.phone')}: {patient.phone}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  {t('patients.email')}: {patient.email}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" noWrap>
-                  {t('patients.address')}: {patient.address}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => handleOpenDialog(patient)}
-                >
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleDelete(patient)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                    startIcon={<EditIcon />}
+                    onClick={() => handleOpenDialog(patient)}
+                  >
+                    {t('common.edit')}
+                  </Button>
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => {
+                      setSelectedPatient(patient);
+                      setOpenConfirm(true);
+                    }}
+                  >
+                    {t('common.delete')}
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
-          {selectedPatient ? t('patients.editTitle') : t('patients.addTitle')}
+          {selectedPatient ? t('patients.editPatient') : t('patients.addPatient')}
         </DialogTitle>
         <DialogContent>
-          <Box component="form" sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              label={t('patients.name')}
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('patients.dateOfBirth')}
-              name="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label={t('patients.gender')}
-              name="gender"
-              select
-              value={formData.gender}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-              SelectProps={{ native: true }}
-            >
-              <option value="">{t('common.select')}</option>
-              <option value="male">{t('patients.male')}</option>
-              <option value="female">{t('patients.female')}</option>
-            </TextField>
-            <TextField
-              fullWidth
-              label={t('patients.phone')}
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('patients.email')}
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label={t('patients.address')}
-              name="address"
-              value={formData.address}
-              onChange={handleInputChange}
-              margin="normal"
-              multiline
-              rows={2}
-            />
-            <TextField
-              fullWidth
-              label={t('patients.medicalHistory')}
-              name="medicalHistory"
-              value={formData.medicalHistory}
-              onChange={handleInputChange}
-              margin="normal"
-              multiline
-              rows={3}
-            />
+          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.firstName')}
+                  name="firstName"
+                  value={formik.values.firstName}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.firstName && Boolean(formik.errors.firstName)}
+                  helperText={formik.touched.firstName && formik.errors.firstName}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.lastName')}
+                  name="lastName"
+                  value={formik.values.lastName}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.lastName && Boolean(formik.errors.lastName)}
+                  helperText={formik.touched.lastName && formik.errors.lastName}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    label={t('patients.dateOfBirth')}
+                    value={formik.values.dateOfBirth}
+                    onChange={(date) => formik.setFieldValue('dateOfBirth', date)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        error={formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth)}
+                        helperText={formik.touched.dateOfBirth && formik.errors.dateOfBirth}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth error={formik.touched.gender && Boolean(formik.errors.gender)}>
+                  <InputLabel>{t('patients.gender')}</InputLabel>
+                  <Select
+                    name="gender"
+                    value={formik.values.gender}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    label={t('patients.gender')}
+                  >
+                    <MenuItem value="male">{t('patients.genders.male')}</MenuItem>
+                    <MenuItem value="female">{t('patients.genders.female')}</MenuItem>
+                    <MenuItem value="other">{t('patients.genders.other')}</MenuItem>
+                  </Select>
+                  {formik.touched.gender && formik.errors.gender && (
+                    <Typography color="error" variant="caption">
+                      {formik.errors.gender}
+                    </Typography>
+                  )}
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.phoneNumber')}
+                  name="phoneNumber"
+                  value={formik.values.phoneNumber}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
+                  helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.email')}
+                  name="email"
+                  type="email"
+                  value={formik.values.email}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.email && Boolean(formik.errors.email)}
+                  helperText={formik.touched.email && formik.errors.email}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" gutterBottom>
+                  {t('patients.address')}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label={t('patients.address.street')}
+                  name="address.street"
+                  value={formik.values.address.street}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.address.city')}
+                  name="address.city"
+                  value={formik.values.address.city}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.address.state')}
+                  name="address.state"
+                  value={formik.values.address.state}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.address.postalCode')}
+                  name="address.postalCode"
+                  value={formik.values.address.postalCode}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('patients.address.country')}
+                  name="address.country"
+                  value={formik.values.address.country}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+            </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            {t('common.save')}
+          <Button
+            onClick={formik.handleSubmit}
+            variant="contained"
+            disabled={loading}
+            startIcon={loading && <CircularProgress size={20} />}
+          >
+            {selectedPatient ? t('common.update') : t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={openConfirm}
         title={t('patients.deleteConfirmTitle')}
         message={t('patients.deleteConfirmMessage')}
-        onConfirm={confirmDelete}
-        onCancel={() => {
-          setOpenConfirm(false);
-          setSelectedPatient(null);
-        }}
+        onConfirm={handleDelete}
+        onCancel={() => setOpenConfirm(false)}
+        loading={loading}
       />
     </Box>
   );

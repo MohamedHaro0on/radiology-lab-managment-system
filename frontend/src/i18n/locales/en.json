@@ -218,12 +218,23 @@
     "email": "Email Address",
     "password": "Password",
     "forgotPassword": "Forgot Password?",
+    "forgotPasswordDescription": "Enter your email address and we'll send you a link to reset your password.",
+    "forgotPasswordSuccess": "Password reset link has been sent to your email.",
+    "forgotPasswordInstructions": "Please check your email for instructions to reset your password. If you don't see the email, check your spam folder.",
+    "forgotPasswordError": "Failed to send reset link. Please try again.",
+    "sendResetLink": "Send Reset Link",
+    "backToLogin": "Back to Login",
     "loginError": "Invalid email or password",
     "loginSuccess": "Successfully logged in",
     "emailInvalid": "Enter a valid email address",
     "emailRequired": "Email is required",
     "passwordMinLength": "Password should be at least 6 characters",
-    "passwordRequired": "Password is required"
+    "passwordRequired": "Password is required",
+    "resetPassword": "Reset Password",
+    "passwordResetSuccess": "Password has been reset successfully",
+    "passwordResetError": "Failed to reset password. Please try again",
+    "invalidResetToken": "Invalid or expired reset token",
+    "backToForgotPassword": "Back to Forgot Password"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -504,5 +515,9 @@
     "appearance": "Appearance",
     "security": "Security",
     "comingSoon": "Coming soon..."
+  },
+  "validation": {
+    "passwordFormat": "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character",
+    "passwordsMustMatch": "Passwords must match"
   }
 } 

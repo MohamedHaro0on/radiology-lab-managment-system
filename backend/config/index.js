@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load environment variables based on NODE_ENV
-const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : '.env';
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
 const envPath = join(process.cwd(), envFile);
 dotenv.config({ path: envPath });
 
@@ -24,7 +24,14 @@ const envSchema = Joi.object({
     ALLOWED_ORIGINS: Joi.string().default('http://localhost:3000,http://localhost:3001'),
     RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000), // 15 minutes
     RATE_LIMIT_MAX: Joi.number().default(100),
-    LOG_LEVEL: Joi.string().valid('error', 'warn', 'info', 'debug').default('info')
+    LOG_LEVEL: Joi.string().valid('error', 'warn', 'info', 'debug').default('info'),
+    // SMTP Configuration
+    SMTP_HOST: Joi.string().required(),
+    SMTP_PORT: Joi.number().required(),
+    SMTP_SECURE: Joi.string().valid('true', 'false').default('false'),
+    SMTP_USER: Joi.string().required(),
+    SMTP_PASS: Joi.string().required(),
+    FRONTEND_URL: Joi.string().required()
 }).unknown();
 
 // Validate environment variables
@@ -54,7 +61,17 @@ const config = {
         windowMs: envVars.RATE_LIMIT_WINDOW_MS,
         max: envVars.RATE_LIMIT_MAX
     },
-    logLevel: envVars.LOG_LEVEL
+    logLevel: envVars.LOG_LEVEL,
+    smtp: {
+        host: envVars.SMTP_HOST,
+        port: envVars.SMTP_PORT,
+        secure: envVars.SMTP_SECURE === 'true',
+        auth: {
+            user: envVars.SMTP_USER,
+            pass: envVars.SMTP_PASS
+        }
+    },
+    frontendUrl: envVars.FRONTEND_URL
 };
 
 export default config; 

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useFormik } from 'formik';
 import {
   Box,
   Grid,
   Card,
   CardContent,
+  CardActions,
   Typography,
   Button,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -15,10 +17,6 @@ import {
   CircularProgress,
   Fab,
   Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -27,85 +25,117 @@ import {
   Inventory as InventoryIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { authAPI } from '../../services/api';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { format } from 'date-fns';
+import { stockAPI } from '../../services/api';
+import { stockSchema } from '../../validations/schemas';
+import SearchBar from '../../components/common/SearchBar';
 import NoContent from '../../components/common/NoContent';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 /**
  * Stock component for managing inventory items
  */
 const Stock = () => {
   const { t } = useTranslation();
-  const [items, setItems] = useState([]);
+  const [stockItems, setStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    quantity: '',
-    unit: '',
-    minQuantity: '',
-    price: '',
-    supplier: '',
-    location: '',
-    expiryDate: '',
-    notes: '',
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showLowStock, setShowLowStock] = useState(false);
+  const [showExpired, setShowExpired] = useState(false);
+
+  const formik = useFormik({
+    initialValues: {
+      itemName: '',
+      category: '',
+      quantity: '',
+      unit: '',
+      minimumQuantity: '',
+      supplier: {
+        name: '',
+        contact: '',
+        email: '',
+        phone: '',
+      },
+      expiryDate: null,
+      batchNumber: '',
+      location: '',
+      notes: '',
+    },
+    validationSchema: stockSchema,
+    onSubmit: async (values) => {
+      try {
+        setLoading(true);
+        if (selectedItem) {
+          await stockAPI.update(selectedItem._id, values);
+          toast.success(t('stock.updateSuccess'));
+        } else {
+          await stockAPI.create(values);
+          toast.success(t('stock.createSuccess'));
+        }
+        handleCloseDialog();
+        fetchStockItems();
+      } catch (err) {
+        toast.error(err.response?.data?.message || t('stock.error'));
+      } finally {
+        setLoading(false);
+      }
+    },
   });
 
   useEffect(() => {
-    fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [/* Add dependencies if needed, or keep empty if desired */]);
+    fetchStockItems();
+  }, [page, rowsPerPage, searchQuery, showLowStock, showExpired]);
 
-  const fetchItems = async () => {
+  const fetchStockItems = async () => {
     try {
       setLoading(true);
-      const response = await authAPI.getStockItems();
-      if (response.data && response.data.items) {
-        setItems(response.data.items);
+      let response;
+      if (showLowStock) {
+        response = await stockAPI.getLowStock();
+      } else if (showExpired) {
+        response = await stockAPI.getExpired();
       } else {
-        setItems([]); // Ensure items is always an array
+        response = await stockAPI.getAll({
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchQuery,
+        });
       }
-    } catch (error) {
+      setStockItems(response.data.items);
+      setTotal(response.data.total);
+    } catch (err) {
       toast.error(t('stock.fetchError'));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setPage(0);
+  };
+
   const handleOpenDialog = (item = null) => {
     if (item) {
-      setFormData({
-        name: item.name,
-        category: item.category,
-        quantity: item.quantity,
-        unit: item.unit,
-        minQuantity: item.minQuantity,
-        price: item.price,
-        supplier: item.supplier,
-        location: item.location,
-        expiryDate: item.expiryDate,
-        notes: item.notes,
-      });
       setSelectedItem(item);
-    } else {
-      setFormData({
-        name: '',
-        category: '',
-        quantity: '',
-        unit: '',
-        minQuantity: '',
-        price: '',
-        supplier: '',
-        location: '',
-        expiryDate: '',
-        notes: '',
+      formik.setValues({
+        ...item,
+        expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
       });
+    } else {
       setSelectedItem(null);
+      formik.resetForm();
     }
     setOpenDialog(true);
   };
@@ -113,86 +143,37 @@ const Stock = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedItem(null);
-    setFormData({
-      name: '',
-      category: '',
-      quantity: '',
-      unit: '',
-      minQuantity: '',
-      price: '',
-      supplier: '',
-      location: '',
-      expiryDate: '',
-      notes: '',
-    });
+    formik.resetForm();
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const handleDelete = async () => {
     try {
-      if (selectedItem) {
-        await authAPI.updateStockItem(selectedItem.id, formData);
-        toast.success(t('stock.updateSuccess'));
-      } else {
-        await authAPI.createStockItem(formData);
-        toast.success(t('stock.createSuccess'));
-      }
-      handleCloseDialog();
-      fetchItems();
-    } catch (error) {
-      toast.error(t('stock.saveError'));
-    }
-  };
-
-  const handleDelete = async (item) => {
-    setSelectedItem(item);
-    setOpenConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      await authAPI.deleteStockItem(selectedItem.id);
+      setLoading(true);
+      await stockAPI.delete(selectedItem._id);
       toast.success(t('stock.deleteSuccess'));
-      fetchItems();
-    } catch (error) {
-      toast.error(t('stock.deleteError'));
-    } finally {
       setOpenConfirm(false);
-      setSelectedItem(null);
+      fetchStockItems();
+    } catch (err) {
+      toast.error(err.response?.data?.message || t('stock.deleteError'));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStockStatus = (quantity, minQuantity) => {
-    const qty = parseFloat(quantity);
-    const minQty = parseFloat(minQuantity);
-    if (qty <= 0) return { label: t('stock.status.outOfStock'), color: 'error' };
-    if (qty <= minQty) return { label: t('stock.status.lowStock'), color: 'warning' };
-    return { label: t('stock.status.inStock'), color: 'success' };
+  const isLowStock = (item) => {
+    return item.quantity <= item.minimumQuantity;
   };
 
-  // eslint-disable-next-line no-unused-vars
-  const getStatusColor = (status) => {
-    // ... existing getStatusColor logic ...
+  const isExpired = (item) => {
+    if (!item.expiryDate) return false;
+    return new Date(item.expiryDate) < new Date();
   };
 
-  if (loading) {
+  if (loading && !stockItems.length) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
         <CircularProgress />
       </Box>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <NoContent message={t('stock.noStockItemsFound')} />
     );
   }
 
@@ -212,207 +193,303 @@ const Stock = () => {
         </Fab>
       </Box>
 
-      <Grid container spacing={3}>
-        {items.map((item) => {
-          const status = getStockStatus(item.quantity, item.minQuantity);
-          return (
-            <Grid item xs={12} sm={6} md={4} key={item.id}>
+      <Box display="flex" gap={2} mb={3}>
+        <SearchBar
+          onSearch={handleSearch}
+          loading={searchLoading}
+          placeholder={t('stock.searchPlaceholder')}
+        />
+        <Button
+          variant={showLowStock ? 'contained' : 'outlined'}
+          color="warning"
+          startIcon={<WarningIcon />}
+          onClick={() => {
+            setShowLowStock(!showLowStock);
+            setShowExpired(false);
+            setPage(0);
+          }}
+        >
+          {t('stock.lowStock')}
+        </Button>
+        <Button
+          variant={showExpired ? 'contained' : 'outlined'}
+          color="error"
+          startIcon={<WarningIcon />}
+          onClick={() => {
+            setShowExpired(!showExpired);
+            setShowLowStock(false);
+            setPage(0);
+          }}
+        >
+          {t('stock.expired')}
+        </Button>
+      </Box>
+
+      {stockItems.length === 0 ? (
+        <NoContent message={t('stock.noItemsFound')} />
+      ) : (
+        <Grid container spacing={3}>
+          {stockItems.map((item) => (
+            <Grid item xs={12} sm={6} md={4} key={item._id}>
               <Card>
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
                     <InventoryIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
                     <Box>
                       <Typography variant="h6" component="h2">
-                        {item.name}
+                        {item.itemName}
                       </Typography>
-                      <Typography color="textSecondary" gutterBottom>
-                        {t(`stock.categories.${item.category}`)}
+                      <Typography variant="body2" color="textSecondary">
+                        {item.category}
                       </Typography>
                     </Box>
                   </Box>
-                  <Box mb={2}>
+                  <Box mb={2} display="flex" gap={1}>
                     <Chip
-                      icon={status.color === 'warning' ? <WarningIcon /> : null}
-                      label={status.label}
-                      color={status.color}
+                      label={`${item.quantity} ${item.unit}`}
+                      color={isLowStock(item) ? 'warning' : 'success'}
                       size="small"
                     />
+                    {item.expiryDate && (
+                      <Chip
+                        label={format(new Date(item.expiryDate), 'dd/MM/yyyy')}
+                        color={isExpired(item) ? 'error' : 'default'}
+                        size="small"
+                      />
+                    )}
                   </Box>
                   <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('stock.quantity')}: {item.quantity} {item.unit}
+                    {t('stock.minimumQuantity')}: {item.minimumQuantity} {item.unit}
                   </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('stock.minQuantity')}: {item.minQuantity} {item.unit}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('stock.price')}: ${item.price}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('stock.supplier')}: {item.supplier}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('stock.location')}: {item.location}
-                  </Typography>
-                  {item.expiryDate && (
+                  {item.supplier?.name && (
                     <Typography variant="body2" color="textSecondary" paragraph>
-                      {t('stock.expiryDate')}: {new Date(item.expiryDate).toLocaleDateString()}
+                      {t('stock.supplier')}: {item.supplier.name}
                     </Typography>
                   )}
-                  {item.notes && (
-                    <Typography variant="body2" color="textSecondary">
-                      {t('stock.notes')}: {item.notes}
+                  {item.batchNumber && (
+                    <Typography variant="body2" color="textSecondary" paragraph>
+                      {t('stock.batchNumber')}: {item.batchNumber}
+                    </Typography>
+                  )}
+                  {item.location && (
+                    <Typography variant="body2" color="textSecondary" noWrap>
+                      {t('stock.location')}: {item.location}
                     </Typography>
                   )}
                 </CardContent>
-                <Box display="flex" justifyContent="flex-end" p={1}>
-                  <IconButton
+                <CardActions>
+                  <Button
                     size="small"
-                    color="primary"
+                    startIcon={<EditIcon />}
                     onClick={() => handleOpenDialog(item)}
                   >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
+                    {t('common.edit')}
+                  </Button>
+                  <Button
                     size="small"
                     color="error"
-                    onClick={() => handleDelete(item)}
+                    startIcon={<DeleteIcon />}
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setOpenConfirm(true);
+                    }}
                   >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
+                    {t('common.delete')}
+                  </Button>
+                </CardActions>
               </Card>
             </Grid>
-          );
-        })}
-      </Grid>
+          ))}
+        </Grid>
+      )}
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
-          {selectedItem ? t('stock.editTitle') : t('stock.addTitle')}
+          {selectedItem ? t('stock.editItem') : t('stock.addItem')}
         </DialogTitle>
         <DialogContent>
-          <Box component="form" sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              label={t('stock.name')}
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>{t('stock.category')}</InputLabel>
-              <Select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                label={t('stock.category')}
-              >
-                <MenuItem value="reagents">{t('stock.categories.reagents')}</MenuItem>
-                <MenuItem value="consumables">{t('stock.categories.consumables')}</MenuItem>
-                <MenuItem value="equipment">{t('stock.categories.equipment')}</MenuItem>
-                <MenuItem value="other">{t('stock.categories.other')}</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              label={t('stock.quantity')}
-              name="quantity"
-              type="number"
-              value={formData.quantity}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('stock.unit')}
-              name="unit"
-              value={formData.unit}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('stock.minQuantity')}
-              name="minQuantity"
-              type="number"
-              value={formData.minQuantity}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('stock.price')}
-              name="price"
-              type="number"
-              value={formData.price}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('stock.supplier')}
-              name="supplier"
-              value={formData.supplier}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('stock.location')}
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label={t('stock.expiryDate')}
-              name="expiryDate"
-              type="date"
-              value={formData.expiryDate}
-              onChange={handleInputChange}
-              margin="normal"
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label={t('stock.notes')}
-              name="notes"
-              value={formData.notes}
-              onChange={handleInputChange}
-              margin="normal"
-              multiline
-              rows={3}
-            />
+          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.itemName')}
+                  name="itemName"
+                  value={formik.values.itemName}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.itemName && Boolean(formik.errors.itemName)}
+                  helperText={formik.touched.itemName && formik.errors.itemName}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.category')}
+                  name="category"
+                  value={formik.values.category}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.category && Boolean(formik.errors.category)}
+                  helperText={formik.touched.category && formik.errors.category}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.quantity')}
+                  name="quantity"
+                  type="number"
+                  value={formik.values.quantity}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.quantity && Boolean(formik.errors.quantity)}
+                  helperText={formik.touched.quantity && formik.errors.quantity}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.unit')}
+                  name="unit"
+                  value={formik.values.unit}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.unit && Boolean(formik.errors.unit)}
+                  helperText={formik.touched.unit && formik.errors.unit}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.minimumQuantity')}
+                  name="minimumQuantity"
+                  type="number"
+                  value={formik.values.minimumQuantity}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.minimumQuantity && Boolean(formik.errors.minimumQuantity)}
+                  helperText={formik.touched.minimumQuantity && formik.errors.minimumQuantity}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    label={t('stock.expiryDate')}
+                    value={formik.values.expiryDate}
+                    onChange={(date) => formik.setFieldValue('expiryDate', date)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        error={formik.touched.expiryDate && Boolean(formik.errors.expiryDate)}
+                        helperText={formik.touched.expiryDate && formik.errors.expiryDate}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" gutterBottom>
+                  {t('stock.supplier')}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.supplier.name')}
+                  name="supplier.name"
+                  value={formik.values.supplier.name}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.supplier.contact')}
+                  name="supplier.contact"
+                  value={formik.values.supplier.contact}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.supplier.email')}
+                  name="supplier.email"
+                  type="email"
+                  value={formik.values.supplier.email}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.supplier.phone')}
+                  name="supplier.phone"
+                  value={formik.values.supplier.phone}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.batchNumber')}
+                  name="batchNumber"
+                  value={formik.values.batchNumber}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.location')}
+                  name="location"
+                  value={formik.values.location}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label={t('stock.notes')}
+                  name="notes"
+                  value={formik.values.notes}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  multiline
+                  rows={2}
+                />
+              </Grid>
+            </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            {t('common.save')}
+          <Button
+            onClick={formik.handleSubmit}
+            variant="contained"
+            disabled={loading}
+            startIcon={loading && <CircularProgress size={20} />}
+          >
+            {selectedItem ? t('common.update') : t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={openConfirm}
         title={t('stock.deleteConfirmTitle')}
         message={t('stock.deleteConfirmMessage')}
-        onConfirm={confirmDelete}
-        onCancel={() => {
-          setOpenConfirm(false);
-          setSelectedItem(null);
-        }}
+        onConfirm={handleDelete}
+        onCancel={() => setOpenConfirm(false)}
+        loading={loading}
       />
     </Box>
   );

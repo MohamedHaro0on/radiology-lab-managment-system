@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import QRCode from 'qrcode';
 import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
+import { sendPasswordResetEmail } from '../services/emailService.js';
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -138,12 +139,21 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     user.passwordResetExpires = Date.now() + 3600000; // 1 hour
     await user.save({ validateBeforeSave: false });
 
-    // In a real application, send email with reset link
-    // For now, we'll just return the token
-    res.json({
-        message: 'If your email is registered, you will receive a password reset link',
-        resetToken // Remove this in production
-    });
+    try {
+        // Send reset email
+        await sendPasswordResetEmail(user.email, resetToken);
+
+        res.json({
+            message: 'If your email is registered, you will receive a password reset link'
+        });
+    } catch (error) {
+        // If email sending fails, remove the reset token
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save({ validateBeforeSave: false });
+
+        throw errors.InternalServerError('Error sending reset email. Please try again later.');
+    }
 });
 
 // Reset password
@@ -176,6 +186,8 @@ export const resetPassword = asyncHandler(async (req, res) => {
             refreshToken: newRefreshToken
         });
     } catch (error) {
+        // Log the specific error for debugging
+        console.error('Reset password token verification failed:', error);
         throw errors.BadRequest('Invalid or expired reset token');
     }
 });

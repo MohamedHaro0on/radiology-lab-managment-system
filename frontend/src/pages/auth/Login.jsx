@@ -1,62 +1,101 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// eslint-disable-next-line no-unused-vars
-import { useFormik } from 'formik';
-import * as yup from 'yup';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
+import { useFormik } from 'formik';
 import {
-  Box,
-  Button,
   Container,
-  TextField,
+  Box,
   Typography,
+  TextField,
+  Button,
   Paper,
   CircularProgress,
+  Alert,
+  Link,
 } from '@mui/material';
+import { authAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { loginSchema } from '../../validations/schemas';
+import TwoFactorAuth from '../../components/auth/TwoFactorAuth';
+import { toast } from 'react-toastify';
 
 /**
  * Login component for user authentication
  * @returns {JSX.Element} Login form component
  */
 const Login = () => {
-  const [loading, setLoading] = useState(false);
-  // eslint-disable-next-line no-unused-vars
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { t, i18n } = useTranslation();
-
-  const validationSchema = yup.object({
-    email: yup
-      .string()
-      .email(t('auth.emailInvalid'))
-      .required(t('auth.emailRequired')),
-    password: yup
-      .string()
-      .min(6, t('auth.passwordMinLength'))
-      .required(t('auth.passwordRequired')),
-  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [show2FA, setShow2FA] = useState(false);
+  const [tempToken, setTempToken] = useState('');
 
   const formik = useFormik({
     initialValues: {
       email: '',
       password: '',
     },
-    validationSchema: validationSchema,
+    validationSchema: loginSchema,
     onSubmit: async (values) => {
       try {
         setLoading(true);
-        await login(values.email, values.password);
-        toast.success(t('auth.loginSuccess'));
+        setError('');
+
+        const response = await authAPI.login(values);
+        
+        // Check if 2FA is required
+        if (response.data.requires2FA) {
+          setTempToken(response.data.tempToken);
+          setShow2FA(true);
+        } else {
+          // Regular login without 2FA
+          await handleLoginSuccess(response.data);
+        }
       } catch (err) {
-        console.log("this is the error : " , err)
-        toast.error(err.response?.data?.message || t('auth.loginError'));
+        // Handle rate limiting error
+        if (err.response?.status === 429) {
+          setError(t('auth.rateLimitError'));
+        } else {
+          setError(err.response?.data?.message || t('auth.loginError'));
+        }
       } finally {
         setLoading(false);
       }
     },
   });
+
+  const handleLoginSuccess = async (data) => {
+    try {
+      await login(data.token, data.user);
+      toast.success(t('auth.loginSuccess'));
+      navigate('/dashboard');
+    } catch (err) {
+      setError(t('auth.loginError'));
+    }
+  };
+
+  const handle2FASuccess = async (data) => {
+    try {
+      setLoading(true);
+      // Complete login with 2FA token
+      const response = await authAPI.verify2FA(data.token);
+      if (response.data.token) {
+        await handleLoginSuccess(response.data);
+      } else {
+        setError(t('auth.2faVerificationError'));
+      }
+    } catch (err) {
+      if (err.response?.status === 429) {
+        setError(t('auth.2faRateLimitError'));
+      } else {
+        setError(err.response?.data?.message || t('auth.2faVerificationError'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Container component="main" maxWidth="xs">
@@ -84,6 +123,13 @@ const Login = () => {
           <Typography component="h2" variant="h6" sx={{ mb: 3 }}>
             {t('auth.login')}
           </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField
               margin="normal"
@@ -99,15 +145,14 @@ const Login = () => {
               error={formik.touched.email && Boolean(formik.errors.email)}
               helperText={formik.touched.email && formik.errors.email}
               disabled={loading}
-              dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}
             />
             <TextField
               margin="normal"
               fullWidth
-              id="password"
               name="password"
               label={t('auth.password')}
               type="password"
+              id="password"
               autoComplete="current-password"
               value={formik.values.password}
               onChange={formik.handleChange}
@@ -115,7 +160,6 @@ const Login = () => {
               error={formik.touched.password && Boolean(formik.errors.password)}
               helperText={formik.touched.password && formik.errors.password}
               disabled={loading}
-              dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}
             />
             <Button
               type="submit"
@@ -126,9 +170,21 @@ const Login = () => {
             >
               {loading ? <CircularProgress size={24} /> : t('auth.login')}
             </Button>
+            <Box sx={{ textAlign: 'center' }}>
+              <Link href="/forgot-password" variant="body2">
+                {t('auth.forgotPassword')}
+              </Link>
+            </Box>
           </Box>
         </Paper>
       </Box>
+
+      <TwoFactorAuth
+        open={show2FA}
+        onClose={() => setShow2FA(false)}
+        onSuccess={handle2FASuccess}
+        mode="verify"
+      />
     </Container>
   );
 };

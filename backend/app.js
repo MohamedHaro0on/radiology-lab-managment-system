@@ -145,13 +145,18 @@ const startServer = async () => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
     process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (error) => {
+    console.error('Unhandled Rejection:', error);
     process.exit(1);
 });
 
 // Start the server
-startServer(); 
+startServer().catch(error => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+}); 

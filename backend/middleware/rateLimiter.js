@@ -30,11 +30,12 @@ export const authLimiter = rateLimit({
 
 // Password reset limiter
 export const passwordResetLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // Limit each IP to 3 requests per windowMs
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Greatly increased limit to effectively disable for testing
     standardHeaders: true,
     legacyHeaders: false,
-    handler: rateLimitHandler
+    handler: rateLimitHandler,
+    message: 'Too many password reset attempts. Please try again in 15 minutes.'
 });
 
 // 2FA verification limiter

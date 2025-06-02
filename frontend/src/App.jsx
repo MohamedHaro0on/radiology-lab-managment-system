@@ -19,6 +19,8 @@ import Patients from './pages/patients/Patients';
 import Stock from './pages/stock/Stock';
 import Profile from './pages/profile/Profile';
 import Settings from './pages/settings/Settings';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import './i18n/config';
 import { useTranslation } from 'react-i18next';
 
@@ -52,6 +54,8 @@ const AppContent = () => {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/"
               element={
