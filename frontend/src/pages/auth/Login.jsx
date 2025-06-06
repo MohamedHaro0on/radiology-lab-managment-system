@@ -16,7 +16,6 @@ import {
 import { authAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { loginSchema } from '../../validations/schemas';
-import TwoFactorAuth from '../../components/auth/TwoFactorAuth';
 import { toast } from 'react-toastify';
 
 /**
@@ -29,8 +28,6 @@ const Login = () => {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [show2FA, setShow2FA] = useState(false);
-  const [tempToken, setTempToken] = useState('');
 
   const formik = useFormik({
     initialValues: {
@@ -47,8 +44,7 @@ const Login = () => {
         
         // Check if 2FA is required
         if (response.data.requires2FA) {
-          setTempToken(response.data.tempToken);
-          setShow2FA(true);
+          navigate('/two-factor-auth', { state: { tempToken: response.data.tempToken } });
         } else {
           // Regular login without 2FA
           await handleLoginSuccess(response.data);
@@ -73,27 +69,6 @@ const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       setError(t('auth.loginError'));
-    }
-  };
-
-  const handle2FASuccess = async (data) => {
-    try {
-      setLoading(true);
-      // Complete login with 2FA token
-      const response = await authAPI.verify2FA(data.token);
-      if (response.data.token) {
-        await handleLoginSuccess(response.data);
-      } else {
-        setError(t('auth.2faVerificationError'));
-      }
-    } catch (err) {
-      if (err.response?.status === 429) {
-        setError(t('auth.2faRateLimitError'));
-      } else {
-        setError(err.response?.data?.message || t('auth.2faVerificationError'));
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -178,13 +153,6 @@ const Login = () => {
           </Box>
         </Paper>
       </Box>
-
-      <TwoFactorAuth
-        open={show2FA}
-        onClose={() => setShow2FA(false)}
-        onSuccess={handle2FASuccess}
-        mode="verify"
-      />
     </Container>
   );
 };

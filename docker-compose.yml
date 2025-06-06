@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    # Add environment variables here if needed, e.g.:
+    # environment:
+    #   NODE_ENV: production
+    #   MONGO_URI: your_mongo_uri
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80" # Map container port 80 to host port 80
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge 

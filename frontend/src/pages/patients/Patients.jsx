@@ -41,6 +41,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import DoctorSearchAndRegister from '../../components/doctors/DoctorSearchAndRegister';
 
 /**
  * Patients component for managing patients
@@ -74,16 +75,22 @@ const Patients = () => {
         country: 'India',
       },
       medicalHistory: [],
+      doctor: null,
     },
     validationSchema: patientSchema,
     onSubmit: async (values) => {
       try {
         setLoading(true);
+        const submitData = {
+          ...values,
+          doctor: values.doctor._id,
+        };
+        
         if (selectedPatient) {
-          await patientAPI.update(selectedPatient._id, values);
+          await patientAPI.update(selectedPatient._id, submitData);
           toast.success(t('patients.updateSuccess'));
         } else {
-          await patientAPI.create(values);
+          await patientAPI.create(submitData);
           toast.success(t('patients.createSuccess'));
         }
         handleCloseDialog();
@@ -358,6 +365,14 @@ const Patients = () => {
                   onBlur={formik.handleBlur}
                   error={formik.touched.email && Boolean(formik.errors.email)}
                   helperText={formik.touched.email && formik.errors.email}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <DoctorSearchAndRegister
+                  value={formik.values.doctor}
+                  onChange={(doctor) => formik.setFieldValue('doctor', doctor)}
+                  error={formik.touched.doctor && Boolean(formik.errors.doctor)}
+                  helperText={formik.touched.doctor && formik.errors.doctor}
                 />
               </Grid>
               <Grid item xs={12}>

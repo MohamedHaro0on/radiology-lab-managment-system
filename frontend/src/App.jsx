@@ -21,6 +21,7 @@ import Profile from './pages/profile/Profile';
 import Settings from './pages/settings/Settings';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import TwoFactorAuthPage from './pages/auth/TwoFactorAuthPage';
 import './i18n/config';
 import { useTranslation } from 'react-i18next';
 
@@ -56,6 +57,7 @@ const AppContent = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/two-factor-auth" element={<TwoFactorAuthPage />} />
             <Route
               path="/"
               element={

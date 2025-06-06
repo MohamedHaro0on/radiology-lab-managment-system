@@ -33,32 +33,27 @@ export const twoFactorSchema = yup.object({
 });
 
 // Patient schemas
-export const patientSchema = yup.object({
-    firstName: yup.string().required('First name is required'),
-    lastName: yup.string().required('Last name is required'),
-    dateOfBirth: yup.date().required('Date of birth is required').max(new Date(), 'Date of birth cannot be in the future'),
-    gender: yup.string().oneOf(['male', 'female', 'other'], 'Invalid gender').required('Gender is required'),
-    phoneNumber: yup
-        .string()
-        .matches(phoneRegex, 'Invalid phone number format')
-        .required('Phone number is required'),
-    email: yup.string().email('Invalid email format'),
-    address: yup.object({
+export const patientSchema = yup.object().shape({
+    firstName: yup.string().required(t('validation.required')),
+    lastName: yup.string().required(t('validation.required')),
+    dateOfBirth: yup.date().required(t('validation.required')),
+    gender: yup.string().required(t('validation.required')),
+    phoneNumber: yup.string().required(t('validation.required')),
+    email: yup.string().email(t('validation.email')).nullable(),
+    address: yup.object().shape({
         street: yup.string(),
         city: yup.string(),
         state: yup.string(),
         postalCode: yup.string(),
-        country: yup.string().default('India'),
+        country: yup.string(),
     }),
-    medicalHistory: yup.array().of(
-        yup.object({
-            condition: yup.string().required('Condition is required'),
-            diagnosis: yup.string(),
-            treatment: yup.string(),
-            date: yup.date(),
-            notes: yup.string(),
-        })
-    ),
+    medicalHistory: yup.array().of(yup.string()),
+    doctor: yup.object().shape({
+        _id: yup.string().required(t('validation.required')),
+        firstName: yup.string().required(),
+        lastName: yup.string().required(),
+        specialization: yup.string().required(),
+    }).required(t('validation.doctorRequired')),
 });
 
 // Doctor schemas

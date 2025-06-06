@@ -1,28 +1,20 @@
-# Use Node.js LTS version as the base image
-FROM node:20-alpine
+# Use an official Node.js runtime as a base image
+FROM node:lts-alpine
 
-# Create app directory
-WORKDIR /usr/src/app
+# Set the working directory in the container
+WORKDIR /app
 
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
+# Copy package.json and package-lock.json (if available) to the working directory
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install
 
-# Copy app source code
+# Copy the rest of the application code to the working directory
 COPY . .
-
-# Create necessary directories
-RUN mkdir -p logs uploads
-
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
 
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Command to run the application
-CMD ["node", "server.js"] 
+# Define the command to run the application
+CMD [ "npm", "start" ] 

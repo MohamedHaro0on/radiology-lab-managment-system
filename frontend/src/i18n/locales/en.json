@@ -482,7 +482,10 @@
     "deleteError": "Error deleting doctor",
     "deleteConfirmTitle": "Delete Doctor",
     "deleteConfirmMessage": "Are you sure you want to delete this doctor?",
-    "noDoctorsFound": "No doctors found."
+    "noDoctorsFound": "No doctors found.",
+    "startTyping": "Start typing to search for a doctor",
+    "registerNew": "Register New Doctor",
+    "searchPlaceholder": "Search by name or specialization"
   },
   "patients": {
     "title": "Patients",
@@ -506,7 +509,10 @@
     "deleteConfirmTitle": "Delete Patient",
     "deleteConfirmMessage": "Are you sure you want to delete this patient?",
     "years": "years",
-    "noPatientsFound": "No patients found."
+    "noPatientsFound": "No patients found.",
+    "selectDoctor": "Select Doctor",
+    "doctor": "Doctor",
+    "doctorRequired": "Please select a doctor"
   },
   "settings": {
     "title": "Settings",
@@ -518,6 +524,10 @@
   },
   "validation": {
     "passwordFormat": "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character",
-    "passwordsMustMatch": "Passwords must match"
+    "passwordsMustMatch": "Passwords must match",
+    "required": "This field is required",
+    "email": "Invalid email format",
+    "doctorRequired": "Please select a doctor",
+    "phoneNumber": "Invalid phone number format"
   }
 } 
