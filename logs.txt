@@ -1,0 +1,279 @@
+
+==> Audit <==
+|--------------|-----------------|----------|---------------|---------|----------------------|----------------------|
+|   Command    |      Args       | Profile  |     User      | Version |      Start Time      |       End Time       |
+|--------------|-----------------|----------|---------------|---------|----------------------|----------------------|
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 03 Jul 24 17:12 EEST |                      |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 03 Jul 24 17:12 EEST |                      |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 03 Jul 24 17:15 EEST |                      |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 04 Jul 24 14:39 EEST | 04 Jul 24 14:40 EEST |
+| start        | --driver=docker | minikube | mohamedharoon | v1.33.1 | 04 Jul 24 14:40 EEST | 04 Jul 24 14:40 EEST |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 04 Jul 24 14:40 EEST |                      |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 04 Jul 24 14:40 EEST |                      |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 04 Jul 24 14:41 EEST |                      |
+| stop         |                 | minikube | mohamedharoon | v1.33.1 | 05 Jul 24 00:07 EEST | 05 Jul 24 00:07 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 05 Jul 24 12:48 EEST | 05 Jul 24 12:48 EEST |
+| start        | --driver=docker | minikube | mohamedharoon | v1.33.1 | 05 Jul 24 12:49 EEST | 05 Jul 24 12:49 EEST |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 05 Jul 24 12:49 EEST |                      |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 05 Jul 24 19:14 EEST | 05 Jul 24 19:14 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 06 Jul 24 20:32 EEST | 06 Jul 24 20:32 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 06 Jul 24 20:43 EEST | 06 Jul 24 20:43 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 06 Jul 24 20:43 EEST | 06 Jul 24 20:43 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 07 Jul 24 03:18 EEST | 07 Jul 24 03:19 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Jul 24 21:05 EEST | 09 Jul 24 21:05 EEST |
+| start        | --driver=docker | minikube | mohamedharoon | v1.33.1 | 09 Jul 24 22:20 EEST | 09 Jul 24 22:21 EEST |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 09 Jul 24 22:21 EEST |                      |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 10 Jul 24 18:31 EEST |                      |
+| start        | --driver=docker | minikube | mohamedharoon | v1.33.1 | 10 Jul 24 18:33 EEST | 10 Jul 24 18:33 EEST |
+| stop         |                 | minikube | mohamedharoon | v1.33.1 | 10 Jul 24 18:34 EEST | 10 Jul 24 18:34 EEST |
+| start        | --driver=docker | minikube | mohamedharoon | v1.33.1 | 10 Jul 24 20:49 EEST | 10 Jul 24 20:49 EEST |
+| dashboard    |                 | minikube | mohamedharoon | v1.33.1 | 10 Jul 24 20:49 EEST |                      |
+| stop         |                 | minikube | mohamedharoon | v1.33.1 | 10 Jul 24 20:50 EEST | 10 Jul 24 20:50 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 18 Feb 25 15:10 EET  | 18 Feb 25 15:10 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 01 Mar 25 15:28 EET  | 01 Mar 25 15:28 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 01 Mar 25 16:36 EET  | 01 Mar 25 16:36 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 02 Mar 25 14:34 EET  | 02 Mar 25 14:34 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 02 Mar 25 16:37 EET  | 02 Mar 25 16:37 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 02 Mar 25 19:34 EET  | 02 Mar 25 19:34 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 02 Mar 25 19:35 EET  | 02 Mar 25 19:35 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 05 Mar 25 11:02 EET  | 05 Mar 25 11:02 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 05 Mar 25 12:48 EET  | 05 Mar 25 12:48 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 06 Mar 25 13:21 EET  | 06 Mar 25 13:22 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 08 Mar 25 21:53 EET  | 08 Mar 25 21:53 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Mar 25 14:23 EET  | 09 Mar 25 14:24 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Mar 25 17:20 EET  | 09 Mar 25 17:20 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Mar 25 20:02 EET  | 09 Mar 25 20:02 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Mar 25 20:07 EET  | 09 Mar 25 20:07 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Mar 25 20:08 EET  | 09 Mar 25 20:08 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Mar 25 20:12 EET  | 09 Mar 25 20:12 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 09 Mar 25 20:16 EET  | 09 Mar 25 20:16 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 10 Mar 25 14:22 EET  | 10 Mar 25 14:22 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 11 Mar 25 13:59 EET  | 11 Mar 25 13:59 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 13 Mar 25 21:29 EET  | 13 Mar 25 21:30 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 15 Mar 25 14:57 EET  | 15 Mar 25 14:58 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 15 Mar 25 22:14 EET  | 15 Mar 25 22:14 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 16 Mar 25 04:06 EET  | 16 Mar 25 04:06 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 17 Mar 25 23:36 EET  | 17 Mar 25 23:36 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 17 Apr 25 17:41 EET  | 17 Apr 25 17:41 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 20 Apr 25 11:38 EET  | 20 Apr 25 11:38 EET  |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 13 May 25 13:11 EEST | 13 May 25 13:11 EEST |
+| update-check |                 | minikube | mohamedharoon | v1.33.1 | 08 Jun 25 19:40 EEST | 08 Jun 25 19:40 EEST |
+| start        |                 | minikube | mohamedharoon | v1.33.1 | 08 Jun 25 20:15 EEST |                      |
+| start        |                 | minikube | mohamedharoon | v1.33.1 | 08 Jun 25 20:25 EEST |                      |
+| start        |                 | minikube | mohamedharoon | v1.33.1 | 09 Jun 25 02:29 EEST |                      |
+| stop         |                 | minikube | mohamedharoon | v1.33.1 | 09 Jun 25 02:48 EEST |                      |
+| stop         |                 | minikube | mohamedharoon | v1.33.1 | 09 Jun 25 02:48 EEST |                      |
+|--------------|-----------------|----------|---------------|---------|----------------------|----------------------|
+
+
+==> Last Start <==
+Log file created at: 2025/06/09 02:29:50
+Running on machine: MohamedHaroon
+Binary: Built with gc go1.22.1 for linux/amd64
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0609 02:29:50.775569  709976 out.go:291] Setting OutFile to fd 1 ...
+I0609 02:29:50.775918  709976 out.go:343] isatty.IsTerminal(1) = true
+I0609 02:29:50.775924  709976 out.go:304] Setting ErrFile to fd 2...
+I0609 02:29:50.775932  709976 out.go:343] isatty.IsTerminal(2) = true
+I0609 02:29:50.776207  709976 root.go:338] Updating PATH: /home/mohamedharoon/.minikube/bin
+W0609 02:29:50.776701  709976 root.go:314] Error reading config file at /home/mohamedharoon/.minikube/config/config.json: open /home/mohamedharoon/.minikube/config/config.json: no such file or directory
+I0609 02:29:50.777337  709976 out.go:298] Setting JSON to false
+I0609 02:29:50.779311  709976 start.go:129] hostinfo: {"hostname":"MohamedHaroon","uptime":128573,"bootTime":1749296818,"procs":435,"os":"linux","platform":"ubuntu","platformFamily":"debian","platformVersion":"22.04","kernelVersion":"6.8.0-60-generic","kernelArch":"x86_64","virtualizationSystem":"kvm","virtualizationRole":"host","hostId":"40c38588-876f-472a-9fd7-b90b9aa58469"}
+I0609 02:29:50.779363  709976 start.go:139] virtualization: kvm host
+I0609 02:29:50.780844  709976 out.go:177] 😄  minikube v1.33.1 on Ubuntu 22.04
+I0609 02:29:50.782283  709976 notify.go:220] Checking for updates...
+I0609 02:29:50.782812  709976 config.go:182] Loaded profile config "minikube": Driver=docker, ContainerRuntime=docker, KubernetesVersion=v1.30.0
+I0609 02:29:50.782929  709976 driver.go:392] Setting default libvirt URI to qemu:///system
+I0609 02:29:50.808287  709976 docker.go:122] docker version: linux-28.2.2:Docker Engine - Community
+I0609 02:29:50.808785  709976 cli_runner.go:164] Run: docker system info --format "{{json .}}"
+I0609 02:29:50.856024  709976 info.go:266] docker info: {ID:9d5fe637-618b-4cea-8424-5502304978af Containers:4 ContainersRunning:1 ContainersPaused:0 ContainersStopped:3 Images:40 Driver:overlay2 DriverStatus:[[Backing Filesystem extfs] [Supports d_type true] [Using metacopy false] [Native Overlay Diff true] [userxattr false]] SystemStatus:<nil> Plugins:{Volume:[local] Network:[bridge host ipvlan macvlan null overlay] Authorization:<nil> Log:[awslogs fluentd gcplogs gelf journald json-file local splunk syslog]} MemoryLimit:true SwapLimit:true KernelMemory:false KernelMemoryTCP:false CPUCfsPeriod:true CPUCfsQuota:true CPUShares:true CPUSet:true PidsLimit:true IPv4Forwarding:true BridgeNfIptables:false BridgeNfIP6Tables:false Debug:false NFd:37 OomKillDisable:false NGoroutines:56 SystemTime:2025-06-09 02:29:50.847537621 +0300 EEST LoggingDriver:json-file CgroupDriver:systemd NEventsListener:0 KernelVersion:6.8.0-60-generic OperatingSystem:Ubuntu 22.04.5 LTS OSType:linux Architecture:x86_64 IndexServerAddress:https://index.docker.io/v1/ RegistryConfig:{AllowNondistributableArtifactsCIDRs:[] AllowNondistributableArtifactsHostnames:[] InsecureRegistryCIDRs:[::1/128 127.0.0.0/8] IndexConfigs:{DockerIo:{Name:docker.io Mirrors:[] Secure:true Official:true}} Mirrors:[]} NCPU:12 MemTotal:33493229568 GenericResources:<nil> DockerRootDir:/var/lib/docker HTTPProxy: HTTPSProxy: NoProxy: Name:MohamedHaroon Labels:[] ExperimentalBuild:false ServerVersion:28.2.2 ClusterStore: ClusterAdvertise: Runtimes:{Runc:{Path:runc}} DefaultRuntime:runc Swarm:{NodeID: NodeAddr: LocalNodeState:inactive ControlAvailable:false Error: RemoteManagers:<nil>} LiveRestoreEnabled:false Isolation: InitBinary:docker-init ContainerdCommit:{ID:05044ec0a9a75232cad458027ca83437aae3f4da Expected:} RuncCommit:{ID:v1.2.5-0-g59923ef Expected:} InitCommit:{ID:de40ad0 Expected:} SecurityOptions:[name=apparmor name=seccomp,profile=builtin name=cgroupns] ProductLicense: Warnings:<nil> ServerErrors:[] ClientInfo:{Debug:false Plugins:[map[Name:buildx Path:/usr/libexec/docker/cli-plugins/docker-buildx SchemaVersion:0.1.0 ShortDescription:Docker Buildx Vendor:Docker Inc. Version:v0.24.0] map[Name:compose Path:/usr/libexec/docker/cli-plugins/docker-compose SchemaVersion:0.1.0 ShortDescription:Docker Compose Vendor:Docker Inc. Version:v2.36.2]] Warnings:<nil>}}
+I0609 02:29:50.856146  709976 docker.go:295] overlay module found
+I0609 02:29:50.857007  709976 out.go:177] ✨  Using the docker driver based on existing profile
+I0609 02:29:50.857699  709976 start.go:297] selected driver: docker
+I0609 02:29:50.857704  709976 start.go:901] validating driver "docker" against &{Name:minikube KeepContext:false EmbedCerts:false MinikubeISO: KicBaseImage:gcr.io/k8s-minikube/kicbase:v0.0.44@sha256:eb04641328b06c5c4a14f4348470e1046bbcf9c2cbc551486e343d3a49db557e Memory:7900 CPUs:2 DiskSize:20000 Driver:docker HyperkitVpnKitSock: HyperkitVSockPorts:[] DockerEnv:[] ContainerVolumeMounts:[] InsecureRegistry:[] RegistryMirror:[] HostOnlyCIDR:192.168.59.1/24 HypervVirtualSwitch: HypervUseExternalSwitch:false HypervExternalAdapter: KVMNetwork:default KVMQemuURI:qemu:///system KVMGPU:false KVMHidden:false KVMNUMACount:1 APIServerPort:8443 DockerOpt:[] DisableDriverMounts:false NFSShare:[] NFSSharesRoot:/nfsshares UUID: NoVTXCheck:false DNSProxy:false HostDNSResolver:true HostOnlyNicType:virtio NatNicType:virtio SSHIPAddress: SSHUser:root SSHKey: SSHPort:22 KubernetesConfig:{KubernetesVersion:v1.30.0 ClusterName:minikube Namespace:default APIServerHAVIP: APIServerName:minikubeCA APIServerNames:[] APIServerIPs:[] DNSDomain:cluster.local ContainerRuntime:docker CRISocket: NetworkPlugin:cni FeatureGates: ServiceCIDR:10.96.0.0/12 ImageRepository: LoadBalancerStartIP: LoadBalancerEndIP: CustomIngressCert: RegistryAliases: ExtraOptions:[] ShouldLoadCachedImages:true EnableDefaultCNI:false CNI:} Nodes:[{Name: IP:192.168.49.2 Port:8443 KubernetesVersion:v1.30.0 ContainerRuntime:docker ControlPlane:true Worker:true}] Addons:map[dashboard:true default-storageclass:true metrics-server:true storage-provisioner:true] CustomAddonImages:map[] CustomAddonRegistries:map[] VerifyComponents:map[apiserver:true system_pods:true] StartHostTimeout:6m0s ScheduledStop:<nil> ExposedPorts:[] ListenAddress: Network: Subnet: MultiNodeRequested:false ExtraDisks:0 CertExpiration:26280h0m0s Mount:false MountString:/home/mohamedharoon:/minikube-host Mount9PVersion:9p2000.L MountGID:docker MountIP: MountMSize:262144 MountOptions:[] MountPort:0 MountType:9p MountUID:docker BinaryMirror: DisableOptimizations:false DisableMetrics:false CustomQemuFirmwarePath: SocketVMnetClientPath: SocketVMnetPath: StaticIP: SSHAuthSock: SSHAgentPID:0 GPUs: AutoPauseInterval:1m0s}
+I0609 02:29:50.857792  709976 start.go:912] status for docker: {Installed:true Healthy:true Running:false NeedsImprovement:false Error:<nil> Reason: Fix: Doc: Version:}
+I0609 02:29:50.858175  709976 cli_runner.go:164] Run: docker system info --format "{{json .}}"
+I0609 02:29:50.920777  709976 info.go:266] docker info: {ID:9d5fe637-618b-4cea-8424-5502304978af Containers:4 ContainersRunning:1 ContainersPaused:0 ContainersStopped:3 Images:40 Driver:overlay2 DriverStatus:[[Backing Filesystem extfs] [Supports d_type true] [Using metacopy false] [Native Overlay Diff true] [userxattr false]] SystemStatus:<nil> Plugins:{Volume:[local] Network:[bridge host ipvlan macvlan null overlay] Authorization:<nil> Log:[awslogs fluentd gcplogs gelf journald json-file local splunk syslog]} MemoryLimit:true SwapLimit:true KernelMemory:false KernelMemoryTCP:false CPUCfsPeriod:true CPUCfsQuota:true CPUShares:true CPUSet:true PidsLimit:true IPv4Forwarding:true BridgeNfIptables:false BridgeNfIP6Tables:false Debug:false NFd:37 OomKillDisable:false NGoroutines:56 SystemTime:2025-06-09 02:29:50.912649296 +0300 EEST LoggingDriver:json-file CgroupDriver:systemd NEventsListener:0 KernelVersion:6.8.0-60-generic OperatingSystem:Ubuntu 22.04.5 LTS OSType:linux Architecture:x86_64 IndexServerAddress:https://index.docker.io/v1/ RegistryConfig:{AllowNondistributableArtifactsCIDRs:[] AllowNondistributableArtifactsHostnames:[] InsecureRegistryCIDRs:[::1/128 127.0.0.0/8] IndexConfigs:{DockerIo:{Name:docker.io Mirrors:[] Secure:true Official:true}} Mirrors:[]} NCPU:12 MemTotal:33493229568 GenericResources:<nil> DockerRootDir:/var/lib/docker HTTPProxy: HTTPSProxy: NoProxy: Name:MohamedHaroon Labels:[] ExperimentalBuild:false ServerVersion:28.2.2 ClusterStore: ClusterAdvertise: Runtimes:{Runc:{Path:runc}} DefaultRuntime:runc Swarm:{NodeID: NodeAddr: LocalNodeState:inactive ControlAvailable:false Error: RemoteManagers:<nil>} LiveRestoreEnabled:false Isolation: InitBinary:docker-init ContainerdCommit:{ID:05044ec0a9a75232cad458027ca83437aae3f4da Expected:} RuncCommit:{ID:v1.2.5-0-g59923ef Expected:} InitCommit:{ID:de40ad0 Expected:} SecurityOptions:[name=apparmor name=seccomp,profile=builtin name=cgroupns] ProductLicense: Warnings:<nil> ServerErrors:[] ClientInfo:{Debug:false Plugins:[map[Name:buildx Path:/usr/libexec/docker/cli-plugins/docker-buildx SchemaVersion:0.1.0 ShortDescription:Docker Buildx Vendor:Docker Inc. Version:v0.24.0] map[Name:compose Path:/usr/libexec/docker/cli-plugins/docker-compose SchemaVersion:0.1.0 ShortDescription:Docker Compose Vendor:Docker Inc. Version:v2.36.2]] Warnings:<nil>}}
+I0609 02:29:50.921735  709976 cni.go:84] Creating CNI manager for ""
+I0609 02:29:50.921744  709976 cni.go:158] "docker" driver + "docker" container runtime found on kubernetes v1.24+, recommending bridge
+I0609 02:29:50.921783  709976 start.go:340] cluster config:
+{Name:minikube KeepContext:false EmbedCerts:false MinikubeISO: KicBaseImage:gcr.io/k8s-minikube/kicbase:v0.0.44@sha256:eb04641328b06c5c4a14f4348470e1046bbcf9c2cbc551486e343d3a49db557e Memory:7900 CPUs:2 DiskSize:20000 Driver:docker HyperkitVpnKitSock: HyperkitVSockPorts:[] DockerEnv:[] ContainerVolumeMounts:[] InsecureRegistry:[] RegistryMirror:[] HostOnlyCIDR:192.168.59.1/24 HypervVirtualSwitch: HypervUseExternalSwitch:false HypervExternalAdapter: KVMNetwork:default KVMQemuURI:qemu:///system KVMGPU:false KVMHidden:false KVMNUMACount:1 APIServerPort:8443 DockerOpt:[] DisableDriverMounts:false NFSShare:[] NFSSharesRoot:/nfsshares UUID: NoVTXCheck:false DNSProxy:false HostDNSResolver:true HostOnlyNicType:virtio NatNicType:virtio SSHIPAddress: SSHUser:root SSHKey: SSHPort:22 KubernetesConfig:{KubernetesVersion:v1.30.0 ClusterName:minikube Namespace:default APIServerHAVIP: APIServerName:minikubeCA APIServerNames:[] APIServerIPs:[] DNSDomain:cluster.local ContainerRuntime:docker CRISocket: NetworkPlugin:cni FeatureGates: ServiceCIDR:10.96.0.0/12 ImageRepository: LoadBalancerStartIP: LoadBalancerEndIP: CustomIngressCert: RegistryAliases: ExtraOptions:[] ShouldLoadCachedImages:true EnableDefaultCNI:false CNI:} Nodes:[{Name: IP:192.168.49.2 Port:8443 KubernetesVersion:v1.30.0 ContainerRuntime:docker ControlPlane:true Worker:true}] Addons:map[dashboard:true default-storageclass:true metrics-server:true storage-provisioner:true] CustomAddonImages:map[] CustomAddonRegistries:map[] VerifyComponents:map[apiserver:true system_pods:true] StartHostTimeout:6m0s ScheduledStop:<nil> ExposedPorts:[] ListenAddress: Network: Subnet: MultiNodeRequested:false ExtraDisks:0 CertExpiration:26280h0m0s Mount:false MountString:/home/mohamedharoon:/minikube-host Mount9PVersion:9p2000.L MountGID:docker MountIP: MountMSize:262144 MountOptions:[] MountPort:0 MountType:9p MountUID:docker BinaryMirror: DisableOptimizations:false DisableMetrics:false CustomQemuFirmwarePath: SocketVMnetClientPath: SocketVMnetPath: StaticIP: SSHAuthSock: SSHAgentPID:0 GPUs: AutoPauseInterval:1m0s}
+I0609 02:29:50.922591  709976 out.go:177] 👍  Starting "minikube" primary control-plane node in "minikube" cluster
+I0609 02:29:50.923241  709976 cache.go:121] Beginning downloading kic base image for docker with docker
+I0609 02:29:50.924020  709976 out.go:177] 🚜  Pulling base image v0.0.44 ...
+I0609 02:29:50.924757  709976 preload.go:132] Checking if preload exists for k8s version v1.30.0 and runtime docker
+I0609 02:29:50.924780  709976 preload.go:147] Found local preload: /home/mohamedharoon/.minikube/cache/preloaded-tarball/preloaded-images-k8s-v18-v1.30.0-docker-overlay2-amd64.tar.lz4
+I0609 02:29:50.924784  709976 cache.go:56] Caching tarball of preloaded images
+I0609 02:29:50.924827  709976 image.go:79] Checking for gcr.io/k8s-minikube/kicbase:v0.0.44@sha256:eb04641328b06c5c4a14f4348470e1046bbcf9c2cbc551486e343d3a49db557e in local docker daemon
+I0609 02:29:50.924852  709976 preload.go:173] Found /home/mohamedharoon/.minikube/cache/preloaded-tarball/preloaded-images-k8s-v18-v1.30.0-docker-overlay2-amd64.tar.lz4 in cache, skipping download
+I0609 02:29:50.924859  709976 cache.go:59] Finished verifying existence of preloaded tar for v1.30.0 on docker
+I0609 02:29:50.924914  709976 profile.go:143] Saving config to /home/mohamedharoon/.minikube/profiles/minikube/config.json ...
+I0609 02:29:50.953811  709976 image.go:83] Found gcr.io/k8s-minikube/kicbase:v0.0.44@sha256:eb04641328b06c5c4a14f4348470e1046bbcf9c2cbc551486e343d3a49db557e in local docker daemon, skipping pull
+I0609 02:29:50.953834  709976 cache.go:144] gcr.io/k8s-minikube/kicbase:v0.0.44@sha256:eb04641328b06c5c4a14f4348470e1046bbcf9c2cbc551486e343d3a49db557e exists in daemon, skipping load
+I0609 02:29:50.953850  709976 cache.go:194] Successfully downloaded all kic artifacts
+I0609 02:29:50.953882  709976 start.go:360] acquireMachinesLock for minikube: {Name:mk06778c2f19ead10b828d7adecf3a523220f228 Clock:{} Delay:500ms Timeout:10m0s Cancel:<nil>}
+I0609 02:29:50.953939  709976 start.go:364] duration metric: took 31.111µs to acquireMachinesLock for "minikube"
+I0609 02:29:50.953951  709976 start.go:96] Skipping create...Using existing machine configuration
+I0609 02:29:50.953954  709976 fix.go:54] fixHost starting: 
+I0609 02:29:50.954452  709976 cli_runner.go:164] Run: docker container inspect minikube --format={{.State.Status}}
+I0609 02:29:50.971529  709976 fix.go:112] recreateIfNeeded on minikube: state=Running err=<nil>
+W0609 02:29:50.971541  709976 fix.go:138] unexpected machine state, will restart: <nil>
+I0609 02:29:50.972727  709976 out.go:177] 🏃  Updating the running docker "minikube" container ...
+I0609 02:29:50.973439  709976 machine.go:94] provisionDockerMachine start ...
+I0609 02:29:50.973832  709976 cli_runner.go:164] Run: docker container inspect -f "'{{(index (index .NetworkSettings.Ports "22/tcp") 0).HostPort}}'" minikube
+I0609 02:29:50.993207  709976 main.go:141] libmachine: Using SSH client type: native
+I0609 02:29:50.993390  709976 main.go:141] libmachine: &{{{<nil> 0 [] [] []} docker [0x82d6e0] 0x830440 <nil>  [] 0s} 127.0.0.1 32773 <nil> <nil>}
+I0609 02:29:50.993396  709976 main.go:141] libmachine: About to run SSH command:
+hostname
+I0609 02:29:51.028955  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:29:54.059111  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:29:57.122381  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:00.186383  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:03.257667  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:06.291141  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:09.356187  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:12.392485  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:15.456521  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:18.494620  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:21.546396  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:24.584198  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:27.618895  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:30.662535  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:33.700648  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:36.736573  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:39.769848  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:42.835647  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:45.885407  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:48.920068  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:51.959502  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:54.996465  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:30:58.034096  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:01.069224  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:04.123508  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:07.169731  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:10.207426  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:13.245230  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:16.280667  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:19.324428  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:22.358964  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:25.393207  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:28.457252  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:31.499982  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:34.552136  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:37.602213  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:40.659450  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:43.722251  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:46.758871  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:49.813225  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:52.878869  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:55.927989  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:31:58.979734  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:02.042440  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:05.076112  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:08.111344  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:11.148055  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:14.209798  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:17.262446  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:20.317670  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:23.365667  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:26.408913  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:29.461750  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:32.530741  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:35.598555  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:38.664341  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:41.711211  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:44.750424  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:47.813579  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:50.861678  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:53.863080  709976 main.go:141] libmachine: SSH cmd err, output: <nil>: 
+I0609 02:32:53.863099  709976 ubuntu.go:169] provisioning hostname "minikube"
+I0609 02:32:53.863474  709976 cli_runner.go:164] Run: docker container inspect -f "'{{(index (index .NetworkSettings.Ports "22/tcp") 0).HostPort}}'" minikube
+I0609 02:32:53.889319  709976 main.go:141] libmachine: Using SSH client type: native
+I0609 02:32:53.889504  709976 main.go:141] libmachine: &{{{<nil> 0 [] [] []} docker [0x82d6e0] 0x830440 <nil>  [] 0s} 127.0.0.1 32773 <nil> <nil>}
+I0609 02:32:53.889518  709976 main.go:141] libmachine: About to run SSH command:
+sudo hostname minikube && echo "minikube" | sudo tee /etc/hostname
+I0609 02:32:53.926241  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:32:56.974401  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:00.035254  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:03.084563  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:06.140667  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:09.203031  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:12.259176  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:15.307587  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:18.352750  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:21.389748  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:24.453313  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:27.489755  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:30.526694  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:33.563968  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:36.611874  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:39.649094  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:42.689727  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:45.728926  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:48.782812  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:51.821764  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:54.858301  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:33:57.916366  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:00.964242  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:04.023127  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:07.081723  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:10.140909  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:13.187866  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:16.247083  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:19.311524  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:22.344026  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:25.387351  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:28.429653  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:31.467411  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:34.501546  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:37.535365  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:40.573032  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:43.617108  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:46.657950  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:49.690953  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:52.732287  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:55.766599  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:34:58.811059  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:01.847767  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:04.885152  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:07.918567  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:10.950599  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:13.983353  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:17.019162  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:20.053790  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:23.087727  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:26.121039  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:29.164159  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:32.197541  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:35.254476  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:38.314367  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:41.353284  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:44.417196  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:47.460211  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:50.506671  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:53.570015  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:56.570135  709976 main.go:141] libmachine: SSH cmd err, output: <nil>: 
+I0609 02:35:56.571217  709976 cli_runner.go:164] Run: docker container inspect -f "'{{(index (index .NetworkSettings.Ports "22/tcp") 0).HostPort}}'" minikube
+I0609 02:35:56.632940  709976 main.go:141] libmachine: Using SSH client type: native
+I0609 02:35:56.633287  709976 main.go:141] libmachine: &{{{<nil> 0 [] [] []} docker [0x82d6e0] 0x830440 <nil>  [] 0s} 127.0.0.1 32773 <nil> <nil>}
+I0609 02:35:56.633313  709976 main.go:141] libmachine: About to run SSH command:
+
+		if ! grep -xq '.*\sminikube' /etc/hosts; then
+			if grep -xq '127.0.1.1\s.*' /etc/hosts; then
+				sudo sed -i 's/^127.0.1.1\s.*/127.0.1.1 minikube/g' /etc/hosts;
+			else 
+				echo '127.0.1.1 minikube' | sudo tee -a /etc/hosts; 
+			fi
+		fi
+I0609 02:35:56.673310  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:35:59.745706  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:02.783255  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:05.842140  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:08.881683  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:11.932584  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:14.979923  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:18.019461  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:21.081065  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+I0609 02:36:24.134667  709976 main.go:141] libmachine: Error dialing TCP: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain
+
+

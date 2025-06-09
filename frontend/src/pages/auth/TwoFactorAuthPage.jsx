@@ -86,7 +86,7 @@ const TwoFactorAuthPage = () => {
                setError(backendErrorMessage);
           } else {
                setError(t('auth.2faVerificationError'));
-          }
+        }
         }
         if (mode === 'setup' && err.response?.status !== 429) {
           setQrCode('');
@@ -129,94 +129,94 @@ const TwoFactorAuthPage = () => {
             {t('common.appName')}
           </Typography>
           <Typography component="h2" variant="h6" sx={{ mb: 3 }}>
-            {mode === 'setup' 
-              ? t('auth.setup2FA') 
-              : mode === 'disable' 
-                ? t('auth.disable2FA') 
-                : t('auth.verify2FA')}
+        {mode === 'setup' 
+          ? t('auth.setup2FA') 
+          : mode === 'disable' 
+            ? t('auth.disable2FA') 
+            : t('auth.verify2FA')}
           </Typography>
 
-          {error && (
+        {error && (
             <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+            {error}
+          </Alert>
+        )}
 
-          {mode === 'setup' && qrCode && (
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('auth.scanQRCode')}
-              </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                <QRCodeSVG value={qrCode} size={200} />
-              </Box>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('auth.manualEntry')}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontFamily: 'monospace',
-                  bgcolor: 'grey.100',
-                  p: 1,
-                  borderRadius: 1,
-                  userSelect: 'all',
-                }}
-              >
-                {secret}
-              </Typography>
+        {mode === 'setup' && qrCode && (
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {t('auth.scanQRCode')}
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <QRCodeSVG value={qrCode} size={200} />
             </Box>
-          )}
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {t('auth.manualEntry')}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: 'monospace',
+                bgcolor: 'grey.100',
+                p: 1,
+                borderRadius: 1,
+                userSelect: 'all',
+              }}
+            >
+              {secret}
+            </Typography>
+          </Box>
+        )}
 
-          {mode === 'disable' && (
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              type="password"
-              label={t('auth.password')}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={!password && formik.submitCount > 0}
-              helperText={!password && formik.submitCount > 0 ? t('auth.passwordRequired') : ''}
-              disabled={loading}
-            />
-          )}
+        {mode === 'disable' && (
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            type="password"
+            label={t('auth.password')}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={!password && formik.submitCount > 0}
+            helperText={!password && formik.submitCount > 0 ? t('auth.passwordRequired') : ''}
+            disabled={loading}
+          />
+        )}
 
           <Box component="form" onSubmit={formik.handleSubmit} noValidate sx={{ mt: 1, width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="token"
-              name="token"
-              label={t('auth.verificationCode')}
-              value={formik.values.token}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.token && Boolean(formik.errors.token)}
-              helperText={formik.touched.token && formik.errors.token}
-              disabled={loading}
-              inputProps={{
-                maxLength: 6,
-                pattern: '[0-9]*',
-                inputMode: 'numeric',
-              }}
-            />
-            <Button
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="token"
+            name="token"
+            label={t('auth.verificationCode')}
+            value={formik.values.token}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.token && Boolean(formik.errors.token)}
+            helperText={formik.touched.token && formik.errors.token}
+            disabled={loading}
+            inputProps={{
+              maxLength: 6,
+              pattern: '[0-9]*',
+              inputMode: 'numeric',
+            }}
+          />
+        <Button
               type="submit"
               fullWidth
-              variant="contained"
+          variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading || (mode === 'disable' && !password)}
-              startIcon={loading && <CircularProgress size={20} />}
-            >
-              {mode === 'setup' 
-                ? t('auth.verifyAndEnable') 
-                : mode === 'disable' 
-                  ? t('auth.disable') 
-                  : t('auth.verify')}
-            </Button>
+          disabled={loading || (mode === 'disable' && !password)}
+          startIcon={loading && <CircularProgress size={20} />}
+        >
+          {mode === 'setup' 
+            ? t('auth.verifyAndEnable') 
+            : mode === 'disable' 
+              ? t('auth.disable') 
+              : t('auth.verify')}
+        </Button>
              {mode === 'verify' && !location.state?.fromLogin && (
                 <Box sx={{ textAlign: 'center' }}>
                    <Button variant="text" onClick={() => navigate('/login')}>

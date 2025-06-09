@@ -59,10 +59,10 @@ const Doctors = () => {
     initialValues: {
       firstName: '',
       lastName: '',
-      specialization: '',
+    specialization: '',
       licenseNumber: '',
       phoneNumber: '',
-      email: '',
+    email: '',
       address: {
         street: '',
         city: '',
@@ -106,7 +106,7 @@ const Doctors = () => {
         limit: rowsPerPage,
         search: searchQuery,
       });
-      setDoctors(response.data.doctors);
+        setDoctors(response.data.doctors);
       setTotal(response.data.total);
     } catch (err) {
       toast.error(t('doctors.fetchError'));
@@ -184,24 +184,24 @@ const Doctors = () => {
       {doctors.length === 0 ? (
         <NoContent message={t('doctors.noDoctorsFound')} />
       ) : (
-        <Grid container spacing={3}>
-          {doctors.map((doctor) => (
+      <Grid container spacing={3}>
+        {doctors.map((doctor) => (
             <Grid item xs={12} sm={6} md={4} key={doctor._id}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-                    <Box>
-                      <Typography variant="h6" component="h2">
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
+                  <Box>
+                    <Typography variant="h6" component="h2">
                         {`Dr. ${doctor.firstName} ${doctor.lastName}`}
-                      </Typography>
+                    </Typography>
                       <Box display="flex" alignItems="center" gap={1}>
                         <WorkIcon fontSize="small" color="action" />
                         <Typography variant="body2" color="textSecondary">
-                          {doctor.specialization}
-                        </Typography>
-                      </Box>
-                    </Box>
+                      {doctor.specialization}
+                    </Typography>
+                  </Box>
+                </Box>
                   </Box>
                   <Box mb={2}>
                     <Chip
@@ -217,40 +217,40 @@ const Doctors = () => {
                     {t('doctors.phone')}: {doctor.phoneNumber}
                   </Typography>
                   {doctor.email && (
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {t('doctors.email')}: {doctor.email}
-                    </Typography>
+                <Typography variant="body2" color="textSecondary" paragraph>
+                  {t('doctors.email')}: {doctor.email}
+                </Typography>
                   )}
                   {doctor.address?.city && (
                     <Typography variant="body2" color="textSecondary" noWrap>
                       {t('doctors.address')}: {`${doctor.address.city}, ${doctor.address.state}`}
-                    </Typography>
+                </Typography>
                   )}
-                </CardContent>
-                <CardActions>
+              </CardContent>
+              <CardActions>
                   <Button
-                    size="small"
+                  size="small"
                     startIcon={<EditIcon />}
-                    onClick={() => handleOpenDialog(doctor)}
-                  >
+                  onClick={() => handleOpenDialog(doctor)}
+                >
                     {t('common.edit')}
                   </Button>
                   <Button
-                    size="small"
-                    color="error"
+                  size="small"
+                  color="error"
                     startIcon={<DeleteIcon />}
                     onClick={() => {
                       setSelectedDoctor(doctor);
                       setOpenConfirm(true);
                     }}
-                  >
+                >
                     {t('common.delete')}
                   </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
       )}
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
@@ -273,8 +273,8 @@ const Doctors = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+            <TextField
+              fullWidth
                   label={t('doctors.lastName')}
                   name="lastName"
                   value={formik.values.lastName}
@@ -285,10 +285,10 @@ const Doctors = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('doctors.specialization')}
-                  name="specialization"
+            <TextField
+              fullWidth
+              label={t('doctors.specialization')}
+              name="specialization"
                   value={formik.values.specialization}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -321,11 +321,11 @@ const Doctors = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('doctors.email')}
-                  name="email"
-                  type="email"
+            <TextField
+              fullWidth
+              label={t('doctors.email')}
+              name="email"
+              type="email"
                   value={formik.values.email}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -389,8 +389,8 @@ const Doctors = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
+            <TextField
+              fullWidth
                   label={t('doctors.qualifications')}
                   name="qualifications"
                   value={formik.values.qualifications.join(', ')}

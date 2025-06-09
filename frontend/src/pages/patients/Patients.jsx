@@ -64,9 +64,9 @@ const Patients = () => {
       firstName: '',
       lastName: '',
       dateOfBirth: null,
-      gender: '',
+    gender: '',
       phoneNumber: '',
-      email: '',
+    email: '',
       address: {
         street: '',
         city: '',
@@ -115,7 +115,7 @@ const Patients = () => {
         limit: rowsPerPage,
         search: searchQuery,
       });
-      setPatients(response.data.patients);
+        setPatients(response.data.patients);
       setTotal(response.data.total);
     } catch (err) {
       toast.error(t('patients.fetchError'));
@@ -207,70 +207,70 @@ const Patients = () => {
       {patients.length === 0 ? (
         <NoContent message={t('patients.noPatientsFound')} />
       ) : (
-        <Grid container spacing={3}>
-          {patients.map((patient) => (
+      <Grid container spacing={3}>
+        {patients.map((patient) => (
             <Grid item xs={12} sm={6} md={4} key={patient._id}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-                    <Box>
-                      <Typography variant="h6" component="h2">
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
+                  <Box>
+                    <Typography variant="h6" component="h2">
                         {`${patient.firstName} ${patient.lastName}`}
+                    </Typography>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <CalendarIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="textSecondary">
+                        {format(new Date(patient.dateOfBirth), 'dd/MM/yyyy')} ({calculateAge(patient.dateOfBirth)} {t('patients.years')})
                       </Typography>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <CalendarIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="textSecondary">
-                          {format(new Date(patient.dateOfBirth), 'dd/MM/yyyy')} ({calculateAge(patient.dateOfBirth)} {t('patients.years')})
-                        </Typography>
-                      </Box>
                     </Box>
                   </Box>
-                  <Box mb={2}>
-                    <Chip
+                </Box>
+                <Box mb={2}>
+                  <Chip
                       label={t(`patients.genders.${patient.gender}`)}
                       color={patient.gender === 'male' ? 'primary' : 'secondary'}
-                      size="small"
-                    />
-                  </Box>
-                  <Typography variant="body2" color="textSecondary" paragraph>
+                    size="small"
+                  />
+                </Box>
+                <Typography variant="body2" color="textSecondary" paragraph>
                     {t('patients.phone')}: {patient.phoneNumber}
-                  </Typography>
+                </Typography>
                   {patient.email && (
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {t('patients.email')}: {patient.email}
-                    </Typography>
+                <Typography variant="body2" color="textSecondary" paragraph>
+                  {t('patients.email')}: {patient.email}
+                </Typography>
                   )}
                   {patient.address?.city && (
-                    <Typography variant="body2" color="textSecondary" noWrap>
+                <Typography variant="body2" color="textSecondary" noWrap>
                       {t('patients.address')}: {`${patient.address.city}, ${patient.address.state}`}
-                    </Typography>
+                </Typography>
                   )}
-                </CardContent>
-                <CardActions>
+              </CardContent>
+              <CardActions>
                   <Button
-                    size="small"
+                  size="small"
                     startIcon={<EditIcon />}
-                    onClick={() => handleOpenDialog(patient)}
-                  >
+                  onClick={() => handleOpenDialog(patient)}
+                >
                     {t('common.edit')}
                   </Button>
                   <Button
-                    size="small"
-                    color="error"
+                  size="small"
+                  color="error"
                     startIcon={<DeleteIcon />}
                     onClick={() => {
                       setSelectedPatient(patient);
                       setOpenConfirm(true);
                     }}
-                  >
+                >
                     {t('common.delete')}
                   </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
       )}
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
@@ -281,8 +281,8 @@ const Patients = () => {
           <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+            <TextField
+              fullWidth
                   label={t('patients.firstName')}
                   name="firstName"
                   value={formik.values.firstName}
@@ -293,8 +293,8 @@ const Patients = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+            <TextField
+              fullWidth
                   label={t('patients.lastName')}
                   name="lastName"
                   value={formik.values.lastName}
@@ -307,13 +307,13 @@ const Patients = () => {
               <Grid item xs={12} sm={6}>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DatePicker
-                    label={t('patients.dateOfBirth')}
+              label={t('patients.dateOfBirth')}
                     value={formik.values.dateOfBirth}
                     onChange={(date) => formik.setFieldValue('dateOfBirth', date)}
                     renderInput={(params) => (
-                      <TextField
+            <TextField
                         {...params}
-                        fullWidth
+              fullWidth
                         error={formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth)}
                         helperText={formik.touched.dateOfBirth && formik.errors.dateOfBirth}
                       />
@@ -329,7 +329,7 @@ const Patients = () => {
                     value={formik.values.gender}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    label={t('patients.gender')}
+              label={t('patients.gender')}
                   >
                     <MenuItem value="male">{t('patients.genders.male')}</MenuItem>
                     <MenuItem value="female">{t('patients.genders.female')}</MenuItem>
@@ -343,8 +343,8 @@ const Patients = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+            <TextField
+              fullWidth
                   label={t('patients.phoneNumber')}
                   name="phoneNumber"
                   value={formik.values.phoneNumber}
@@ -355,11 +355,11 @@ const Patients = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('patients.email')}
-                  name="email"
-                  type="email"
+            <TextField
+              fullWidth
+              label={t('patients.email')}
+              name="email"
+              type="email"
                   value={formik.values.email}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
@@ -411,24 +411,24 @@ const Patients = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+            <TextField
+              fullWidth
                   label={t('patients.address.postalCode')}
                   name="address.postalCode"
                   value={formik.values.address.postalCode}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                />
+            />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+            <TextField
+              fullWidth
                   label={t('patients.address.country')}
                   name="address.country"
                   value={formik.values.address.country}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                />
+            />
               </Grid>
             </Grid>
           </Box>

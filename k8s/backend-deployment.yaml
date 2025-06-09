@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 4
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: lab-management-system-backend:latest  
+        image: mohamedharoon0/lab-management-system-backend:latest  
         ports:
         - containerPort: 3000
         resources:
@@ -23,7 +23,7 @@ spec:
             memory: "512Mi"
           requests:
              cpu: "0.1"
-             memory: "128 Mi"
+             memory: "128Mi"
         env:
         - name: MONGODB_URI
           value: "mongodb://$(MONGO_INITDB_ROOT_USERNAME):$(MONGO_INITDB_ROOT_PASSWORD)@mongodb-0.mongodb,mongodb-1.mongodb,mongodb-2.mongodb,mongodb-3.mongodb:27017/$(MONGO_INITDB_DATABASE)?replicaSet=rs0"

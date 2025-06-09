@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: frontend
 spec:
-  replicas: 4
+  replicas: 1
   selector:
     matchLabels:
       app: frontend
@@ -14,12 +14,19 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: lab-management-system-frontend:latest  # Updated image name
+        image: mohamedharoon0/lab-management-system-frontend:latest  
         ports:
         - containerPort: 80
+        resources:
+           limits:
+             cpu: "0.5"
+             memory: "512Mi"
+           requests:
+              cpu: "0.1"
+              memory: "128Mi"
         env:
-        - name: REACT_APP_API_URL
-          value: "http://backend:3000"  # Using the ClusterIP service DNS name
+         - name: REACT_APP_API_URL
+           value: "http://backend:3000"  # Using the ClusterIP service DNS name
 ---
 apiVersion: v1
 kind: Service
