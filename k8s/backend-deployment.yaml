@@ -26,7 +26,7 @@ spec:
              memory: "128Mi"
         env:
         - name: MONGODB_URI
-          value: "mongodb://$(MONGO_INITDB_ROOT_USERNAME):$(MONGO_INITDB_ROOT_PASSWORD)@mongodb-0.mongodb,mongodb-1.mongodb,mongodb-2.mongodb,mongodb-3.mongodb:27017/$(MONGO_INITDB_DATABASE)?replicaSet=rs0"
+          value: "mongodb://username:password@mongodb:27017/patient_db?authSource=admin"
         - name: MONGO_INITDB_ROOT_USERNAME
           valueFrom:
             secretKeyRef:
