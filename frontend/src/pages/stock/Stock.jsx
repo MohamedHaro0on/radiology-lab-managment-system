@@ -56,36 +56,30 @@ const Stock = () => {
 
   const formik = useFormik({
     initialValues: {
-      itemName: '',
-      category: '',
+      name: '',
       quantity: '',
-      unit: '',
-      minimumQuantity: '',
-      supplier: {
-        name: '',
-        contact: '',
-        email: '',
-        phone: '',
-      },
-      expiryDate: null,
-      batchNumber: '',
-      location: '',
-      notes: '',
+      minimumThreshold: '',
+      price: '',
+      validUntil: null,
     },
     validationSchema: stockSchema,
     onSubmit: async (values) => {
       try {
+        console.log('Stock form submitted with values:', values);
         setLoading(true);
         if (selectedItem) {
+          console.log('Updating stock item:', selectedItem._id);
           await stockAPI.update(selectedItem._id, values);
           toast.success(t('stock.updateSuccess'));
         } else {
+          console.log('Creating new stock item');
           await stockAPI.create(values);
           toast.success(t('stock.createSuccess'));
         }
         handleCloseDialog();
         fetchStockItems();
       } catch (err) {
+        console.error('Stock form submission error:', err);
         toast.error(err.response?.data?.message || t('stock.error'));
       } finally {
         setLoading(false);
@@ -102,9 +96,17 @@ const Stock = () => {
       setLoading(true);
       let response;
       if (showLowStock) {
-        response = await stockAPI.getLowStock();
+        response = await stockAPI.getLowStock({
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchQuery,
+        });
       } else if (showExpired) {
-        response = await stockAPI.getExpired();
+        response = await stockAPI.getExpired({
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchQuery,
+        });
       } else {
         response = await stockAPI.getAll({
           page: page + 1,
@@ -112,9 +114,17 @@ const Stock = () => {
           search: searchQuery,
         });
       }
-      setStockItems(response.data.items);
-      setTotal(response.data.total);
+      
+      // Handle the response structure from executePaginatedQuery
+      const items = response.data?.data?.stocks || response.data?.stocks || [];
+      const totalCount = response.data?.data?.pagination?.total || response.data?.pagination?.total || items.length;
+      
+      setStockItems(Array.isArray(items) ? items : []);
+      setTotal(totalCount);
     } catch (err) {
+      console.error('Error fetching stock items:', err);
+      setStockItems([]);
+      setTotal(0);
       toast.error(t('stock.fetchError'));
     } finally {
       setLoading(false);
@@ -131,7 +141,7 @@ const Stock = () => {
       setSelectedItem(item);
       formik.setValues({
         ...item,
-        expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
+        validUntil: item.validUntil ? new Date(item.validUntil) : null,
       });
     } else {
       setSelectedItem(null);
@@ -161,12 +171,28 @@ const Stock = () => {
   };
 
   const isLowStock = (item) => {
-    return item.quantity <= item.minimumQuantity;
+    return item.quantity <= item.minimumThreshold;
   };
 
   const isExpired = (item) => {
-    if (!item.expiryDate) return false;
-    return new Date(item.expiryDate) < new Date();
+    if (!item.validUntil) return false;
+    return new Date(item.validUntil) < new Date();
+  };
+
+  const handleQuantityChange = async (id, change) => {
+    try {
+      setLoading(true);
+      const operation = change > 0 ? 'add' : 'subtract';
+      const quantity = Math.abs(change);
+      await stockAPI.updateQuantity(id, { quantity, operation });
+      toast.success(t('stock.quantityUpdateSuccess'));
+      fetchStockItems();
+    } catch (err) {
+      console.error('Error updating stock quantity:', err);
+      toast.error(err.response?.data?.message || t('stock.quantityUpdateError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading && !stockItems.length) {
@@ -225,11 +251,11 @@ const Stock = () => {
         </Button>
       </Box>
 
-      {stockItems.length === 0 ? (
+      {(stockItems || []).length === 0 ? (
         <NoContent message={t('stock.noItemsFound')} />
       ) : (
         <Grid container spacing={3}>
-          {stockItems.map((item) => (
+          {(stockItems || []).map((item) => (
             <Grid item xs={12} sm={6} md={4} key={item._id}>
               <Card>
                 <CardContent>
@@ -237,45 +263,51 @@ const Stock = () => {
                     <InventoryIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
                     <Box>
                       <Typography variant="h6" component="h2">
-                        {item.itemName}
+                        {item.name}
                       </Typography>
                       <Typography variant="body2" color="textSecondary">
-                        {item.category}
+                        ${item.price}
                       </Typography>
                     </Box>
                   </Box>
                   <Box mb={2} display="flex" gap={1}>
                     <Chip
-                      label={`${item.quantity} ${item.unit}`}
+                      label={`${item.quantity} units`}
                       color={isLowStock(item) ? 'warning' : 'success'}
                       size="small"
                     />
-                    {item.expiryDate && (
+                    {item.validUntil && (
                       <Chip
-                        label={format(new Date(item.expiryDate), 'dd/MM/yyyy')}
+                        label={format(new Date(item.validUntil), 'dd/MM/yyyy')}
                         color={isExpired(item) ? 'error' : 'default'}
                         size="small"
                       />
                     )}
                   </Box>
                   <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('stock.minimumQuantity')}: {item.minimumQuantity} {item.unit}
+                    {t('stock.minimumThreshold')}: {item.minimumThreshold} units
                   </Typography>
-                  {item.supplier?.name && (
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {t('stock.supplier')}: {item.supplier.name}
+                  <Box display="flex" alignItems="center" gap={1} mb={2}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleQuantityChange(item._id, -1)}
+                      disabled={loading}
+                    >
+                      -
+                    </Button>
+                    <Typography variant="body2" sx={{ minWidth: '40px', textAlign: 'center' }}>
+                      {item.quantity}
                     </Typography>
-                  )}
-                  {item.batchNumber && (
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {t('stock.batchNumber')}: {item.batchNumber}
-                    </Typography>
-                  )}
-                  {item.location && (
-                    <Typography variant="body2" color="textSecondary" noWrap>
-                      {t('stock.location')}: {item.location}
-                    </Typography>
-                  )}
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleQuantityChange(item._id, 1)}
+                      disabled={loading}
+                    >
+                      +
+                    </Button>
+                  </Box>
                 </CardContent>
                 <CardActions>
                   <Button
@@ -308,30 +340,18 @@ const Stock = () => {
           {selectedItem ? t('stock.editItem') : t('stock.addItem')}
         </DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
+          <Box component="form" id="stockForm" onSubmit={(e) => { console.log('Form onSubmit event fired'); console.log('Formik errors:', formik.errors); formik.handleSubmit(e); }} sx={{ mt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={t('stock.itemName')}
-                  name="itemName"
-                  value={formik.values.itemName}
+                  label={t('stock.name')}
+                  name="name"
+                  value={formik.values.name}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.itemName && Boolean(formik.errors.itemName)}
-                  helperText={formik.touched.itemName && formik.errors.itemName}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('stock.category')}
-                  name="category"
-                  value={formik.values.category}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  error={formik.touched.category && Boolean(formik.errors.category)}
-                  helperText={formik.touched.category && formik.errors.category}
+                  error={formik.touched.name && Boolean(formik.errors.name)}
+                  helperText={formik.touched.name && formik.errors.name}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -350,133 +370,59 @@ const Stock = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={t('stock.unit')}
-                  name="unit"
-                  value={formik.values.unit}
+                  label={t('stock.minimumThreshold')}
+                  name="minimumThreshold"
+                  type="number"
+                  value={formik.values.minimumThreshold}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.unit && Boolean(formik.errors.unit)}
-                  helperText={formik.touched.unit && formik.errors.unit}
+                  error={formik.touched.minimumThreshold && Boolean(formik.errors.minimumThreshold)}
+                  helperText={formik.touched.minimumThreshold && formik.errors.minimumThreshold}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={t('stock.minimumQuantity')}
-                  name="minimumQuantity"
+                  label={t('stock.price')}
+                  name="price"
                   type="number"
-                  value={formik.values.minimumQuantity}
+                  value={formik.values.price}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.minimumQuantity && Boolean(formik.errors.minimumQuantity)}
-                  helperText={formik.touched.minimumQuantity && formik.errors.minimumQuantity}
+                  error={formik.touched.price && Boolean(formik.errors.price)}
+                  helperText={formik.touched.price && formik.errors.price}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DatePicker
-                    label={t('stock.expiryDate')}
-                    value={formik.values.expiryDate}
-                    onChange={(date) => formik.setFieldValue('expiryDate', date)}
+                    label={t('stock.validUntil')}
+                    value={formik.values.validUntil}
+                    onChange={(date) => formik.setFieldValue('validUntil', date)}
+                    onBlur={() => formik.setFieldTouched('validUntil', true)}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         fullWidth
-                        error={formik.touched.expiryDate && Boolean(formik.errors.expiryDate)}
-                        helperText={formik.touched.expiryDate && formik.errors.expiryDate}
+                        error={formik.touched.validUntil && Boolean(formik.errors.validUntil)}
+                        helperText={formik.touched.validUntil && formik.errors.validUntil}
                       />
                     )}
                   />
                 </LocalizationProvider>
               </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  {t('stock.supplier')}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('stock.supplier.name')}
-                  name="supplier.name"
-                  value={formik.values.supplier.name}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('stock.supplier.contact')}
-                  name="supplier.contact"
-                  value={formik.values.supplier.contact}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('stock.supplier.email')}
-                  name="supplier.email"
-                  type="email"
-                  value={formik.values.supplier.email}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('stock.supplier.phone')}
-                  name="supplier.phone"
-                  value={formik.values.supplier.phone}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('stock.batchNumber')}
-                  name="batchNumber"
-                  value={formik.values.batchNumber}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('stock.location')}
-                  name="location"
-                  value={formik.values.location}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('stock.notes')}
-                  name="notes"
-                  value={formik.values.notes}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  multiline
-                  rows={2}
-                />
-              </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
+          <Button onClick={() => { console.log('Cancel button clicked'); handleCloseDialog(); }}>{t('common.cancel')}</Button>
           <Button
-            onClick={formik.handleSubmit}
+            type="submit"
+            form="stockForm"
             variant="contained"
             disabled={loading}
             startIcon={loading && <CircularProgress size={20} />}
+            onClick={() => { console.log('Create/Update button clicked'); }}
           >
             {selectedItem ? t('common.update') : t('common.create')}
           </Button>

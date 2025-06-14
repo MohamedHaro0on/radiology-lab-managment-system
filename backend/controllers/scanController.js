@@ -10,38 +10,23 @@ export const createScan = asyncHandler(async (req, res) => {
     const {
         name,
         description,
-        price,
+        actualCost,
         minPrice,
-        maxPrice,
-        items,
-        category,
-        preparationInstructions,
-        duration
+        items
     } = req.body;
 
-    // Validate stock items
-    for (const item of items) {
-        const stockItem = await Stock.findById(item.stockItem);
-        if (!stockItem) {
-            throw errors.NotFound(`Stock item with ID ${item.stockItem} not found`);
-        }
-    }
-
-    const scan = new Scan({
+    const scanData = {
         name,
         description,
-        price,
+        actualCost,
         minPrice,
-        maxPrice,
         items,
-        category,
-        preparationInstructions,
-        duration,
-        createdBy: req.user.id,
-        updatedBy: req.user.id
-    });
+        createdBy: req.user?._id || null // Make createdBy optional when auth is disabled
+    };
 
+    const scan = new Scan(scanData);
     const savedScan = await scan.save();
+
     res.status(StatusCodes.CREATED).json({
         status: 'success',
         data: savedScan
@@ -49,10 +34,16 @@ export const createScan = asyncHandler(async (req, res) => {
 });
 
 // Get all scans
-export const getScans = asyncHandler(async (req, res) => {
-    const { category, isActive, minPrice, maxPrice, ...paginationOptions } = req.query;
-    const query = {};
+export const getAllScans = asyncHandler(async (req, res) => {
+    const { search, category, minPrice, maxPrice, isActive, ...paginationOptions } = req.query;
+    const query = { isActive: true }; // Only show active scans by default
 
+    if (search) {
+        query.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+        ];
+    }
     if (category) {
         query.category = category;
     }
@@ -60,20 +51,16 @@ export const getScans = asyncHandler(async (req, res) => {
         query.isActive = isActive === 'true';
     }
     if (minPrice !== undefined || maxPrice !== undefined) {
-        query.price = {};
-        if (minPrice !== undefined) query.price.$gte = Number(minPrice);
-        if (maxPrice !== undefined) query.price.$lte = Number(maxPrice);
+        query.minPrice = {};
+        if (minPrice !== undefined) query.minPrice.$gte = Number(minPrice);
+        if (maxPrice !== undefined) query.minPrice.$lte = Number(maxPrice);
     }
 
     const result = await executePaginatedQuery(
         Scan,
         query,
         paginationOptions,
-        [
-            { path: 'items.stockItem', select: 'itemName category quantity' },
-            { path: 'createdBy', select: 'username' },
-            { path: 'updatedBy', select: 'username' }
-        ]
+        { path: 'createdBy', select: 'username email' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -81,10 +68,10 @@ export const getScans = asyncHandler(async (req, res) => {
 
 // Get a single scan by ID
 export const getScan = asyncHandler(async (req, res) => {
-    const scan = await Scan.findById(req.params.id)
-        .populate('items.stockItem', 'itemName category quantity')
-        .populate('createdBy', 'username')
-        .populate('updatedBy', 'username');
+    const scan = await Scan.findOne({
+        _id: req.params.id,
+        isActive: true
+    }).populate('createdBy', 'username email');
 
     if (!scan) {
         throw errors.NotFound('Scan not found');
@@ -101,46 +88,25 @@ export const updateScan = asyncHandler(async (req, res) => {
     const {
         name,
         description,
-        price,
+        actualCost,
         minPrice,
-        maxPrice,
-        items,
-        category,
-        preparationInstructions,
-        duration,
-        isActive
+        items
     } = req.body;
 
-    // Validate stock items if items are being updated
-    if (items) {
-        for (const item of items) {
-            const stockItem = await Stock.findById(item.stockItem);
-            if (!stockItem) {
-                throw errors.NotFound(`Stock item with ID ${item.stockItem} not found`);
-            }
-        }
-    }
-
-    const updatedScan = await Scan.findByIdAndUpdate(
-        req.params.id,
+    const updatedScan = await Scan.findOneAndUpdate(
         {
-            name,
-            description,
-            price,
-            minPrice,
-            maxPrice,
-            items,
-            category,
-            preparationInstructions,
-            duration,
-            isActive,
-            updatedBy: req.user.id
+            _id: req.params.id,
+            isActive: true
+        },
+        {
+            $set: {
+                ...req.body,
+                updatedBy: req.user?._id || null // Make updatedBy optional when auth is disabled
+            }
         },
         { new: true, runValidators: true }
     )
-        .populate('items.stockItem', 'itemName category quantity')
-        .populate('createdBy', 'username')
-        .populate('updatedBy', 'username');
+        .populate('createdBy', 'username email');
 
     if (!updatedScan) {
         throw errors.NotFound('Scan not found');
@@ -154,7 +120,10 @@ export const updateScan = asyncHandler(async (req, res) => {
 
 // Delete a scan
 export const deleteScan = asyncHandler(async (req, res) => {
-    const scan = await Scan.findById(req.params.id);
+    const scan = await Scan.findOne({
+        _id: req.params.id,
+        isActive: true
+    });
 
     if (!scan) {
         throw errors.NotFound('Scan not found');
@@ -162,7 +131,7 @@ export const deleteScan = asyncHandler(async (req, res) => {
 
     // Instead of deleting, mark as inactive
     scan.isActive = false;
-    scan.updatedBy = req.user.id;
+    scan.updatedBy = req.user?._id || null; // Make updatedBy optional when auth is disabled
     await scan.save();
 
     res.status(StatusCodes.OK).json({
@@ -173,23 +142,24 @@ export const deleteScan = asyncHandler(async (req, res) => {
 
 // Check stock availability for a scan
 export const checkStockAvailability = asyncHandler(async (req, res) => {
-    const scan = await Scan.findById(req.params.id)
-        .populate('items.stockItem', 'itemName category quantity');
+    const scan = await Scan.findOne({
+        _id: req.params.id,
+        isActive: true
+    });
 
     if (!scan) {
         throw errors.NotFound('Scan not found');
     }
 
-    const availability = await scan.checkStockAvailability();
     const stockStatus = [];
 
     for (const item of scan.items) {
-        const stockItem = item.stockItem;
+        // For now, we'll just return the item details since we don't have stock integration
         stockStatus.push({
-            itemName: stockItem.itemName,
+            itemName: item.item,
             required: item.quantity,
-            available: stockItem.quantity,
-            sufficient: stockItem.quantity >= item.quantity
+            available: 'N/A', // This would be populated from stock system
+            sufficient: true // This would be calculated from stock system
         });
     }
 
@@ -198,7 +168,7 @@ export const checkStockAvailability = asyncHandler(async (req, res) => {
         data: {
             scanId: scan._id,
             scanName: scan.name,
-            available: availability,
+            available: true, // This would be calculated from stock system
             stockStatus
         }
     });
@@ -209,62 +179,30 @@ export const getScanStats = asyncHandler(async (req, res) => {
     const stats = await Scan.aggregate([
         {
             $group: {
-                _id: '$category',
+                _id: null,
                 count: { $sum: 1 },
                 activeCount: {
                     $sum: { $cond: [{ $eq: ['$isActive', true] }, 1, 0] }
                 },
-                avgPrice: { $avg: '$price' },
-                minPrice: { $min: '$price' },
-                maxPrice: { $max: '$price' }
+                avgActualCost: { $avg: '$actualCost' },
+                avgMinPrice: { $avg: '$minPrice' },
+                minPrice: { $min: '$minPrice' },
+                maxPrice: { $max: '$minPrice' }
             }
         }
     ]);
 
     res.status(StatusCodes.OK).json({
         status: 'success',
-        data: stats
+        data: stats[0] || {
+            count: 0,
+            activeCount: 0,
+            avgActualCost: 0,
+            avgMinPrice: 0,
+            minPrice: 0,
+            maxPrice: 0
+        }
     });
-});
-
-// Get all scans with search and filtering
-export const getAllScans = asyncHandler(async (req, res) => {
-    const { query, category, minQuantity, maxQuantity, supplier, isActive, ...paginationOptions } = req.query;
-    const searchQuery = {};
-
-    if (query) {
-        searchQuery.$or = [
-            { name: { $regex: query, $options: 'i' } },
-            { description: { $regex: query, $options: 'i' } }
-        ];
-    }
-    if (category) {
-        searchQuery.category = category;
-    }
-    if (minQuantity !== undefined || maxQuantity !== undefined) {
-        searchQuery.quantity = {};
-        if (minQuantity !== undefined) searchQuery.quantity.$gte = Number(minQuantity);
-        if (maxQuantity !== undefined) searchQuery.quantity.$lte = Number(maxQuantity);
-    }
-    if (supplier) {
-        searchQuery.supplier = { $regex: supplier, $options: 'i' };
-    }
-    if (isActive !== undefined) {
-        searchQuery.isActive = isActive === 'true';
-    }
-
-    const result = await executePaginatedQuery(
-        Scan,
-        searchQuery,
-        paginationOptions,
-        [
-            { path: 'items.stockItem', select: 'name category quantity' },
-            { path: 'createdBy', select: 'username' },
-            { path: 'updatedBy', select: 'username' }
-        ]
-    );
-
-    res.status(StatusCodes.OK).json(result);
 });
 
 // Get scans by patient ID
@@ -274,13 +212,9 @@ export const getScansByPatient = asyncHandler(async (req, res) => {
 
     const result = await executePaginatedQuery(
         Scan,
-        { patient: patientId },
+        { patient: patientId, isActive: true },
         paginationOptions,
-        [
-            { path: 'doctor', select: 'name specialization' },
-            { path: 'radiologist', select: 'name specialization' },
-            { path: 'createdBy', select: 'username' }
-        ]
+        { path: 'createdBy', select: 'username email' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -293,13 +227,9 @@ export const getScansByDoctor = asyncHandler(async (req, res) => {
 
     const result = await executePaginatedQuery(
         Scan,
-        { doctor: doctorId },
+        { doctor: doctorId, isActive: true },
         paginationOptions,
-        [
-            { path: 'patient', select: 'name gender dateOfBirth' },
-            { path: 'radiologist', select: 'name specialization' },
-            { path: 'createdBy', select: 'username' }
-        ]
+        { path: 'createdBy', select: 'username email' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -310,7 +240,10 @@ export const addScanImage = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { image } = req.body;
 
-    const scan = await Scan.findById(id);
+    const scan = await Scan.findOne({
+        _id: id,
+        isActive: true
+    });
     if (!scan) {
         throw errors.NotFound('Scan not found');
     }
@@ -325,11 +258,11 @@ export const addScanImage = asyncHandler(async (req, res) => {
 
     scan.images.push({
         ...image,
-        uploadedBy: req.user.id,
+        uploadedBy: req.user?._id || null, // Make uploadedBy optional when auth is disabled
         uploadedAt: Date.now()
     });
 
-    scan.updatedBy = req.user.id;
+    scan.updatedBy = req.user?._id || null; // Make updatedBy optional when auth is disabled
     await scan.save();
 
     res.status(StatusCodes.OK).json({
@@ -342,7 +275,10 @@ export const addScanImage = asyncHandler(async (req, res) => {
 export const removeScanImage = asyncHandler(async (req, res) => {
     const { id, imageId } = req.params;
 
-    const scan = await Scan.findById(id);
+    const scan = await Scan.findOne({
+        _id: id,
+        isActive: true
+    });
     if (!scan) {
         throw errors.NotFound('Scan not found');
     }
@@ -353,7 +289,7 @@ export const removeScanImage = asyncHandler(async (req, res) => {
     }
 
     scan.images.splice(imageIndex, 1);
-    scan.updatedBy = req.user.id;
+    scan.updatedBy = req.user?._id || null; // Make updatedBy optional when auth is disabled
     await scan.save();
 
     res.status(StatusCodes.OK).json({

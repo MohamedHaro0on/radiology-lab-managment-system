@@ -1,22 +1,22 @@
 import express from 'express';
 import { validate } from '../middleware/validate.js';
-import { auth } from '../middleware/auth.js';
-import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
+// import { auth } from '../middleware/auth.js'; // Temporarily disabled
+// import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js'; // Temporarily disabled
 import { patientHistoryValidation } from '../validations/patientHistoryValidation.js';
 import * as patientHistoryController from '../controllers/patientHistoryController.js';
 
 const router = express.Router();
 
-// Apply auth middleware to all routes
-router.use(auth);
+// Apply auth middleware to all routes (temporarily disabled)
+// router.use(auth);
 
-// Apply auto privilege checking middleware
-router.use(autoCheckPrivileges);
+// Apply auto privilege checking middleware (temporarily disabled)
+// router.use(autoCheckPrivileges);
 
 // Create new patient history
 router.post(
     '/',
-    checkPrivilege('patientHistory', 'create'),
+    // checkPrivilege('patientHistory', 'create'), // Temporarily disabled
     validate(patientHistoryValidation.createPatientHistory),
     patientHistoryController.createPatientHistory
 );
@@ -24,7 +24,7 @@ router.post(
 // Get all patient histories
 router.get(
     '/',
-    checkPrivilege('patientHistory', 'view'),
+    // checkPrivilege('patientHistory', 'view'), // Temporarily disabled
     validate(patientHistoryValidation.getAllPatientHistories),
     patientHistoryController.getAllPatientHistories
 );
@@ -32,7 +32,7 @@ router.get(
 // Get single patient history
 router.get(
     '/:id',
-    checkPrivilege('patientHistory', 'view'),
+    // checkPrivilege('patientHistory', 'view'), // Temporarily disabled
     validate(patientHistoryValidation.getPatientHistoryById),
     patientHistoryController.getPatientHistoryById
 );
@@ -40,7 +40,7 @@ router.get(
 // Update patient history
 router.patch(
     '/:id',
-    checkPrivilege('patientHistory', 'update'),
+    // checkPrivilege('patientHistory', 'update'), // Temporarily disabled
     validate(patientHistoryValidation.updatePatientHistory),
     patientHistoryController.updatePatientHistory
 );
@@ -48,7 +48,7 @@ router.patch(
 // Delete patient history
 router.delete(
     '/:id',
-    checkPrivilege('patientHistory', 'delete'),
+    // checkPrivilege('patientHistory', 'delete'), // Temporarily disabled
     validate(patientHistoryValidation.deletePatientHistory),
     patientHistoryController.deletePatientHistory
 );

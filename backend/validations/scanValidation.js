@@ -1,70 +1,139 @@
-import pkg from 'joi';
-const Joi = pkg;
+import Joi from 'joi';
 import { objectId } from './commonValidation.js';
 import { errors } from '../utils/errorHandler.js';
 
+// Validation schema for scan items
 const scanItemSchema = Joi.object({
-    stockItem: Joi.string().required().pattern(/^[0-9a-fA-F]{24}$/),
+    item: Joi.string().trim().required()
+        .messages({
+            'string.empty': 'Item name is required',
+            'any.required': 'Item name is required'
+        }),
     quantity: Joi.number().integer().min(1).required()
+        .messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be an integer',
+            'number.min': 'Quantity must be at least 1',
+            'any.required': 'Quantity is required'
+        })
 });
 
-const scanSchema = Joi.object({
-    name: Joi.string().required().trim().min(2).max(100),
-    description: Joi.string().trim().allow(''),
-    price: Joi.number().required().min(0),
-    minPrice: Joi.number().required().min(0),
-    maxPrice: Joi.number().required().min(0),
-    items: Joi.array().items(scanItemSchema).min(1).required(),
-    category: Joi.string().required().valid('X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other'),
-    preparationInstructions: Joi.string().trim().allow(''),
-    duration: Joi.number().integer().min(1).required(),
-    isActive: Joi.boolean()
+// Validation schema for creating scan
+export const createScanSchema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).required()
+        .messages({
+            'string.empty': 'Scan name is required',
+            'string.min': 'Scan name must be at least 2 characters long',
+            'string.max': 'Scan name cannot exceed 100 characters'
+        }),
+    actualCost: Joi.number().positive().required()
+        .messages({
+            'number.base': 'Actual cost must be a number',
+            'number.positive': 'Actual cost must be a positive number',
+            'any.required': 'Actual cost is required'
+        }),
+    minPrice: Joi.number().positive().required()
+        .messages({
+            'number.base': 'Minimum price must be a number',
+            'number.positive': 'Minimum price must be a positive number',
+            'any.required': 'Minimum price is required'
+        }),
+    items: Joi.array().items(scanItemSchema).min(1).required()
+        .messages({
+            'array.min': 'At least one item is required',
+            'any.required': 'Items are required'
+        }),
+    description: Joi.string().trim().max(500).optional()
+        .messages({
+            'string.max': 'Description cannot exceed 500 characters'
+        })
 });
 
-export const validateScan = (req, res, next) => {
-    const { error } = scanSchema.validate(req.body, { abortEarly: false });
+// Validation schema for updating scan
+export const updateScanSchema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).optional(),
+    actualCost: Joi.number().positive().optional(),
+    minPrice: Joi.number().positive().optional(),
+    items: Joi.array().items(scanItemSchema).min(1).optional(),
+    description: Joi.string().trim().max(500).optional()
+});
+
+// Validation schema for scan ID parameter
+export const scanIdSchema = Joi.object({
+    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid scan ID format',
+            'any.required': 'Scan ID is required'
+        })
+});
+
+// Validation schema for scan query parameters
+export const scanQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    search: Joi.string().trim().optional(),
+    minPrice: Joi.number().positive().optional(),
+    maxPrice: Joi.number().positive().optional(),
+    sortBy: Joi.string().valid('name', 'actualCost', 'minPrice', 'createdAt').default('createdAt'),
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+});
+
+// Middleware to validate request body
+export const validateScanBody = (schema) => {
+    return (req, res, next) => {
+        const { error, value } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: error.details.map(detail => ({
+                    field: detail.path.join('.'),
+                    message: detail.message
+                }))
+            });
+        }
+
+        req.body = value;
+        next();
+    };
+};
+
+// Middleware to validate request parameters
+export const validateScanParams = (req, res, next) => {
+    const { error, value } = scanIdSchema.validate(req.params, { abortEarly: false });
 
     if (error) {
-        const errorMessage = error.details.map(detail => detail.message).join(', ');
-        return next(createError(400, errorMessage));
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
     }
 
-    // Additional validation for price range
-    const { price, minPrice, maxPrice } = req.body;
-    if (minPrice > maxPrice) {
-        return next(createError(400, 'Minimum price cannot be greater than maximum price'));
-    }
-    if (price < minPrice || price > maxPrice) {
-        return next(createError(400, 'Price must be between minimum and maximum price'));
-    }
-
+    req.params = value;
     next();
 };
 
-export const validateScanUpdate = (req, res, next) => {
-    const updateSchema = scanSchema.fork(
-        ['name', 'description', 'price', 'minPrice', 'maxPrice', 'items', 'category', 'preparationInstructions', 'duration'],
-        schema => schema.optional()
-    );
-
-    const { error } = updateSchema.validate(req.body, { abortEarly: false });
+// Middleware to validate query parameters
+export const validateScanQuery = (req, res, next) => {
+    const { error, value } = scanQuerySchema.validate(req.query, { abortEarly: false });
 
     if (error) {
-        const errorMessage = error.details.map(detail => detail.message).join(', ');
-        return next(createError(400, errorMessage));
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
     }
 
-    // Additional validation for price range if prices are being updated
-    const { price, minPrice, maxPrice } = req.body;
-    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
-        return next(createError(400, 'Minimum price cannot be greater than maximum price'));
-    }
-    if (price !== undefined && minPrice !== undefined && maxPrice !== undefined) {
-        if (price < minPrice || price > maxPrice) {
-            return next(createError(400, 'Price must be between minimum and maximum price'));
-        }
-    }
-
+    req.query = value;
     next();
 };
 

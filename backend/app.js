@@ -61,6 +61,8 @@ import stockRoutes from './routes/stockRoutes.js';
 import radiologistRoutes from './routes/radiologistRoutes.js';
 import patientHistoryRoutes from './routes/patientHistoryRoutes.js';
 import scanCategoryRoutes from './routes/scanCategoryRoutes.js';
+import expenseRoutes from './routes/expenseRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 // Apply routes
 app.use('/api/auth', authRoutes);
@@ -73,6 +75,8 @@ app.use('/api/stock', stockRoutes);
 app.use('/api/radiologists', radiologistRoutes);
 app.use('/api/patient-history', patientHistoryRoutes);
 app.use('/api/scan-categories', scanCategoryRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error handling middleware
 app.use((req, res, next) => {
@@ -137,8 +141,10 @@ const startServer = async () => {
     try {
         await initializeDatabase();
         app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
         });
     } catch (error) {
+        console.error('Failed to start server:', error);
         process.exit(1);
     }
 };

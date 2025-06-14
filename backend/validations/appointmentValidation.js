@@ -1,160 +1,178 @@
 import Joi from 'joi';
 
-export const appointmentValidation = {
-    createAppointment: {
-        body: Joi.object({
-            patientId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).messages({
-                'string.pattern.base': 'Invalid patient ID format',
-                'any.required': 'Patient ID is required'
-            }),
-            doctorId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).messages({
-                'string.pattern.base': 'Invalid doctor ID format',
-                'any.required': 'Doctor ID is required'
-            }),
-            appointmentDate: Joi.date().required().min('now').messages({
-                'date.base': 'Please provide a valid appointment date',
-                'date.min': 'Appointment date must be in the future',
-                'any.required': 'Appointment date is required'
-            }),
-            timeSlot: Joi.object({
-                start: Joi.string().required().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).messages({
-                    'string.pattern.base': 'Time must be in HH:MM format',
-                    'any.required': 'Start time is required'
-                }),
-                end: Joi.string().required().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/).messages({
-                    'string.pattern.base': 'Time must be in HH:MM format',
-                    'any.required': 'End time is required'
-                })
-            }).required().custom((obj, helpers) => {
-                const start = new Date(`2000-01-01T${obj.start}`);
-                const end = new Date(`2000-01-01T${obj.end}`);
-                if (start >= end) {
-                    return helpers.error('any.invalid', { message: 'End time must be after start time' });
-                }
-                return obj;
-            }),
-            type: Joi.string().required().valid('X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other').messages({
-                'any.only': 'Invalid appointment type',
-                'any.required': 'Appointment type is required'
-            }),
-            priority: Joi.string().valid('routine', 'urgent', 'emergency').default('routine'),
-            notes: Joi.string().trim(),
-            referralSource: Joi.string().trim()
-        })
-    },
-
-    getAllAppointments: {
-        query: Joi.object({
-            page: Joi.number().integer().min(1).default(1),
-            limit: Joi.number().integer().min(1).max(100).default(10),
-            patient: Joi.string().regex(/^[0-9a-fA-F]{24}$/),
-            doctor: Joi.string().regex(/^[0-9a-fA-F]{24}$/),
-            status: Joi.string().valid('scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'),
-            type: Joi.string().valid('X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other'),
-            priority: Joi.string().valid('routine', 'urgent', 'emergency'),
-            startDate: Joi.date(),
-            endDate: Joi.date().min(Joi.ref('startDate')),
-            sortBy: Joi.string().valid('appointmentDate', 'createdAt', 'status').default('appointmentDate'),
-            sortOrder: Joi.string().valid('asc', 'desc').default('asc')
-        })
-    },
-
-    getAppointment: {
-        params: Joi.object({
-            id: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).messages({
-                'string.pattern.base': 'Invalid appointment ID format',
-                'any.required': 'Appointment ID is required'
-            })
-        })
-    },
-
-    updateAppointment: {
-        params: Joi.object({
-            id: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).messages({
-                'string.pattern.base': 'Invalid appointment ID format',
-                'any.required': 'Appointment ID is required'
-            })
+// Validation schema for appointment scan items
+const appointmentScanSchema = Joi.object({
+    scan: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid scan ID format',
+            'any.required': 'Scan is required'
         }),
-        body: Joi.object({
-            appointmentDate: Joi.date().min('now'),
-            timeSlot: Joi.object({
-                start: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/),
-                end: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)
-            }).custom((obj, helpers) => {
-                if (obj.start && obj.end) {
-                    const start = new Date(`2000-01-01T${obj.start}`);
-                    const end = new Date(`2000-01-01T${obj.end}`);
-                    if (start >= end) {
-                        return helpers.error('any.invalid', { message: 'End time must be after start time' });
-                    }
-                }
-                return obj;
-            }),
-            type: Joi.string().valid('X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other'),
-            priority: Joi.string().valid('routine', 'urgent', 'emergency'),
-            notes: Joi.string().trim(),
-            referralSource: Joi.string().trim()
-        }).min(1).messages({
-            'object.min': 'At least one field must be provided for update'
+    quantity: Joi.number().integer().min(1).default(1)
+        .messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be an integer',
+            'number.min': 'Quantity must be at least 1'
         })
-    },
+});
 
-    updateAppointmentStatus: {
-        params: Joi.object({
-            id: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).messages({
-                'string.pattern.base': 'Invalid appointment ID format',
-                'any.required': 'Appointment ID is required'
-            })
+// Validation schema for creating appointment
+export const createAppointmentSchema = Joi.object({
+    radiologistId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid radiologist ID format',
+            'any.required': 'Radiologist is required'
         }),
-        body: Joi.object({
-            status: Joi.string().required().valid('scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show').messages({
-                'any.only': 'Invalid status',
-                'any.required': 'Status is required'
-            }),
-            diagnosis: Joi.string().when('status', {
-                is: 'completed',
-                then: Joi.string().required().messages({
-                    'string.empty': 'Diagnosis is required when completing an appointment',
-                    'any.required': 'Diagnosis is required when completing an appointment'
-                }),
-                otherwise: Joi.string().optional()
-            }),
-            treatment: Joi.string().when('status', {
-                is: 'completed',
-                then: Joi.string().required().messages({
-                    'string.empty': 'Treatment is required when completing an appointment',
-                    'any.required': 'Treatment is required when completing an appointment'
-                }),
-                otherwise: Joi.string().optional()
-            }),
-            notes: Joi.string().optional()
+    patientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid patient ID format',
+            'any.required': 'Patient is required'
+        }),
+    scans: Joi.array().items(appointmentScanSchema).min(1).required()
+        .messages({
+            'array.min': 'At least one scan is required',
+            'any.required': 'Scans are required'
+        }),
+    referredBy: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid doctor ID format',
+            'any.required': 'Referring doctor is required'
+        }),
+    scheduledAt: Joi.date().greater('now').required()
+        .messages({
+            'date.base': 'Scheduled time must be a valid date',
+            'date.greater': 'Scheduled time must be in the future',
+            'any.required': 'Scheduled time is required'
+        }),
+    notes: Joi.string().trim().max(1000).optional()
+        .messages({
+            'string.max': 'Notes cannot exceed 1000 characters'
         })
-    },
+});
 
-    deleteAppointment: {
-        params: Joi.object({
-            id: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).messages({
-                'string.pattern.base': 'Invalid appointment ID format',
-                'any.required': 'Appointment ID is required'
-            })
-        })
-    },
+// Validation schema for updating appointment
+export const updateAppointmentSchema = Joi.object({
+    radiologistId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    patientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    scans: Joi.array().items(appointmentScanSchema).min(1).optional(),
+    referredBy: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    scheduledAt: Joi.date().greater('now').optional(),
+    notes: Joi.string().trim().max(1000).optional()
+});
 
-    getAppointmentsByDateRange: {
-        query: Joi.object({
-            startDate: Joi.date().required().messages({
-                'date.base': 'Please provide a valid start date',
-                'any.required': 'Start date is required'
-            }),
-            endDate: Joi.date().required().min(Joi.ref('startDate')).messages({
-                'date.base': 'Please provide a valid end date',
-                'date.min': 'End date must be after start date',
-                'any.required': 'End date is required'
-            }),
-            doctor: Joi.string().regex(/^[0-9a-fA-F]{24}$/),
-            status: Joi.string().valid('scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show')
+// Validation schema for appointment ID parameter
+export const appointmentIdSchema = Joi.object({
+    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid appointment ID format',
+            'any.required': 'Appointment ID is required'
         })
+});
+
+// Validation schema for appointment query parameters
+export const appointmentQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    search: Joi.string().trim().optional(),
+    status: Joi.string().valid('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show').optional(),
+    patientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    radiologistId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    doctorId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    startDate: Joi.date().iso().optional(),
+    endDate: Joi.date().iso().optional(),
+    sortBy: Joi.string().valid('scheduledAt', 'status', 'createdAt').default('scheduledAt'),
+    sortOrder: Joi.string().valid('asc', 'desc').default('asc')
+});
+
+// Validation schema for appointment status update
+export const updateAppointmentStatusSchema = Joi.object({
+    status: Joi.string().valid('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show').required()
+        .messages({
+            'any.only': 'Invalid appointment status',
+            'any.required': 'Status is required'
+        }),
+    notes: Joi.string().trim().max(1000).optional()
+});
+
+// Validation schema for appointment cancellation
+export const cancelAppointmentSchema = Joi.object({
+    cancellationReason: Joi.string().trim().max(500).required()
+        .messages({
+            'string.empty': 'Cancellation reason is required',
+            'string.max': 'Cancellation reason cannot exceed 500 characters',
+            'any.required': 'Cancellation reason is required'
+        })
+});
+
+// Middleware to validate request body
+export const validateAppointmentBody = (schema) => {
+    return (req, res, next) => {
+        const { error, value } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: error.details.map(detail => ({
+                    field: detail.path.join('.'),
+                    message: detail.message
+                }))
+            });
+        }
+
+        req.body = value;
+        next();
+    };
+};
+
+// Middleware to validate request parameters
+export const validateAppointmentParams = (req, res, next) => {
+    const { error, value } = appointmentIdSchema.validate(req.params, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
     }
+
+    req.params = value;
+    next();
+};
+
+// Middleware to validate query parameters
+export const validateAppointmentQuery = (req, res, next) => {
+    const { error, value } = appointmentQuerySchema.validate(req.query, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
+    }
+
+    req.query = value;
+    next();
+};
+
+// Export all validation schemas and middleware as an object
+export const appointmentValidation = {
+    createAppointmentSchema,
+    updateAppointmentSchema,
+    appointmentIdSchema,
+    appointmentQuerySchema,
+    updateAppointmentStatusSchema,
+    cancelAppointmentSchema,
+    validateAppointmentBody,
+    validateAppointmentParams,
+    validateAppointmentQuery
 };
 
 export default appointmentValidation; 

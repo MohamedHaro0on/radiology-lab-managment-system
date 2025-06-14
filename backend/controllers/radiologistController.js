@@ -1,41 +1,27 @@
 import asyncHandler from 'express-async-handler';
 import { StatusCodes } from 'http-status-codes';
 import Radiologist from '../models/Radiologist.js';
-import User from '../models/User.js';
 import { errors } from '../utils/errorHandler.js';
 import { executePaginatedQuery } from '../utils/pagination.js';
 
 // Create a new radiologist
 export const createRadiologist = asyncHandler(async (req, res) => {
-    const { name, email, contactNumber, specialization, licenseNumber, qualifications, expertise, user } = req.body;
+    const { name, gender, age, phoneNumber, licenseId } = req.body;
 
-    // Check if user exists and has appropriate role
-    const userDoc = await User.findById(user);
-    if (!userDoc) {
-        throw errors.NotFound('User not found');
-    }
-    if (userDoc.role !== 'technician') {
-        throw errors.BadRequest('User must have technician role');
-    }
-
-    // Check if radiologist with same email or license already exists
-    const existingRadiologist = await Radiologist.findOne({
-        $or: [{ email }, { licenseNumber }]
-    });
+    // Check if radiologist with same license ID already exists
+    const existingRadiologist = await Radiologist.findOne({ licenseId });
 
     if (existingRadiologist) {
-        throw errors.Conflict('Radiologist with this email or license number already exists');
+        throw errors.Conflict('Radiologist with this license ID already exists');
     }
 
     const radiologist = new Radiologist({
         name,
-        email,
-        contactNumber,
-        specialization,
-        licenseNumber,
-        qualifications,
-        expertise,
-        user
+        gender,
+        age,
+        phoneNumber,
+        licenseId,
+        createdBy: req.user?._id || '000000000000000000000000' // Default user ID if auth is disabled
     });
 
     const savedRadiologist = await radiologist.save();
@@ -47,12 +33,9 @@ export const createRadiologist = asyncHandler(async (req, res) => {
 
 // Get all radiologists
 export const getRadiologists = asyncHandler(async (req, res) => {
-    const { specialization, isActive, ...paginationOptions } = req.query;
-    const query = {};
+    const { isActive, ...paginationOptions } = req.query;
+    const query = { isActive: true }; // Only show active radiologists by default
 
-    if (specialization) {
-        query.specialization = specialization;
-    }
     if (isActive !== undefined) {
         query.isActive = isActive === 'true';
     }
@@ -61,7 +44,7 @@ export const getRadiologists = asyncHandler(async (req, res) => {
         Radiologist,
         query,
         paginationOptions,
-        { path: 'user', select: 'username email role' }
+        { path: 'createdBy', select: 'username email role' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -69,8 +52,10 @@ export const getRadiologists = asyncHandler(async (req, res) => {
 
 // Get a single radiologist by ID
 export const getRadiologist = asyncHandler(async (req, res) => {
-    const radiologist = await Radiologist.findById(req.params.id)
-        .populate('user', 'username email role');
+    const radiologist = await Radiologist.findOne({
+        _id: req.params.id,
+        isActive: true
+    }).populate('createdBy', 'username email role');
 
     if (!radiologist) {
         throw errors.NotFound('Radiologist not found');
@@ -84,37 +69,37 @@ export const getRadiologist = asyncHandler(async (req, res) => {
 
 // Update a radiologist
 export const updateRadiologist = asyncHandler(async (req, res) => {
-    const { name, email, contactNumber, specialization, licenseNumber, qualifications, expertise, isActive } = req.body;
+    const { name, gender, age, phoneNumber, licenseId, isActive } = req.body;
 
-    // Check if email or license number is being changed and if it already exists
-    if (email || licenseNumber) {
+    // Check if license ID is being changed and if it already exists
+    if (licenseId) {
         const existingRadiologist = await Radiologist.findOne({
             _id: { $ne: req.params.id },
-            $or: [
-                ...(email ? [{ email }] : []),
-                ...(licenseNumber ? [{ licenseNumber }] : [])
-            ]
+            licenseId,
+            isActive: true
         });
 
         if (existingRadiologist) {
-            throw errors.Conflict('Radiologist with this email or license number already exists');
+            throw errors.Conflict('Radiologist with this license ID already exists');
         }
     }
 
-    const updatedRadiologist = await Radiologist.findByIdAndUpdate(
-        req.params.id,
+    const updatedRadiologist = await Radiologist.findOneAndUpdate(
+        {
+            _id: req.params.id,
+            isActive: true
+        },
         {
             name,
-            email,
-            contactNumber,
-            specialization,
-            licenseNumber,
-            qualifications,
-            expertise,
-            isActive
+            gender,
+            age,
+            phoneNumber,
+            licenseId,
+            isActive,
+            updatedBy: req.user?._id || '000000000000000000000000'
         },
         { new: true, runValidators: true }
-    ).populate('user', 'username email role');
+    ).populate('createdBy', 'username email role');
 
     if (!updatedRadiologist) {
         throw errors.NotFound('Radiologist not found');
@@ -128,7 +113,10 @@ export const updateRadiologist = asyncHandler(async (req, res) => {
 
 // Delete a radiologist
 export const deleteRadiologist = asyncHandler(async (req, res) => {
-    const radiologist = await Radiologist.findById(req.params.id);
+    const radiologist = await Radiologist.findOne({
+        _id: req.params.id,
+        isActive: true
+    });
 
     if (!radiologist) {
         throw errors.NotFound('Radiologist not found');
@@ -149,7 +137,7 @@ export const getRadiologistStats = asyncHandler(async (req, res) => {
     const stats = await Radiologist.aggregate([
         {
             $group: {
-                _id: '$specialization',
+                _id: '$gender',
                 count: { $sum: 1 },
                 activeCount: {
                     $sum: { $cond: [{ $eq: ['$isActive', true] }, 1, 0] }

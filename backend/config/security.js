@@ -4,25 +4,7 @@ import { errors } from '../utils/errorHandler.js';
 
 // CORS configuration
 const corsOptions = {
-    origin: (origin, callback) => {
-        const allowedOrigins = process.env.ALLOWED_ORIGINS
-            ? process.env.ALLOWED_ORIGINS.split(',')
-            : ['http://localhost:3001', 'http://localhost:3000']; // Allow both frontend and backend origins
-
-        // Allow requests with no origin (like mobile apps, curl, postman)
-        if (!origin) {
-            return callback(null, true);
-        }
-
-        if (allowedOrigins.indexOf(origin) === -1) {
-            return callback(
-                errors.Forbidden('Not allowed by CORS'),
-                false
-            );
-        }
-
-        callback(null, true);
-    },
+    origin: true, // Allow all origins for testing
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
         'Content-Type',

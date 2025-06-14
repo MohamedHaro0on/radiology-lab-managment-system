@@ -70,10 +70,10 @@ export const doctorValidation = {
             'any.required': 'Contact number is required',
             'string.pattern.base': 'Invalid contact number format'
         }),
-        email: Joi.string().required().email().messages({
-            'any.required': 'Email is required',
-            'string.email': 'Invalid email format'
-        }),
+        // email: Joi.string().required().email().messages({
+        //     'any.required': 'Email is required',
+        //     'string.email': 'Invalid email format'
+        // }),
         address: Joi.object({
             street: Joi.string().required().min(3).max(200).messages({
                 'any.required': 'Street address is required',
@@ -121,8 +121,7 @@ export const doctorValidation = {
                     'number.max': 'Year cannot be in the future'
                 })
             })
-        ).min(1).required().messages({
-            'any.required': 'At least one qualification is required',
+        ).optional().messages({
             'array.min': 'At least one qualification is required'
         }),
         experience: Joi.number().integer().min(0).required().messages({
@@ -149,9 +148,9 @@ export const doctorValidation = {
         contactNumber: Joi.string().pattern(/^\+?[\d\s-]{10,}$/).messages({
             'string.pattern.base': 'Invalid contact number format'
         }),
-        email: Joi.string().email().messages({
-            'string.email': 'Invalid email format'
-        }),
+        // email: Joi.string().email().messages({
+        //     'string.email': 'Invalid email format'
+        // }),
         address: Joi.object({
             street: Joi.string().min(3).max(200).messages({
                 'string.min': 'Street address must be at least 3 characters long',
@@ -257,4 +256,131 @@ export const doctorValidation = {
             'string.pattern.base': 'Invalid qualification ID format'
         })
     })
+};
+
+// Validation schema for creating doctor
+export const createDoctorSchema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).required()
+        .messages({
+            'string.empty': 'Name is required',
+            'string.min': 'Name must be at least 2 characters long',
+            'string.max': 'Name cannot exceed 100 characters'
+        }),
+    specialization: Joi.string().trim().required()
+        .messages({
+            'string.empty': 'Specialization is required',
+            'any.required': 'Specialization is required'
+        }),
+    licenseNumber: Joi.string().min(3).max(50).optional().messages({
+        'string.min': 'License number must be at least 3 characters long',
+        'string.max': 'License number cannot exceed 50 characters'
+    }),
+    contactNumber: Joi.string().pattern(/^\+?[\d\s-]{10,}$/).required()
+        .messages({
+            'string.pattern.base': 'Please provide a valid contact number',
+            'any.required': 'Contact number is required'
+        }),
+    address: Joi.object({
+        street: Joi.string().trim().optional(),
+        city: Joi.string().trim().optional(),
+        state: Joi.string().trim().optional(),
+        postalCode: Joi.string().trim().optional(),
+        country: Joi.string().trim().default('egypt').optional()
+    }).optional(),
+    experience: Joi.number().integer().min(0).optional().messages({
+        'number.min': 'Experience cannot be negative'
+    }),
+    isActive: Joi.boolean().default(true).optional()
+});
+
+// Validation schema for updating doctor
+export const updateDoctorSchema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).optional(),
+    specialization: Joi.string().trim().optional(),
+    phoneNumber: Joi.string().pattern(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/).optional(),
+    address: Joi.object({
+        street: Joi.string().trim().optional(),
+        city: Joi.string().trim().optional(),
+        state: Joi.string().trim().optional(),
+        postalCode: Joi.string().trim().optional(),
+        country: Joi.string().trim().optional()
+    }).optional()
+});
+
+// Validation schema for doctor ID parameter
+export const doctorIdSchema = Joi.object({
+    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid doctor ID format',
+            'any.required': 'Doctor ID is required'
+        })
+});
+
+// Validation schema for doctor query parameters
+export const doctorQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    search: Joi.string().trim().optional(),
+    specialization: Joi.string().trim().optional(),
+    sortBy: Joi.string().valid('name', 'specialization', 'totalPatientsReferred', 'totalScansReferred', 'createdAt').default('createdAt'),
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+});
+
+// Middleware to validate request body
+export const validateDoctorBody = (schema) => {
+    return (req, res, next) => {
+        const { error, value } = schema.validate(req.body, { abortEarly: false });
+        if (error) {
+            console.log("this is the Error", error)
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: error.details.map(detail => ({
+                    field: detail.path.join('.'),
+                    message: detail.message
+                }))
+            });
+        }
+
+        req.body = value;
+        next();
+    };
+};
+
+// Middleware to validate request parameters
+export const validateDoctorParams = (req, res, next) => {
+    const { error, value } = doctorIdSchema.validate(req.params, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
+    }
+
+    req.params = value;
+    next();
+};
+
+// Middleware to validate query parameters
+export const validateDoctorQuery = (req, res, next) => {
+    const { error, value } = doctorQuerySchema.validate(req.query, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
+    }
+
+    req.query = value;
+    next();
 };

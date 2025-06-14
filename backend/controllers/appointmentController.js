@@ -7,53 +7,59 @@ import Patient from '../models/Patient.js';
 import PatientHistory from '../models/PatientHistory.js';
 import { executePaginatedQuery } from '../utils/pagination.js';
 import websocketManager from '../utils/websocket.js';
+import Radiologist from '../models/Radiologist.js';
 
 // @desc    Create a new appointment
 // @route   POST /api/appointments
 // @access  Private (admin/manager/doctor)
 // @body    {
+//   radiologistId: ObjectId (required, ref: Radiologist),
 //   patientId: ObjectId (required, ref: Patient),
-//   doctorId: ObjectId (required, ref: Doctor),
-//   appointmentDate: Date (required),
-//   timeSlot: {
-//     start: string (required, HH:MM format),
-//     end: string (required, HH:MM format)
-//   },
-//   type: enum['X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other'] (required),
-//   priority: enum['routine', 'urgent', 'emergency'] (required),
-//   notes: string (optional),
-//   referralSource: string (optional)
+//   scans: [{
+//     scan: ObjectId (required, ref: Scan),
+//     quantity: number (default: 1)
+//   }],
+//   referredBy: ObjectId (required, ref: Doctor),
+//   scheduledAt: Date (required),
+//   notes: string (optional)
 // }
 // @returns Created appointment object
-// @note    Increments referralCount for referring doctor if patient was referred
+// @note    Increments totalScansReferred for referring doctor
 export const createAppointment = asyncHandler(async (req, res, next) => {
     try {
-        const { patientId, doctorId, appointmentDate, timeSlot, type, priority, notes, referralSource } = req.body;
+        const { radiologistId, patientId, scans, referredBy, scheduledAt, notes } = req.body;
 
-        // Check if doctor and patient exist
-        const [doctor, patient] = await Promise.all([
-            Doctor.findById(doctorId),
-            Patient.findById(patientId)
+        // Check if radiologist, patient, and doctor exist
+        const [radiologist, patient, doctor] = await Promise.all([
+            Radiologist.findById(radiologistId),
+            Patient.findById(patientId),
+            Doctor.findById(referredBy)
         ]);
 
-        if (!doctor) {
-            throw errors.NotFound('Doctor not found');
+        if (!radiologist) {
+            throw errors.NotFound('Radiologist not found');
         }
         if (!patient) {
             throw errors.NotFound('Patient not found');
         }
+        if (!doctor) {
+            throw errors.NotFound('Referring doctor not found');
+        }
 
-        // Check doctor availability
+        // Check if radiologist and doctor are active
+        if (!radiologist.isActive) {
+            throw errors.BadRequest('Radiologist is not available');
+        }
         if (!doctor.isActive) {
-            throw errors.BadRequest('Doctor is not available');
+            throw errors.BadRequest('Referring doctor is not available');
         }
 
         // Check for scheduling conflicts
         const existingAppointment = await Appointment.findOne({
-            doctor: doctorId,
-            appointmentDate,
-            timeSlot,
-            status: { $in: ['scheduled', 'confirmed'] }
+            radiologistId,
+            scheduledAt,
+            status: { $in: ['scheduled', 'in_progress'] },
+            isActive: true
         });
 
         if (existingAppointment) {
@@ -61,55 +67,37 @@ export const createAppointment = asyncHandler(async (req, res, next) => {
         }
 
         const appointmentData = {
-            patient: patientId,
-            doctor: doctorId,
-            appointmentDate,
-            timeSlot,
-            type,
-            priority,
+            radiologistId,
+            patientId,
+            scans,
+            referredBy,
+            scheduledAt,
             notes,
-            referralSource,
             status: 'scheduled',
-            createdBy: req.user._id
+            createdBy: req.user?._id || null
         };
 
-        // Check if slot is available
-        const isAvailable = await Appointment.isSlotAvailable(
-            doctorId,
-            appointmentDate,
-            timeSlot
-        );
+        const appointment = new Appointment(appointmentData);
+        await appointment.save();
 
-        if (!isAvailable) {
-            throw errors.BadRequest('Appointment slot is not available');
-        }
+        // Increment doctor's total scans referred
+        await doctor.incrementScansReferred();
 
-        const appointment = await Appointment.create(appointmentData);
-
-        // Send WebSocket notification to the assigned doctor
-        websocketManager.sendNotification(doctorId.toString(), {
+        // Send WebSocket notification to the assigned radiologist
+        websocketManager.sendNotification(radiologistId.toString(), {
             type: 'new_appointment',
             data: {
                 appointmentId: appointment._id,
                 patientName: patient.name,
-                appointmentDate: appointment.appointmentDate,
-                appointmentTime: appointment.timeSlot,
-                scanType: appointment.type,
-                priority: appointment.priority
+                scheduledAt: appointment.scheduledAt,
+                scans: appointment.scans
             }
         });
 
-        // If this is a referral appointment (patient was referred by a doctor)
-        if (patient.referredBy) {
-            // Increment the referring doctor's referral count
-            await Doctor.findByIdAndUpdate(patient.referredBy, {
-                $inc: { referralCount: 1 }
-            });
-        }
-
         res.status(StatusCodes.CREATED).json({
             status: 'success',
-            data: appointment
+            message: 'Appointment created successfully',
+            data: appointment.info
         });
     } catch (error) {
         next(error);
@@ -145,31 +133,31 @@ export const getAllAppointments = asyncHandler(async (req, res) => {
     } = req.query;
 
     // Build query
-    const query = {};
+    const query = { isActive: true };
     if (search) {
         query.$or = [
             { 'patient.name': { $regex: search, $options: 'i' } },
-            { 'patient.phone': { $regex: search, $options: 'i' } },
-            { 'doctor.name': { $regex: search, $options: 'i' } }
+            { 'patient.phoneNumber': { $regex: search, $options: 'i' } },
+            { 'referredBy.name': { $regex: search, $options: 'i' } }
         ];
     }
     if (status) {
         query.status = status;
     }
     if (startDate || endDate) {
-        query.appointmentDate = {};
+        query.scheduledAt = {};
         if (startDate) {
-            query.appointmentDate.$gte = new Date(startDate);
+            query.scheduledAt.$gte = new Date(startDate);
         }
         if (endDate) {
-            query.appointmentDate.$lte = new Date(endDate);
+            query.scheduledAt.$lte = new Date(endDate);
         }
     }
     if (patientId) {
-        query['patient._id'] = patientId;
+        query.patientId = patientId;
     }
     if (doctorId) {
-        query['doctor._id'] = doctorId;
+        query.referredBy = doctorId;
     }
 
     const result = await executePaginatedQuery(
@@ -177,8 +165,9 @@ export const getAllAppointments = asyncHandler(async (req, res) => {
         query,
         paginationOptions,
         [
-            { path: 'patient', select: 'name phone gender dateOfBirth' },
-            { path: 'doctor', select: 'name specialization' }
+            { path: 'patientId', select: 'name phoneNumber gender dateOfBirth', ref: 'Patient' },
+            { path: 'referredBy', select: 'name specialization', ref: 'Doctor' },
+            { path: 'radiologistId', select: 'name licenseId', ref: 'Radiologist' }
         ]
     );
 

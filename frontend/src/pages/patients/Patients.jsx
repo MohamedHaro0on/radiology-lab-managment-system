@@ -23,6 +23,13 @@ import {
   InputLabel,
   Select,
   Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -42,12 +49,14 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import DoctorSearchAndRegister from '../../components/doctors/DoctorSearchAndRegister';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Patients component for managing patients
  */
 const Patients = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -61,12 +70,11 @@ const Patients = () => {
 
   const formik = useFormik({
     initialValues: {
-      firstName: '',
-      lastName: '',
+      name: '',
       dateOfBirth: null,
-    gender: '',
+      gender: '',
       phoneNumber: '',
-    email: '',
+      socialNumber: '',
       address: {
         street: '',
         city: '',
@@ -79,26 +87,41 @@ const Patients = () => {
     },
     validationSchema: patientSchema,
     onSubmit: async (values) => {
+      console.log('🚀 Formik onSubmit triggered with values:', values);
       try {
         setLoading(true);
+        console.log('📝 Preparing submit data...');
         const submitData = {
           ...values,
-          doctor: values.doctor._id,
+          // Ensure that the doctor field is only sending the ID if it's an object
+          doctorReferred: values.doctor ? values.doctor._id : null,
         };
-        
+        // Remove the temporary `doctor` field that holds the full object
+        delete submitData.doctor;
+        console.log('📤 Final submit data:', submitData);
+
         if (selectedPatient) {
+          console.log('🔄 Updating patient:', selectedPatient._id);
           await patientAPI.update(selectedPatient._id, submitData);
           toast.success(t('patients.updateSuccess'));
         } else {
+          console.log('➕ Creating new patient...');
           await patientAPI.create(submitData);
           toast.success(t('patients.createSuccess'));
         }
+        console.log('✅ API call successful, closing dialog and refreshing data...');
         handleCloseDialog();
         fetchPatients();
       } catch (err) {
-        toast.error(err.response?.data?.message || t('patients.error'));
+        console.error('❌ Patient creation/update error:', err);
+        const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           err.message || 
+                           t('patients.error');
+        toast.error(`Failed to ${selectedPatient ? 'update' : 'create'} patient: ${errorMessage}`);
       } finally {
         setLoading(false);
+        console.log('🏁 Form submission completed');
       }
     },
   });
@@ -108,6 +131,7 @@ const Patients = () => {
   }, [page, rowsPerPage, searchQuery]);
 
   const fetchPatients = async () => {
+    console.log('📥 fetchPatients called');
     try {
       setLoading(true);
       const response = await patientAPI.getAll({
@@ -115,9 +139,12 @@ const Patients = () => {
         limit: rowsPerPage,
         search: searchQuery,
       });
-        setPatients(response.data.patients);
-      setTotal(response.data.total);
+      // Corrected path to patients array
+      setPatients(response.data.data.patients || []);
+      setTotal(response.data.data.pagination?.total || 0);
+      console.log('✅ fetchPatients completed successfully');
     } catch (err) {
+      console.error('❌ fetchPatients error:', err);
       toast.error(t('patients.fetchError'));
     } finally {
       setLoading(false);
@@ -132,9 +159,36 @@ const Patients = () => {
   const handleOpenDialog = (patient = null) => {
     if (patient) {
       setSelectedPatient(patient);
+      const updatedPatient = { ...patient };
+
+      // Ensure doctor object for the form contains only the necessary fields
+      if (updatedPatient.doctorReferred) {
+        // Explicitly reconstruct the doctor object to only contain relevant fields
+        updatedPatient.doctorReferred = {
+          _id: updatedPatient.doctorReferred._id,
+          name: updatedPatient.doctorReferred.name, // Ensure it uses 'name'
+          specialization: updatedPatient.doctorReferred.specialization,
+          licenseNumber: updatedPatient.doctorReferred.licenseNumber,
+          contactNumber: updatedPatient.doctorReferred.contactNumber,
+        };
+      }
+
       formik.setValues({
-        ...patient,
-        dateOfBirth: new Date(patient.dateOfBirth),
+        name: updatedPatient.name || '',
+        dateOfBirth: updatedPatient.dateOfBirth ? new Date(updatedPatient.dateOfBirth) : null,
+        gender: updatedPatient.gender || '',
+        phoneNumber: updatedPatient.phoneNumber || '',
+        socialNumber: updatedPatient.socialNumber || '',
+        address: updatedPatient.address || {
+          street: '',
+          city: '',
+          state: '',
+          postalCode: '',
+          country: 'India',
+        },
+        medicalHistory: updatedPatient.medicalHistory || [],
+        // Map doctorReferred to the 'doctor' field that DoctorSearchAndRegister expects
+        doctor: updatedPatient.doctorReferred || null,
       });
     } else {
       setSelectedPatient(null);
@@ -144,6 +198,7 @@ const Patients = () => {
   };
 
   const handleCloseDialog = () => {
+    console.log('🚪 handleCloseDialog called');
     setOpenDialog(false);
     setSelectedPatient(null);
     formik.resetForm();
@@ -209,14 +264,17 @@ const Patients = () => {
       ) : (
       <Grid container spacing={3}>
         {patients.map((patient) => (
-            <Grid item xs={12} sm={6} md={4} key={patient._id}>
-            <Card>
+          <Grid item xs={12} sm={6} md={4} key={patient._id}>
+            <Card
+              onClick={() => navigate(`/patients/${patient._id}`)}
+              style={{ cursor: 'pointer' }}
+            >
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
                   <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
                   <Box>
                     <Typography variant="h6" component="h2">
-                        {`${patient.firstName} ${patient.lastName}`}
+                        {patient.name}
                     </Typography>
                     <Box display="flex" alignItems="center" gap={1}>
                       <CalendarIcon fontSize="small" color="action" />
@@ -233,25 +291,60 @@ const Patients = () => {
                     size="small"
                   />
                 </Box>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('patients.phone')}: {patient.phoneNumber}
-                </Typography>
-                  {patient.email && (
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  {t('patients.email')}: {patient.email}
-                </Typography>
-                  )}
-                  {patient.address?.city && (
-                <Typography variant="body2" color="textSecondary" noWrap>
-                      {t('patients.address')}: {`${patient.address.city}, ${patient.address.state}`}
-                </Typography>
-                  )}
+                
+                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+                  <Table size="small">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell component="th" sx={{ fontWeight: 'bold', width: '40%' }}>
+                          {t('patients.phone')}
+                        </TableCell>
+                        <TableCell>
+                          {patient.phoneNumber}
+                        </TableCell>
+                      </TableRow>
+                      {patient.socialNumber && (
+                        <TableRow>
+                          <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                            {t('patients.socialNumber')}
+                          </TableCell>
+                          <TableCell>
+                            {patient.socialNumber}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {patient.address?.city && (
+                        <TableRow>
+                          <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                            {t('patients.address')}
+                          </TableCell>
+                          <TableCell>
+                            {`${patient.address.city}, ${patient.address.state}`}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {patient.doctorReferred && (
+                        <TableRow>
+                          <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                            {t('patients.doctor')}
+                          </TableCell>
+                          <TableCell>
+                            {patient.doctorReferred.name}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </CardContent>
               <CardActions>
                   <Button
                   size="small"
                     startIcon={<EditIcon />}
-                  onClick={() => handleOpenDialog(patient)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenDialog(patient);
+                  }}
                 >
                     {t('common.edit')}
                   </Button>
@@ -259,7 +352,8 @@ const Patients = () => {
                   size="small"
                   color="error"
                     startIcon={<DeleteIcon />}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedPatient(patient);
                       setOpenConfirm(true);
                     }}
@@ -273,47 +367,50 @@ const Patients = () => {
       </Grid>
       )}
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog 
+        open={openDialog} 
+        onClose={(e, reason) => {
+          console.log('🚪 Dialog onClose triggered, reason:', reason);
+          handleCloseDialog();
+        }} 
+        maxWidth="md" 
+        fullWidth
+      >
         <DialogTitle>
           {selectedPatient ? t('patients.editPatient') : t('patients.addPatient')}
         </DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
+          <Box component="form" onSubmit={(e) => {
+            console.log('📋 Form onSubmit event triggered');
+            console.log('🛑 Preventing default behavior...');
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔄 Calling formik.handleSubmit...');
+            formik.handleSubmit(e);
+          }} noValidate sx={{ mt: 2 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-                  label={t('patients.firstName')}
-                  name="firstName"
-                  value={formik.values.firstName}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label={t('patients.name')}
+                  name="name"
+                  value={formik.values.name}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.firstName && Boolean(formik.errors.firstName)}
-                  helperText={formik.touched.firstName && formik.errors.firstName}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-                  label={t('patients.lastName')}
-                  name="lastName"
-                  value={formik.values.lastName}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  error={formik.touched.lastName && Boolean(formik.errors.lastName)}
-                  helperText={formik.touched.lastName && formik.errors.lastName}
+                  error={formik.touched.name && Boolean(formik.errors.name)}
+                  helperText={formik.touched.name && formik.errors.name}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DatePicker
-              label={t('patients.dateOfBirth')}
+                    label={t('patients.dateOfBirth')}
                     value={formik.values.dateOfBirth}
                     onChange={(date) => formik.setFieldValue('dateOfBirth', date)}
                     renderInput={(params) => (
-            <TextField
+                      <TextField
                         {...params}
-              fullWidth
+                        fullWidth
                         error={formik.touched.dateOfBirth && Boolean(formik.errors.dateOfBirth)}
                         helperText={formik.touched.dateOfBirth && formik.errors.dateOfBirth}
                       />
@@ -329,7 +426,7 @@ const Patients = () => {
                     value={formik.values.gender}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-              label={t('patients.gender')}
+                    label={t('patients.gender')}
                   >
                     <MenuItem value="male">{t('patients.genders.male')}</MenuItem>
                     <MenuItem value="female">{t('patients.genders.female')}</MenuItem>
@@ -343,8 +440,8 @@ const Patients = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
+                <TextField
+                  fullWidth
                   label={t('patients.phoneNumber')}
                   name="phoneNumber"
                   value={formik.values.phoneNumber}
@@ -355,19 +452,19 @@ const Patients = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label={t('patients.email')}
-              name="email"
-              type="email"
-                  value={formik.values.email}
+                <TextField
+                  fullWidth
+                  label={t('patients.socialNumber')}
+                  name="socialNumber"
+                  value={formik.values.socialNumber}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.email && Boolean(formik.errors.email)}
-                  helperText={formik.touched.email && formik.errors.email}
+                  error={formik.touched.socialNumber && Boolean(formik.errors.socialNumber)}
+                  helperText={formik.touched.socialNumber && formik.errors.socialNumber}
                 />
               </Grid>
               <Grid item xs={12}>
+                {console.log("formik.values.doctor before rendering DoctorSearchAndRegister:", formik.values.doctor)}
                 <DoctorSearchAndRegister
                   value={formik.values.doctor}
                   onChange={(doctor) => formik.setFieldValue('doctor', doctor)}
@@ -411,24 +508,24 @@ const Patients = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
+                <TextField
+                  fullWidth
                   label={t('patients.address.postalCode')}
                   name="address.postalCode"
                   value={formik.values.address.postalCode}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-            />
+                />
               </Grid>
               <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
+                <TextField
+                  fullWidth
                   label={t('patients.address.country')}
                   name="address.country"
                   value={formik.values.address.country}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-            />
+                />
               </Grid>
             </Grid>
           </Box>
@@ -436,7 +533,14 @@ const Patients = () => {
         <DialogActions>
           <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
           <Button
-            onClick={formik.handleSubmit}
+            onClick={(e) => {
+              console.log('🔘 Submit button clicked');
+              console.log('🛑 Preventing default behavior on button...');
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('🔄 Calling formik.handleSubmit from button...');
+              formik.handleSubmit(e);
+            }}
             variant="contained"
             disabled={loading}
             startIcon={loading && <CircularProgress size={20} />}

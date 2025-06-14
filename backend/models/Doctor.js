@@ -16,22 +16,24 @@ const doctorSchema = new mongoose.Schema({
     },
     licenseNumber: {
         type: String,
-        required: [true, 'License number is required'],
-        unique: true,
-        trim: true
+        trim: true, // Assuming it's not always required or can be optional
+        minlength: [3, 'License number must be at least 3 characters long'],
+        maxlength: [50, 'License number cannot exceed 50 characters']
     },
     contactNumber: {
         type: String,
         required: [true, 'Contact number is required'],
         match: [/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Please provide a valid contact number']
     },
-    email: {
-        type: String,
-        required: [true, 'Email is required'],
-        unique: true,
-        trim: true,
-        lowercase: true,
-        match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
+    totalPatientsReferred: {
+        type: Number,
+        default: 0,
+        min: [0, 'Total patients referred cannot be negative']
+    },
+    totalScansReferred: {
+        type: Number,
+        default: 0,
+        min: [0, 'Total scans referred cannot be negative']
     },
     address: {
         street: {
@@ -53,40 +55,22 @@ const doctorSchema = new mongoose.Schema({
         country: {
             type: String,
             trim: true,
-            default: 'India'
+            default: 'Egypt'
         }
-    },
-    qualifications: [{
-        degree: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        institution: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        year: {
-            type: Number,
-            required: true,
-            min: [1900, 'Year must be after 1900'],
-            max: [new Date().getFullYear(), 'Year cannot be in the future']
-        }
-    }],
-    experience: {
-        type: Number,
-        min: [0, 'Experience cannot be negative'],
-        default: 0
     },
     isActive: {
         type: Boolean,
         default: true
     },
+    experience: {
+        type: Number,
+        default: 0,
+        min: [0, 'Experience cannot be negative']
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false // Making it optional if not always linked to a user creation
     },
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -98,11 +82,12 @@ const doctorSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-// Indexes (only for non-unique fields)
+// Indexes
 doctorSchema.index({ name: 1 });
 doctorSchema.index({ specialization: 1 });
 doctorSchema.index({ isActive: 1 });
-doctorSchema.index({ email: 1, isActive: 1 });
+doctorSchema.index({ contactNumber: 1, isActive: 1 });
+doctorSchema.index({ licenseNumber: 1 }, { unique: true, sparse: true }); // Add unique index for licenseNumber
 
 // Virtual for full address
 doctorSchema.virtual('fullAddress').get(function () {
@@ -117,45 +102,24 @@ doctorSchema.virtual('fullAddress').get(function () {
     return parts.join(', ');
 });
 
-// Method to add qualification
-doctorSchema.methods.addQualification = async function (qualification) {
-    if (!qualification.degree || !qualification.institution || !qualification.year) {
-        throw errors.BadRequest('Degree, institution, and year are required for qualification');
-    }
-
-    this.qualifications.push(qualification);
+// Method to increment total patients referred
+doctorSchema.methods.incrementPatientsReferred = async function () {
+    this.totalPatientsReferred += 1;
     await this.save();
     return this;
 };
 
-// Method to update qualification
-doctorSchema.methods.updateQualification = async function (qualificationId, updates) {
-    const qualification = this.qualifications.id(qualificationId);
-    if (!qualification) {
-        throw errors.NotFound('Qualification not found');
-    }
-
-    Object.assign(qualification, updates);
-    await this.save();
-    return this;
-};
-
-// Method to remove qualification
-doctorSchema.methods.removeQualification = async function (qualificationId) {
-    const qualification = this.qualifications.id(qualificationId);
-    if (!qualification) {
-        throw errors.NotFound('Qualification not found');
-    }
-
-    qualification.remove();
+// Method to increment total scans referred
+doctorSchema.methods.incrementScansReferred = async function () {
+    this.totalScansReferred += 1;
     await this.save();
     return this;
 };
 
 // Static method to find active doctors
-doctorSchema.statics.findActive = function () {
-    return this.find({ isActive: true });
-};
+// doctorSchema.statics.findActive = function () {
+//     return this.find({ isActive: true });
+// };
 
 // Static method to find doctors by specialization
 doctorSchema.statics.findBySpecialization = function (specialization) {
@@ -171,8 +135,8 @@ doctorSchema.statics.search = function (query) {
         $or: [
             { name: { $regex: query, $options: 'i' } },
             { specialization: { $regex: query, $options: 'i' } },
-            { licenseNumber: { $regex: query, $options: 'i' } },
-            { email: { $regex: query, $options: 'i' } }
+            { contactNumber: { $regex: query, $options: 'i' } },
+            { licenseNumber: { $regex: query, $options: 'i' } } // Add licenseNumber to search
         ],
         isActive: true
     });

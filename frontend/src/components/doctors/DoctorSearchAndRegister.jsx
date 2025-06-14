@@ -13,6 +13,8 @@ import {
   Grid,
   Typography,
   Alert,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { doctorAPI } from '../../services/api';
@@ -31,12 +33,10 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
   // Formik for doctor registration
   const formik = useFormik({
     initialValues: {
-      firstName: '',
-      lastName: '',
+      name: '',
       specialization: '',
       licenseNumber: '',
-      phoneNumber: '',
-      email: '',
+      contactNumber: '',
       address: {
         street: '',
         city: '',
@@ -44,14 +44,26 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
         postalCode: '',
         country: 'India',
       },
-      qualifications: [],
       active: true,
+      experience: 0,
     },
     validationSchema: doctorSchema,
     onSubmit: async (values) => {
       try {
         setRegisterLoading(true);
-        const response = await doctorAPI.create(values);
+        // Map frontend fields to backend schema for new doctor creation
+        const backendDoctor = {
+          name: values.name,
+          specialization: values.specialization,
+          licenseNumber: values.licenseNumber,
+          contactNumber: values.contactNumber,
+          address: values.address,
+          experience: values.experience || 0,
+          isActive: values.active ?? true,
+          // createdBy will be handled by backend if user context is available
+        };
+        
+        const response = await doctorAPI.create(backendDoctor);
         const newDoctor = response.data;
         setOptions((prev) => [...prev, newDoctor]);
         onChange(newDoctor);
@@ -71,14 +83,18 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
     const fetchDoctors = async () => {
       if (!searchQuery) {
         setOptions([]);
+        console.log("Search query empty, options set to:", []);
         return;
       }
 
       setLoading(true);
       try {
         const response = await doctorAPI.search(searchQuery);
+        console.log("Doctor API search response:", response.data);
         if (active) {
-          setOptions(response.data.doctors || []);
+          const fetchedDoctors = response.data.data.doctors || [];
+          setOptions(fetchedDoctors);
+          console.log("Options set to:", fetchedDoctors);
         }
       } catch (err) {
         console.error('Error fetching doctors:', err);
@@ -127,7 +143,7 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
         }}
         isOptionEqualToValue={(option, value) => option._id === value._id}
         getOptionLabel={(option) =>
-          option ? `Dr. ${option.firstName} ${option.lastName} - ${option.specialization}` : ''
+          option ? `Dr. ${option.name} - ${option.specialization}` : ''
         }
         options={options}
         loading={loading}
@@ -152,7 +168,7 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
           <Box component="li" {...props}>
             <Box>
               <Typography variant="body1">
-                Dr. {option.firstName} {option.lastName}
+                Dr. {option.name}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {option.specialization}
@@ -188,30 +204,18 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
       >
         <DialogTitle>{t('doctors.registerNew')}</DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
+          <Box component="form" id="doctor-register-form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label={t('doctors.firstName')}
-                  name="firstName"
-                  value={formik.values.firstName}
+                  label={t('doctors.name')}
+                  name="name"
+                  value={formik.values.name}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.firstName && Boolean(formik.errors.firstName)}
-                  helperText={formik.touched.firstName && formik.errors.firstName}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('doctors.lastName')}
-                  name="lastName"
-                  value={formik.values.lastName}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  error={formik.touched.lastName && Boolean(formik.errors.lastName)}
-                  helperText={formik.touched.lastName && formik.errors.lastName}
+                  error={formik.touched.name && Boolean(formik.errors.name)}
+                  helperText={formik.touched.name && formik.errors.name}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -241,26 +245,93 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={t('doctors.phoneNumber')}
-                  name="phoneNumber"
-                  value={formik.values.phoneNumber}
+                  label={t('doctors.contactNumber')}
+                  name="contactNumber"
+                  value={formik.values.contactNumber}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
-                  helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
+                  error={formik.touched.contactNumber && Boolean(formik.errors.contactNumber)}
+                  helperText={formik.touched.contactNumber && formik.errors.contactNumber}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" gutterBottom>
+                  {t('doctors.address')}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label={t('doctors.address.street')}
+                  name="address.street"
+                  value={formik.values.address.street}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={t('doctors.email')}
-                  name="email"
-                  type="email"
-                  value={formik.values.email}
+                  label={t('doctors.address.city')}
+                  name="address.city"
+                  value={formik.values.address.city}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched.email && Boolean(formik.errors.email)}
-                  helperText={formik.touched.email && formik.errors.email}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('doctors.address.state')}
+                  name="address.state"
+                  value={formik.values.address.state}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('doctors.address.postalCode')}
+                  name="address.postalCode"
+                  value={formik.values.address.postalCode}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('doctors.address.country')}
+                  name="address.country"
+                  value={formik.values.address.country}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formik.values.active}
+                      onChange={(e) => formik.setFieldValue('active', e.target.checked)}
+                      name="active"
+                    />
+                  }
+                  label={t('doctors.active')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('doctors.experience')}
+                  name="experience"
+                  type="number"
+                  value={formik.values.experience}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.experience && Boolean(formik.errors.experience)}
+                  helperText={formik.touched.experience && formik.errors.experience}
                 />
               </Grid>
             </Grid>
@@ -271,7 +342,8 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
             {t('common.cancel')}
           </Button>
           <Button
-            onClick={formik.handleSubmit}
+            type="submit"
+            form="doctor-register-form"
             variant="contained"
             disabled={registerLoading}
             startIcon={registerLoading && <CircularProgress size={20} />}

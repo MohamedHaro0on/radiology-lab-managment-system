@@ -4,31 +4,56 @@ import Joi from 'joi';
 export const validate = (schema) => {
     return (req, res, next) => {
         try {
+            console.log('=== VALIDATION DEBUG ===');
+            console.log('Schema:', schema);
+            console.log('Request body:', req.body);
+            console.log('Request headers:', req.headers);
+
+            // Handle both schema formats: direct schema or object with body/params/query
+            let bodySchema = schema;
+            let paramsSchema = null;
+            let querySchema = null;
+
+            if (schema && typeof schema === 'object' && (schema.body || schema.params || schema.query)) {
+                bodySchema = schema.body;
+                paramsSchema = schema.params;
+                querySchema = schema.query;
+            }
+
             // Validate request body
-            if (schema.body) {
-                const { error } = schema.body.validate(req.body, {
+            if (bodySchema) {
+                console.log('Validating body with schema:', bodySchema.describe());
+                const { error, value } = bodySchema.validate(req.body, {
                     abortEarly: false,
                     stripUnknown: true
                 });
+                console.log('Validation result - error:', error);
+                console.log('Validation result - value:', value);
+
                 if (error) {
+                    console.log('Validation failed:', error.details);
                     throw errors.ValidationError(error.details.map(detail => detail.message).join('. '));
                 }
             }
 
             // Validate request params
-            if (schema.params) {
-                const { error } = schema.params.validate(req.params, {
+            if (paramsSchema) {
+                console.log('Validating params with schema:', paramsSchema.describe());
+                console.log('Request params:', req.params);
+                const { error } = paramsSchema.validate(req.params, {
                     abortEarly: false,
                     stripUnknown: true
                 });
+                console.log('Params validation result - error:', error);
                 if (error) {
+                    console.log('Params validation failed:', error.details);
                     throw errors.ValidationError(error.details.map(detail => detail.message).join('. '));
                 }
             }
 
             // Validate request query
-            if (schema.query) {
-                const { error } = schema.query.validate(req.query, {
+            if (querySchema) {
+                const { error } = querySchema.validate(req.query, {
                     abortEarly: false,
                     stripUnknown: true
                 });
@@ -37,8 +62,11 @@ export const validate = (schema) => {
                 }
             }
 
+            console.log('Validation passed');
+            console.log('==================');
             next();
         } catch (error) {
+            console.log('Validation error caught:', error);
             next(error);
         }
     };

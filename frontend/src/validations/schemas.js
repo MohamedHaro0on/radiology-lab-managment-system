@@ -34,12 +34,23 @@ export const twoFactorSchema = yup.object({
 
 // Patient schemas
 export const patientSchema = yup.object().shape({
-    firstName: yup.string().required(t('validation.required')),
-    lastName: yup.string().required(t('validation.required')),
-    dateOfBirth: yup.date().required(t('validation.required')),
-    gender: yup.string().required(t('validation.required')),
-    phoneNumber: yup.string().required(t('validation.required')),
-    email: yup.string().email(t('validation.email')).nullable(),
+    name: yup.string()
+        .min(2, 'Patient name must be at least 2 characters long')
+        .max(100, 'Patient name cannot exceed 100 characters')
+        .required('Patient name is required'),
+    dateOfBirth: yup.date()
+        .max(new Date(), 'Date of birth cannot be in the future')
+        .required('Date of birth is required'),
+    gender: yup.string()
+        .oneOf(['male', 'female', 'other'], 'Please select a valid gender')
+        .required('Gender is required'),
+    phoneNumber: yup.string()
+        .matches(phoneRegex, 'Please enter a valid phone number (e.g., +1234567890 or 123-456-7890)')
+        .required('Phone number is required'),
+    socialNumber: yup.string()
+        .min(5, 'Social number must be at least 5 characters long')
+        .max(20, 'Social number cannot exceed 20 characters')
+        .optional(),
     address: yup.object().shape({
         street: yup.string(),
         city: yup.string(),
@@ -47,26 +58,23 @@ export const patientSchema = yup.object().shape({
         postalCode: yup.string(),
         country: yup.string(),
     }),
-    medicalHistory: yup.array().of(yup.string()),
+    medicalHistory: yup.array().of(yup.string()).default([]),
     doctor: yup.object().shape({
-        _id: yup.string().required(t('validation.required')),
-        firstName: yup.string().required(),
-        lastName: yup.string().required(),
-        specialization: yup.string().required(),
-    }).required(t('validation.doctorRequired')),
+        _id: yup.string().required('Please select a doctor'),
+        name: yup.string().required('Doctor name is required'),
+        specialization: yup.string().required('Doctor specialization is required'),
+    }).required('Please select a referring doctor'),
 });
 
 // Doctor schemas
 export const doctorSchema = yup.object({
-    firstName: yup.string().required('First name is required'),
-    lastName: yup.string().required('Last name is required'),
+    name: yup.string().required('Name is required'),
     specialization: yup.string().required('Specialization is required'),
-    licenseNumber: yup.string().required('License number is required'),
-    phoneNumber: yup
+    licenseNumber: yup.string(), // Made optional as per previous discussions
+    contactNumber: yup
         .string()
         .matches(phoneRegex, 'Invalid phone number format')
         .required('Phone number is required'),
-    email: yup.string().email('Invalid email format').required('Email is required'),
     address: yup.object({
         street: yup.string(),
         city: yup.string(),
@@ -74,17 +82,30 @@ export const doctorSchema = yup.object({
         postalCode: yup.string(),
         country: yup.string().default('India'),
     }),
-    qualifications: yup.array().of(
-        yup.object({
-            degree: yup.string().required('Degree is required'),
-            institution: yup.string().required('Institution is required'),
-            year: yup
-                .number()
-                .min(1900, 'Year must be after 1900')
-                .max(new Date().getFullYear(), 'Year cannot be in the future')
-                .required('Year is required'),
-        })
-    ),
+    experience: yup.number().min(0, 'Experience cannot be negative'),
+    isActive: yup.boolean().default(true),
+});
+
+// Radiologist schemas
+export const radiologistSchema = yup.object({
+    name: yup.string().required('Name is required'),
+    gender: yup.string()
+        .oneOf(['male', 'female', 'other'], 'Please select a valid gender')
+        .required('Gender is required'),
+    age: yup.number()
+        .integer('Age must be a whole number')
+        .min(18, 'Age must be at least 18')
+        .max(150, 'Age cannot exceed 150')
+        .required('Age is required'),
+    phoneNumber: yup
+        .string()
+        .matches(phoneRegex, 'Invalid phone number format')
+        .required('Phone number is required'),
+    licenseId: yup.string()
+        .min(5, 'License ID must be at least 5 characters long')
+        .max(20, 'License ID cannot exceed 20 characters')
+        .required('License ID is required'),
+    isActive: yup.boolean().default(true),
 });
 
 // Appointment schemas
@@ -106,30 +127,11 @@ export const appointmentSchema = yup.object({
 
 // Stock schemas
 export const stockSchema = yup.object({
-    itemName: yup.string().required('Item name is required'),
-    category: yup
-        .string()
-        .oneOf(['xray-film', 'contrast-media', 'medical-supplies', 'equipment', 'other'], 'Invalid category')
-        .required('Category is required'),
+    name: yup.string().required('Stock name is required'),
     quantity: yup.number().min(0, 'Quantity cannot be negative').required('Quantity is required'),
-    unit: yup
-        .string()
-        .oneOf(['box', 'piece', 'pack', 'bottle', 'kit'], 'Invalid unit')
-        .required('Unit is required'),
-    minimumQuantity: yup
-        .number()
-        .min(0, 'Minimum quantity cannot be negative')
-        .required('Minimum quantity is required'),
-    supplier: yup.object({
-        name: yup.string(),
-        contactPerson: yup.string(),
-        phoneNumber: yup.string().matches(phoneRegex, 'Invalid phone number format'),
-        email: yup.string().email('Invalid email format'),
-    }),
-    expiryDate: yup.date().min(new Date(), 'Expiry date cannot be in the past'),
-    batchNumber: yup.string(),
-    location: yup.string().required('Location is required'),
-    notes: yup.string(),
+    minimumThreshold: yup.number().min(0, 'Minimum threshold cannot be negative').required('Minimum threshold is required'),
+    price: yup.number().min(0, 'Price cannot be negative').required('Price is required'),
+    validUntil: yup.date().min(new Date(), 'Valid until date must be in the future').required('Valid until date is required'),
 });
 
 // Scan schemas
@@ -168,10 +170,9 @@ export const patientHistorySchema = yup.object({
 
 // Profile update schema
 export const profileUpdateSchema = yup.object({
-    firstName: yup.string().required('First name is required'),
-    lastName: yup.string().required('Last name is required'),
+    name: yup.string().required('Name is required'),
     email: yup.string().email('Invalid email format').required('Email is required'),
-    phoneNumber: yup
+    contactNumber: yup
         .string()
         .matches(phoneRegex, 'Invalid phone number format')
         .required('Phone number is required'),

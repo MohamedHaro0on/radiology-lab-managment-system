@@ -65,6 +65,22 @@ export const register = asyncHandler(async (req, res) => {
 
 // Login user
 export const login = asyncHandler(async (req, res) => {
+    console.log('=== LOGIN REQUEST DEBUG ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('User-Agent:', req.headers['user-agent']);
+    console.log('Origin:', req.headers['origin']);
+    console.log('Referer:', req.headers['referer']);
+    console.log('Body keys:', Object.keys(req.body));
+    console.log('Email value:', req.body.email);
+    console.log('Password value:', req.body.password);
+    console.log('Email type:', typeof req.body.email);
+    console.log('Password type:', typeof req.body.password);
+    console.log('Email length:', req.body.email?.length);
+    console.log('Password length:', req.body.password?.length);
+    console.log('==========================');
+
     const { email, password } = req.body;
 
     // Find user and check password

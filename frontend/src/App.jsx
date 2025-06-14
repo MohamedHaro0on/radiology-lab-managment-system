@@ -11,17 +11,21 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { MainLayout } from './layouts/MainLayout';
-import Login from './pages/auth/Login';
+// import Login from './pages/auth/Login'; // Temporarily disabled
 import Dashboard from './pages/dashboard/Dashboard';
 import Appointments from './pages/appointments/Appointments';
 import Doctors from './pages/doctors/Doctors';
 import Patients from './pages/patients/Patients';
+import Scans from './pages/scans/Scans';
+import ScanDetails from './pages/scans/ScanDetails';
 import Stock from './pages/stock/Stock';
 import Profile from './pages/profile/Profile';
 import Settings from './pages/settings/Settings';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import TwoFactorAuthPage from './pages/auth/TwoFactorAuthPage';
+import PatientDetails from './pages/patients/PatientDetails';
+import Radiologists from './pages/radiologists/Radiologists';
+// import ForgotPassword from './pages/auth/ForgotPassword'; // Temporarily disabled
+// import ResetPassword from './pages/auth/ResetPassword'; // Temporarily disabled
+// import TwoFactorAuthPage from './pages/auth/TwoFactorAuthPage'; // Temporarily disabled
 import './i18n/config';
 import { useTranslation } from 'react-i18next';
 
@@ -31,15 +35,16 @@ import { useTranslation } from 'react-i18next';
  * @param {React.ReactNode} props.children - Child components to render
  */
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  // Temporarily bypass authentication
+  // const { isAuthenticated, loading } = useAuth();
+  
+  // if (loading) {
+  //   return null; // or a loading spinner
+  // }
 
-  if (loading) {
-    return null; // or a loading spinner
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
+  // if (!isAuthenticated) {
+  //   return <Navigate to="/login" />;
+  // }
 
   return <MainLayout>{children}</MainLayout>;
 };
@@ -51,13 +56,20 @@ const AppContent = () => {
 
   return (
     <RtlCacheProvider isRtl={isRtl}>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AuthProvider>
           <Routes>
+            {/* Temporarily disabled login routes
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/two-factor-auth" element={<TwoFactorAuthPage />} />
+            */}
             <Route
               path="/"
               element={
@@ -99,6 +111,30 @@ const AppContent = () => {
               }
             />
             <Route
+              path="/patients/:id"
+              element={
+                <ProtectedRoute>
+                  <PatientDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scans"
+              element={
+                <ProtectedRoute>
+                  <Scans />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scans/:id"
+              element={
+                <ProtectedRoute>
+                  <ScanDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/stock"
               element={
                 <ProtectedRoute>
@@ -119,6 +155,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/radiologists"
+              element={
+                <ProtectedRoute>
+                  <Radiologists />
                 </ProtectedRoute>
               }
             />

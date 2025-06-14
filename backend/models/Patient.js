@@ -11,7 +11,8 @@ const patientSchema = new mongoose.Schema({
     },
     dateOfBirth: {
         type: Date,
-        required: [true, 'Date of birth is required']
+        required: [true, 'Date of birth is required'],
+        max: [new Date(), 'Date of birth cannot be in the future']
     },
     gender: {
         type: String,
@@ -21,17 +22,49 @@ const patientSchema = new mongoose.Schema({
             message: 'Gender must be either male, female, or other'
         }
     },
-    contactNumber: {
+    phoneNumber: {
         type: String,
-        required: [true, 'Contact number is required'],
-        match: [/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Please provide a valid contact number']
+        required: [true, 'Phone number is required'],
+        match: [/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Please provide a valid phone number']
     },
-    email: {
+    socialNumber: {
         type: String,
+        required: false,
+        unique: true,
+        sparse: true,
         trim: true,
-        lowercase: true,
-        match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
+        minlength: [5, 'Social number must be at least 5 characters long'],
+        maxlength: [20, 'Social number cannot exceed 20 characters']
     },
+    doctorReferred: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Doctor',
+        required: [true, 'Doctor referral is required']
+    },
+    medicalHistory: [{
+        type: String,
+        trim: true
+    }],
+    scansHistory: [{
+        scan: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Scan',
+            required: true
+        },
+        date: {
+            type: Date,
+            default: Date.now
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'in_progress', 'completed', 'cancelled'],
+            default: 'pending'
+        },
+        notes: {
+            type: String,
+            trim: true
+        }
+    }],
     address: {
         street: {
             type: String,
@@ -55,40 +88,6 @@ const patientSchema = new mongoose.Schema({
             default: 'India'
         }
     },
-    medicalHistory: [{
-        condition: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        diagnosis: {
-            type: String,
-            trim: true
-        },
-        treatment: {
-            type: String,
-            trim: true
-        },
-        date: {
-            type: Date,
-            default: Date.now
-        },
-        notes: {
-            type: String,
-            trim: true
-        }
-    }],
-    allergies: [{
-        type: String,
-        trim: true
-    }],
-    bloodGroup: {
-        type: String,
-        enum: {
-            values: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-            message: 'Invalid blood group'
-        }
-    },
     isActive: {
         type: Boolean,
         default: true
@@ -96,7 +95,7 @@ const patientSchema = new mongoose.Schema({
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false
     },
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -108,27 +107,27 @@ const patientSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-// Indexes (only for non-unique fields)
-patientSchema.index({ name: 1 });
-patientSchema.index({ specialization: 1 });
-patientSchema.index({ isActive: 1 });
-patientSchema.index({ contactNumber: 1, isActive: 1 });
-patientSchema.index({ email: 1, isActive: 1 });
-
-// Virtual for patient's age
+// Virtual for age calculation
 patientSchema.virtual('age').get(function () {
     if (!this.dateOfBirth) return null;
     const today = new Date();
     const birthDate = new Date(this.dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         age--;
     }
-
     return age;
 });
+
+// Indexes (only for non-unique fields)
+patientSchema.index({ name: 1 });
+patientSchema.index({ gender: 1 });
+patientSchema.index({ isActive: 1 });
+patientSchema.index({ phoneNumber: 1, isActive: 1 });
+patientSchema.index({ socialNumber: 1, isActive: 1 });
+patientSchema.index({ doctorReferred: 1 });
+patientSchema.index({ dateOfBirth: 1 });
 
 // Virtual for full address
 patientSchema.virtual('fullAddress').get(function () {
@@ -143,62 +142,44 @@ patientSchema.virtual('fullAddress').get(function () {
     return parts.join(', ');
 });
 
-// Method to add medical history
-patientSchema.methods.addMedicalHistory = async function (history) {
-    if (!history.condition) {
-        throw errors.BadRequest('Medical condition is required');
+// Method to add scan to history
+patientSchema.methods.addScanToHistory = async function (scanId, notes = '') {
+    const existingScan = this.scansHistory.find(scan => scan.scan.toString() === scanId.toString());
+    if (existingScan) {
+        throw errors.BadRequest('Scan already exists in patient history');
     }
 
-    this.medicalHistory.push({
-        ...history,
-        date: history.date || Date.now()
+    this.scansHistory.push({
+        scan: scanId,
+        date: new Date(),
+        status: 'pending',
+        notes
     });
 
     await this.save();
     return this;
 };
 
-// Method to update medical history
-patientSchema.methods.updateMedicalHistory = async function (historyId, updates) {
-    const history = this.medicalHistory.id(historyId);
-    if (!history) {
-        throw errors.NotFound('Medical history entry not found');
+// Method to update scan status in history
+patientSchema.methods.updateScanStatus = async function (scanId, status, notes = '') {
+    const scanHistory = this.scansHistory.find(scan => scan.scan.toString() === scanId.toString());
+    if (!scanHistory) {
+        throw errors.NotFound('Scan not found in patient history');
     }
 
-    Object.assign(history, updates);
+    scanHistory.status = status;
+    if (notes) {
+        scanHistory.notes = notes;
+    }
+    scanHistory.date = new Date();
+
     await this.save();
     return this;
 };
 
-// Method to remove medical history
-patientSchema.methods.removeMedicalHistory = async function (historyId) {
-    const history = this.medicalHistory.id(historyId);
-    if (!history) {
-        throw errors.NotFound('Medical history entry not found');
-    }
-
-    history.remove();
-    await this.save();
-    return this;
-};
-
-// Method to add allergy
-patientSchema.methods.addAllergy = async function (allergy) {
-    if (!allergy) {
-        throw errors.BadRequest('Allergy is required');
-    }
-
-    if (!this.allergies.includes(allergy)) {
-        this.allergies.push(allergy);
-        await this.save();
-    }
-
-    return this;
-};
-
-// Method to remove allergy
-patientSchema.methods.removeAllergy = async function (allergy) {
-    this.allergies = this.allergies.filter(a => a !== allergy);
+// Method to remove scan from history
+patientSchema.methods.removeScanFromHistory = async function (scanId) {
+    this.scansHistory = this.scansHistory.filter(scan => scan.scan.toString() !== scanId.toString());
     await this.save();
     return this;
 };
@@ -208,13 +189,21 @@ patientSchema.statics.findActive = function () {
     return this.find({ isActive: true });
 };
 
+// Static method to find patients by doctor
+patientSchema.statics.findByDoctor = function (doctorId) {
+    return this.find({
+        doctorReferred: doctorId,
+        isActive: true
+    });
+};
+
 // Static method to search patients
 patientSchema.statics.search = function (query) {
     return this.find({
         $or: [
             { name: { $regex: query, $options: 'i' } },
-            { contactNumber: { $regex: query, $options: 'i' } },
-            { email: { $regex: query, $options: 'i' } }
+            { phoneNumber: { $regex: query, $options: 'i' } },
+            { socialNumber: { $regex: query, $options: 'i' } }
         ],
         isActive: true
     });

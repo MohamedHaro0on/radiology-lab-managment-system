@@ -1,56 +1,37 @@
 import express from 'express';
-import { validate } from '../middleware/validate.js';
-import { auth } from '../middleware/auth.js';
-import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js';
-import { patientValidation } from '../validations/patientValidation.js';
+// import { auth } from '../middleware/auth.js'; // Temporarily disabled
+import {
+    validatePatientBody,
+    validatePatientParams,
+    validatePatientQuery,
+    createPatientSchema,
+    updatePatientSchema
+} from '../validations/patientValidation.js';
+import { paginate } from '../middleware/pagination.js';
 import * as patientController from '../controllers/patientController.js';
+import Joi from 'joi';
 
 const router = express.Router();
 
-// Apply auth middleware to all routes
-router.use(auth);
-
-// Apply auto privilege checking middleware
-router.use(autoCheckPrivileges);
+// Apply authentication middleware to all routes
+// router.use(auth);
 
 // Create new patient
-router.post(
-    '/',
-    checkPrivilege('patients', 'create'),
-    validate(patientValidation.createPatient),
-    patientController.createPatient
-);
+router.post('/', validatePatientBody(createPatientSchema), patientController.createPatient);
 
-// Get all patients
-router.get(
-    '/',
-    checkPrivilege('patients', 'view'),
-    validate(patientValidation.getAllPatients),
-    patientController.getAllPatients
-);
+// Get all patients with pagination and filtering
+router.get('/', paginate({
+    gender: Joi.string().valid('male', 'female', 'other').optional(),
+    doctorReferred: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional()
+}), patientController.getAllPatients);
 
 // Get single patient
-router.get(
-    '/:id',
-    checkPrivilege('patients', 'view'),
-    validate(patientValidation.getPatient),
-    patientController.getPatient
-);
+router.get('/:id', validatePatientParams, patientController.getPatient);
 
 // Update patient
-router.patch(
-    '/:id',
-    checkPrivilege('patients', 'update'),
-    validate(patientValidation.updatePatient),
-    patientController.updatePatient
-);
+router.put('/:id', validatePatientParams, validatePatientBody(updatePatientSchema), patientController.updatePatient);
 
 // Delete patient
-router.delete(
-    '/:id',
-    checkPrivilege('patients', 'delete'),
-    validate(patientValidation.deletePatient),
-    patientController.deletePatient
-);
+router.delete('/:id', validatePatientParams, patientController.deletePatient);
 
 export default router; 

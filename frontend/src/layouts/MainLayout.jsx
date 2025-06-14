@@ -38,6 +38,7 @@ import {
   ChevronRight as ChevronRightIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  Scanner as ScannerIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -54,7 +55,9 @@ const menuItems = [
   { text: 'navigation.dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'navigation.appointments', icon: <CalendarIcon />, path: '/appointments' },
   { text: 'navigation.doctors', icon: <PeopleIcon />, path: '/doctors' },
+  { text: 'navigation.radiologists', icon: <PeopleIcon />, path: '/radiologists' },
   { text: 'navigation.patients', icon: <PeopleIcon />, path: '/patients' },
+  { text: 'navigation.scans', icon: <ScannerIcon />, path: '/scans' },
   { text: 'navigation.stock', icon: <InventoryIcon />, path: '/stock' },
   { text: 'navigation.profile', icon: <AccountCircleIcon />, path: '/profile' },
   { text: 'navigation.settings', icon: <SettingsIcon />, path: '/settings' },
@@ -109,11 +112,8 @@ export const MainLayout = ({ children }) => {
       <CssBaseline />
       <AppBar
         position="fixed"
-        display="flex"
-        justifyContent={isRtl ? 'flex-start' : 'flex-start'}
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          // ...(isRtl ? { right: { sm: `${drawerWidth}px` } } : { left: { sm: `${drawerWidth}px` } }),
           direction: isRtl ? 'rtl' : 'ltr',
           borderRadius: 0,
           boxShadow: 'none',
@@ -128,7 +128,6 @@ export const MainLayout = ({ children }) => {
           <IconButton
             color="inherit"
             aria-label="open drawer"
-            // edge={isRtl ? 'end' : 'start'}
             onClick={handleDrawerToggle}
             sx={{
               mr: isRtl ? 0 : 2,
@@ -230,8 +229,6 @@ export const MainLayout = ({ children }) => {
               width: drawerWidth,
               position: 'fixed',
               height: '100%',
-              // [isRtl ? 'right' : 'left']: 0,
-              // [isRtl ? 'left' : 'right']: 'auto',
               border: 'none',
               borderRight: isRtl ? 'none' : '1px solid rgba(0, 0, 0, 0.12)',
               borderLeft: isRtl ? '1px solid rgba(0, 0, 0, 0.12)' : 'none',
@@ -318,13 +315,10 @@ export const MainLayout = ({ children }) => {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          // backgroundColor: 'red',
           mt: '64px',
           direction: isRtl ? 'rtl' : 'ltr',
           textAlign: isRtl ? 'right' : 'left',
-          // ...(isRtl ? { mr: { sm: `${drawerWidth}px` } } : { ml: { sm: `${drawerWidth}px` } }),
           minHeight: 'calc(100vh - 64px)',
-          // backgroundColor: 'background.default',
           transition: muiTheme.transitions.create(['width', 'margin'], {
             easing: muiTheme.transitions.easing.sharp,
             duration: muiTheme.transitions.duration.leavingScreen,

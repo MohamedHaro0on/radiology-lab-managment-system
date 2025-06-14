@@ -132,5 +132,16 @@ export const patientHistoryValidation = {
             'any.required': 'Attachment ID is required',
             'string.pattern.base': 'Invalid attachment ID format'
         })
+    }),
+
+    // Get all patient histories
+    getAllPatientHistories: Joi.object({
+        patientId: objectId.optional(),
+        search: Joi.string().optional(),
+        scanType: Joi.string().optional(),
+        page: Joi.number().optional(),
+        limit: Joi.number().optional(),
+        sortBy: Joi.string().optional(),
+        sortOrder: Joi.string().optional()
     })
 }; 

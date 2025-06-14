@@ -40,6 +40,15 @@ const Login = () => {
         setLoading(true);
         setError('');
 
+        // Debug logging
+        console.log('=== FRONTEND LOGIN DEBUG ===');
+        console.log('Form values:', values);
+        console.log('Email:', values.email, 'Type:', typeof values.email);
+        console.log('Password:', values.password, 'Type:', typeof values.password);
+        console.log('Email length:', values.email?.length);
+        console.log('Password length:', values.password?.length);
+        console.log('==========================');
+
         const response = await authAPI.login(values);
         
         // Check if 2FA is required

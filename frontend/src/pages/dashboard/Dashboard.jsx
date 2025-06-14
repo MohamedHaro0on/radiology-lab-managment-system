@@ -1,142 +1,429 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
-  Box,
+  Container,
   Grid,
+  Paper,
+  Typography,
+  Box,
   Card,
   CardContent,
-  Typography,
   CircularProgress,
+  Alert,
+  Chip,
+  Avatar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Divider,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
-  People as PeopleIcon,
-  CalendarMonth as CalendarIcon,
-  Description as DescriptionIcon,
-  Inventory as InventoryIcon,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+} from 'recharts';
+import {
+  TrendingUp,
+  People,
+  AttachMoney,
+  Schedule,
+  Star,
+  LocalHospital,
 } from '@mui/icons-material';
-import { authAPI } from '../../services/api';
-import { toast } from 'react-toastify';
+import { dashboardAPI } from '../../services/api';
+import { useTranslation } from 'react-i18next';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const Dashboard = () => {
   const { t } = useTranslation();
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalPatients: 0,
-    todayAppointments: 0,
-    pendingReports: 0,
-    lowStockItems: 0,
-  });
+  const [error, setError] = useState('');
+  const [period, setPeriod] = useState('week');
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [patients, appointments, reports, stock] = await Promise.all([
-          authAPI.getPatients(),
-          authAPI.getAppointments(),
-          authAPI.getDoctors(),
-          authAPI.getStockItems(),
-        ]);
+    fetchAnalytics();
+  }, []);
 
-        const today = new Date().toISOString().split('T')[0];
-        const todayAppointments = appointments.filter(
-          (apt) => apt.date.split('T')[0] === today
-        );
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const response = await dashboardAPI.getAnalytics();
+      setAnalytics(response.data.data);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || t('dashboard.fetchError'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const lowStockItems = stock.filter(
-          (item) => item.quantity <= item.minQuantity
-        );
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
 
-        setStats({
-          totalPatients: patients.length,
-          todayAppointments: todayAppointments.length,
-          pendingReports: reports.filter((r) => r.status === 'draft').length,
-          lowStockItems: lowStockItems.length,
-        });
-      } catch (error) {
-        toast.error(t('dashboard.fetchError'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [t]);
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString();
+  };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="xl">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      </Container>
     );
   }
 
-  const statCards = [
-    {
-      title: t('dashboard.totalPatients'),
-      value: stats.totalPatients,
-      icon: <PeopleIcon sx={{ fontSize: 40 }} />,
-      color: '#1976d2',
-    },
-    {
-      title: t('dashboard.todayAppointments'),
-      value: stats.todayAppointments,
-      icon: <CalendarIcon sx={{ fontSize: 40 }} />,
-      color: '#2e7d32',
-    },
-    {
-      title: t('dashboard.pendingReports'),
-      value: stats.pendingReports,
-      icon: <DescriptionIcon sx={{ fontSize: 40 }} />,
-      color: '#ed6c02',
-    },
-    {
-      title: t('dashboard.lowStock'),
-      value: stats.lowStockItems,
-      icon: <InventoryIcon sx={{ fontSize: 40 }} />,
-      color: '#d32f2f',
-    },
+  if (error) {
+    return (
+      <Container maxWidth="xl">
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <Container maxWidth="xl">
+        <Alert severity="info" sx={{ mt: 2 }}>
+          {t('common.noData')}
+        </Alert>
+      </Container>
+    );
+  }
+
+  // Prepare data for charts
+  const monthlyIncomeData = analytics.monthlyIncomeTrend?.map(item => ({
+    month: `${item._id.year}-${item._id.month.toString().padStart(2, '0')}`,
+    income: item.totalIncome,
+    appointments: item.appointmentCount,
+  })) || [];
+
+  const scanData = analytics.mostRequestedScans?.map(scan => ({
+    name: scan.categoryName,
+    count: scan.count,
+    revenue: scan.totalRevenue,
+  })) || [];
+
+  const appointmentStatusData = [
+    { name: t('appointments.status.scheduled'), value: analytics.recentAppointments?.filter(apt => apt.status === 'scheduled').length || 0 },
+    { name: t('appointments.status.completed'), value: analytics.recentAppointments?.filter(apt => apt.status === 'completed').length || 0 },
+    { name: t('appointments.status.cancelled'), value: analytics.recentAppointments?.filter(apt => apt.status === 'cancelled').length || 0 },
   ];
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        {t('dashboard.welcome')}
+    <Container maxWidth="xl" sx={{ mt: 3, mb: 3 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        {t('navigation.dashboard')}
       </Typography>
-      <Grid container spacing={3}>
-        {statCards.map((card, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                },
-              }}
-            >
-              <CardContent>
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  mb={2}
-                >
-                  <Typography variant="h6" color="text.secondary">
-                    {card.title}
+
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <AttachMoney color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.dailyIncome')}
                   </Typography>
-                  <Box sx={{ color: card.color }}>{card.icon}</Box>
+                  <Typography variant="h5" component="div">
+                    {formatCurrency(analytics.daily.income)}
+                  </Typography>
                 </Box>
-                <Typography variant="h4" component="div">
-                  {card.value}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <Schedule color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.dailyAppointments')}
+                  </Typography>
+                  <Typography variant="h5" component="div">
+                    {analytics.daily.appointments}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <TrendingUp color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.weeklyIncome')}
+                  </Typography>
+                  <Typography variant="h5" component="div">
+                    {formatCurrency(analytics.weekly.income)}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <People color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.weeklyAppointments')}
+                  </Typography>
+                  <Typography variant="h5" component="div">
+                    {analytics.weekly.appointments}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
-    </Box>
+
+      {/* Charts Row */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Monthly Income Trend */}
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('dashboard.monthlyIncomeTrend')}
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={monthlyIncomeData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="income"
+                  stroke="#8884d8"
+                  fill="#8884d8"
+                  fillOpacity={0.3}
+                  name={t('dashboard.totalIncome')}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Most Requested Scans */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('dashboard.mostRequestedScans')}
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={scanData} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={80} />
+                <Tooltip formatter={(value) => [value, t('common.count')]} />
+                <Bar dataKey="count" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Second Row */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Appointment Status Distribution */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('dashboard.appointmentStatus')}
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={appointmentStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {appointmentStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Top Rated Doctors */}
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('dashboard.topRatedDoctors')}
+            </Typography>
+            <List>
+              {analytics.topRatedDoctors?.map((doctor, index) => {
+                const doctorName = doctor.name || t('common.unknown');
+                return (
+                  <React.Fragment key={doctor._id}>
+                    <ListItem>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: COLORS[index % COLORS.length] }}>
+                          {doctorName.charAt(0) || 'D'}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={doctorName}
+                        secondary={
+                          <React.Fragment>
+                            <Typography variant="body2" color="textSecondary" component="span" display="block">
+                              {doctor.specialization}
+                            </Typography>
+                            <Typography variant="body2" component="span" display="block" sx={{ mt: 1 }}>
+                              <Star sx={{ color: '#FFD700', fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                              {t('common.rating')}: {(doctor.rating * 100).toFixed(1)}%
+                            </Typography>
+                            <Chip
+                              size="small"
+                              label={`${doctor.completedAppointments}/${doctor.appointmentCount} ${t('appointments.status.completed')}`}
+                              color="primary"
+                              variant="outlined"
+                              sx={{ mt: 0.5 }}
+                            />
+                          </React.Fragment>
+                        }
+                      />
+                    </ListItem>
+                    {index < analytics.topRatedDoctors.length - 1 && <Divider />}
+                  </React.Fragment>
+                );
+              })}
+            </List>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Total Statistics */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.totalIncome')}
+                  </Typography>
+                  <Typography variant="h4" component="div" color="primary">
+                    {formatCurrency(analytics.total.income)}
+                  </Typography>
+                </Box>
+                <AttachMoney color="primary" sx={{ fontSize: 60 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.totalAppointments')}
+                  </Typography>
+                  <Typography variant="h4" component="div" color="primary">
+                    {analytics.total.appointments}
+                  </Typography>
+                </Box>
+                <People color="primary" sx={{ fontSize: 60 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Recent Appointments */}
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          {t('dashboard.recentAppointments')}
+        </Typography>
+        <List>
+          {analytics.recentAppointments?.map((appointment, index) => (
+            <React.Fragment key={appointment._id}>
+              <ListItem>
+                <ListItemAvatar>
+                  <Avatar sx={{ bgcolor: COLORS[index % COLORS.length] }}>
+                    <LocalHospital />
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={appointment.patient?.name || t('patients.title')}
+                  secondary={
+                    <React.Fragment>
+                      <Typography variant="body2" color="textSecondary" component="span" display="block">
+                        {t('appointments.doctor')}: {appointment.doctor?.name || t('common.unknown')} ({appointment.doctor?.specialization})
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" component="span" display="block">
+                        {t('navigation.scans')}: {appointment.scan?.category?.name} - {formatCurrency(appointment.scan?.category?.price)}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" component="span" display="block" sx={{ mt: 1 }}>
+                        <Chip
+                          size="small"
+                          label={t(`appointments.status.${appointment.status}`)}
+                          color={
+                            appointment.status === 'completed' ? 'success' :
+                            appointment.status === 'scheduled' ? 'primary' : 'error'
+                          }
+                          sx={{ mr: 1 }}
+                        />
+                        {formatDate(appointment.appointmentDate)}
+                      </Typography>
+                    </React.Fragment>
+                  }
+                />
+              </ListItem>
+              {index < analytics.recentAppointments.length - 1 && <Divider />}
+            </React.Fragment>
+          ))}
+        </List>
+      </Paper>
+    </Container>
   );
 };
 

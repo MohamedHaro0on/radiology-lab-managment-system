@@ -35,6 +35,11 @@ export const MODULES = {
         description: 'Stock management',
         operations: ['view', 'create', 'update', 'delete']
     },
+    expenses: {
+        name: 'expenses',
+        description: 'Expense management',
+        operations: ['view', 'create', 'update', 'delete']
+    },
     patientHistory: {
         name: 'patientHistory',
         description: 'Patient history management',

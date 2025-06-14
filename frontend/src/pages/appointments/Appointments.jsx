@@ -1,470 +1,769 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  CircularProgress,
-  Fab,
-  Chip,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
+  Container, Typography, Button, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, CircularProgress, IconButton, Snackbar, Alert, Box, Chip,
+  FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent,
+  Tabs, Tab, Pagination, InputAdornment, Tooltip, Fab
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Event as EventIcon,
-  Person as PersonIcon,
-  LocalHospital as DoctorIcon,
+  Add, Edit, Delete, Search, FilterList, CalendarMonth, 
+  Schedule, Refresh,
+  CheckCircle, Cancel, Pending, Warning
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
-import { authAPI } from '../../services/api';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
-import { format, parseISO } from 'date-fns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { useNavigate } from 'react-router-dom';
-// eslint-disable-next-line no-unused-vars
-import NoContent from '../../components/common/NoContent';
+import { appointmentAPI, patientAPI, doctorAPI, radiologistAPI } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
-/**
- * Appointments component for managing appointments
- */
-const Appointments = () => {
+// Status color mapping
+const statusColors = {
+  scheduled: 'primary',
+  confirmed: 'info',
+  'in-progress': 'warning',
+  'inProgress': 'warning',
+  completed: 'success',
+  cancelled: 'error',
+  'no-show': 'default',
+  pending: 'warning'
+};
+
+const statusIcons = {
+  scheduled: <Schedule />,
+  confirmed: <Pending />,
+  'in-progress': <Warning />,
+  'inProgress': <Warning />,
+  completed: <CheckCircle />,
+  cancelled: <Cancel />,
+  'no-show': <Cancel />,
+  pending: <Pending />
+};
+
+// Advanced Appointment Form Component
+function AppointmentForm({ open, onClose, onSubmit, initialData, patients, doctors, radiologists }) {
+  const { t } = useTranslation();
+  const [form, setForm] = useState(initialData || {
+    radiologistId: '',
+    patientId: '',
+    scans: [{ scan: '', quantity: 1 }],
+    referredBy: '',
+    scheduledAt: '',
+    notes: '',
+    priority: 'routine'
+  });
+
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    setForm(initialData || {
+      radiologistId: '',
+      patientId: '',
+      scans: [{ scan: '', quantity: 1 }],
+      referredBy: '',
+      scheduledAt: '',
+      notes: '',
+      priority: 'routine'
+    });
+    setErrors({});
+  }, [initialData, open]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleScanChange = (index, field, value) => {
+    const newScans = [...form.scans];
+    newScans[index] = { ...newScans[index], [field]: value };
+    setForm(prev => ({ ...prev, scans: newScans }));
+  };
+
+  const addScan = () => {
+    setForm(prev => ({
+      ...prev,
+      scans: [...prev.scans, { scan: '', quantity: 1 }]
+    }));
+  };
+
+  const removeScan = (index) => {
+    if (form.scans.length > 1) {
+      setForm(prev => ({
+        ...prev,
+        scans: prev.scans.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!form.radiologistId) newErrors.radiologistId = t('appointments.radiologistRequired');
+    if (!form.patientId) newErrors.patientId = t('appointments.patientRequired');
+    if (!form.referredBy) newErrors.referredBy = t('appointments.referredByRequired');
+    if (!form.scheduledAt) newErrors.scheduledAt = t('appointments.dateRequired');
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      onSubmit(form);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        {initialData ? t('appointments.editTitle') : t('appointments.addTitle')}
+      </DialogTitle>
+      <DialogContent>
+        <form onSubmit={handleSubmit} id="appointment-form">
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.patientId}>
+                <InputLabel>{t('appointments.patient')}</InputLabel>
+                <Select
+                  name="patientId"
+                  value={form.patientId}
+                  onChange={handleChange}
+                  label={t('appointments.patient')}
+                >
+                  {patients.map(p => (
+                    <MenuItem key={p._id} value={p._id}>
+                      {p.name} - {p.phoneNumber}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.referredBy}>
+                <InputLabel>{t('appointments.referredBy')}</InputLabel>
+                <Select
+                  name="referredBy"
+                  value={form.referredBy}
+                  onChange={handleChange}
+                  label={t('appointments.referredBy')}
+                >
+                  {doctors.map(d => (
+                    <MenuItem key={d._id} value={d._id}>
+                      {d.name} ({d.specialization})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.radiologistId}>
+                <InputLabel>{t('appointments.radiologist')}</InputLabel>
+                <Select
+                  name="radiologistId"
+                  value={form.radiologistId}
+                  onChange={handleChange}
+                  label={t('appointments.radiologist')}
+                >
+                  {radiologists.map(r => (
+                    <MenuItem key={r._id} value={r._id}>
+                      {r.name} ({r.licenseId})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>{t('appointments.priorityLabel')}</InputLabel>
+                <Select
+                  name="priority"
+                  value={form.priority}
+                  onChange={handleChange}
+                  label={t('appointments.priorityLabel')}
+                >
+                  <MenuItem value="routine">{t('appointments.priority.routine')}</MenuItem>
+                  <MenuItem value="urgent">{t('appointments.priority.urgent')}</MenuItem>
+                  <MenuItem value="emergency">{t('appointments.priority.emergency')}</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label={t('appointments.dateTime')}
+                  value={form.scheduledAt ? new Date(form.scheduledAt) : null}
+                  onChange={(newValue) => {
+                    setForm(prev => ({ ...prev, scheduledAt: newValue?.toISOString() }));
+                  }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.scheduledAt
+                    }
+                  }}
+                />
+              </LocalizationProvider>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>{t('navigation.scans')}</Typography>
+              {form.scans.map((scan, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <TextField
+                    select
+                    label={t('appointments.scanType')}
+                    value={scan.scan}
+                    onChange={(e) => handleScanChange(index, 'scan', e.target.value)}
+                    sx={{ flexGrow: 1 }}
+                  >
+                    <MenuItem value="xray">{t('appointments.types.xray')}</MenuItem>
+                    <MenuItem value="mri">{t('appointments.types.mri')}</MenuItem>
+                    <MenuItem value="ct">{t('appointments.types.ct')}</MenuItem>
+                    <MenuItem value="ultrasound">{t('appointments.types.ultrasound')}</MenuItem>
+                  </TextField>
+                  <TextField
+                    type="number"
+                    label={t('common.quantity')}
+                    value={scan.quantity}
+                    onChange={(e) => handleScanChange(index, 'quantity', parseInt(e.target.value))}
+                    sx={{ width: 120 }}
+                    inputProps={{ min: 1 }}
+                  />
+                  {form.scans.length > 1 && (
+                    <IconButton onClick={() => removeScan(index)} color="error">
+                      <Delete />
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+              <Button onClick={addScan} startIcon={<Add />}>
+                {t('appointments.addScan')}
+              </Button>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label={t('common.notes')}
+                name="notes"
+                value={form.notes}
+                onChange={handleChange}
+                fullWidth
+                multiline
+                rows={3}
+              />
+            </Grid>
+          </Grid>
+        </form>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
+        <Button type="submit" form="appointment-form" variant="contained">
+          {initialData ? t('common.update') : t('common.create')}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+// Main Appointments Component
+export default function Appointments() {
   const { t } = useTranslation();
   const [appointments, setAppointments] = useState([]);
-  const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [radiologists, setRadiologists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [openConfirm, setOpenConfirm] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [formData, setFormData] = useState({
+  const [formOpen, setFormOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Advanced filtering and pagination
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    startDate: null,
+    endDate: null,
     patientId: '',
-    doctorId: '',
-    date: null,
-    time: null,
-    type: '',
-    status: 'scheduled',
-    notes: '',
+    doctorId: ''
   });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0
+  });
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'calendar'
+
+  // Fetch all data
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Only include non-empty filters
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        ...(filters.search ? { search: filters.search } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.patientId ? { patientId: filters.patientId } : {}),
+        ...(filters.doctorId ? { doctorId: filters.doctorId } : {}),
+        ...(filters.startDate ? { startDate: filters.startDate } : {}),
+        ...(filters.endDate ? { endDate: filters.endDate } : {}),
+      };
+      const [aptRes, patRes, docRes, radRes] = await Promise.all([
+        appointmentAPI.getAll(params),
+        patientAPI.getAll(),
+        doctorAPI.getAll(),
+        radiologistAPI.getAll()
+      ]);
+      setAppointments(aptRes.data.data?.appointments || aptRes.data.appointments || aptRes.data || []);
+      setPatients(patRes.data.data?.patients || patRes.data.patients || patRes.data || []);
+      setDoctors(docRes.data.data?.doctors || docRes.data.doctors || docRes.data || []);
+      setRadiologists(radRes.data.data?.radiologists || radRes.data.radiologists || radRes.data || []);
+      if (aptRes.data.data?.pagination || aptRes.data.pagination) {
+        const paginationData = aptRes.data.data?.pagination || aptRes.data.pagination;
+        setPagination(prev => ({ ...prev, total: paginationData.total }));
+      }
+    } catch (err) {
+      console.error('Fetch data error:', err);
+      setSnackbar({ open: true, message: t('appointments.fetchError'), severity: 'error' });
+    }
+    setLoading(false);
+  }, [pagination.page, pagination.limit, filters]);
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [/* Add dependencies if needed, or keep empty if desired */]);
+  }, [pagination.page, pagination.limit, filters, fetchData]);
 
-  const fetchData = async () => {
+  // Create or update appointment
+  const handleFormSubmit = async (form) => {
     try {
-      setLoading(true);
-      const [appointmentsRes, doctorsRes, patientsRes] = await Promise.all([
-        authAPI.getAppointments(),
-        authAPI.getDoctors(),
-        authAPI.getPatients(),
-      ]);
-      if (appointmentsRes.data && appointmentsRes.data.appointments) {
-        setAppointments(appointmentsRes.data.appointments);
+      if (editData) {
+        await appointmentAPI.update(editData._id, form);
+        setSnackbar({ open: true, message: t('appointments.updateSuccess'), severity: 'success' });
       } else {
-        setAppointments([]); // Ensure appointments is always an array
+        await appointmentAPI.create(form);
+        setSnackbar({ open: true, message: t('appointments.createSuccess'), severity: 'success' });
       }
-      if (doctorsRes.data && doctorsRes.data.doctors) {
-        setDoctors(doctorsRes.data.doctors);
-      } else {
-        setDoctors([]); // Ensure doctors is always an array
-      }
-      if (patientsRes.data && patientsRes.data.patients) {
-        setPatients(patientsRes.data.patients);
-      } else {
-        setPatients([]); // Ensure patients is always an array
-      }
-    } catch (error) {
-      // Don't show error toast for session expiration as it's handled by the API service
-      if (error.isSessionExpired) {
-        return;
-      }
-      // Use the error message from the API error object
-      const errorMessage = error.isApiError ? error.message : t('appointments.fetchError');
-      toast.error(errorMessage);
-      console.error('Error fetching data:', error);
-      // Clear the data arrays since we couldn't fetch them
-      setAppointments([]);
-      setDoctors([]);
-      setPatients([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOpenDialog = (appointment = null) => {
-    if (appointment) {
-      setFormData({
-        patientId: appointment.patientId,
-        doctorId: appointment.doctorId,
-        date: parseISO(appointment.date),
-        time: parseISO(appointment.time),
-        type: appointment.type,
-        status: appointment.status,
-        notes: appointment.notes,
-      });
-      setSelectedAppointment(appointment);
-    } else {
-      setFormData({
-        patientId: '',
-        doctorId: '',
-        date: null,
-        time: null,
-        type: '',
-        status: 'scheduled',
-        notes: '',
-      });
-      setSelectedAppointment(null);
-    }
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setSelectedAppointment(null);
-    setFormData({
-      patientId: '',
-      doctorId: '',
-      date: null,
-      time: null,
-      type: '',
-      status: 'scheduled',
-      notes: '',
-    });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleDateChange = (date) => {
-    setFormData((prev) => ({
-      ...prev,
-      date,
-    }));
-  };
-
-  const handleTimeChange = (time) => {
-    setFormData((prev) => ({
-      ...prev,
-      time,
-    }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const appointmentData = {
-        ...formData,
-        date: format(formData.date, 'yyyy-MM-dd'),
-        time: format(formData.time, 'HH:mm:ss'),
-      };
-
-      if (selectedAppointment) {
-        await authAPI.updateAppointment(selectedAppointment.id, appointmentData);
-        toast.success(t('appointments.updateSuccess'));
-      } else {
-        await authAPI.createAppointment(appointmentData);
-        toast.success(t('appointments.createSuccess'));
-      }
-      handleCloseDialog();
+      setFormOpen(false);
+      setEditData(null);
       fetchData();
-    } catch (error) {
-      // Don't show error toast for session expiration as it's handled by the API service
-      if (error.isSessionExpired) {
-        return;
-      }
-      // Use the error message from the API error object
-      const errorMessage = error.isApiError ? error.message : t('appointments.saveError');
-      toast.error(errorMessage);
-      console.error('Error saving appointment:', error);
+    } catch (err) {
+      setSnackbar({ 
+        open: true, 
+        message: err.response?.data?.message || t('appointments.saveError'), 
+        severity: 'error' 
+      });
     }
   };
 
-  const handleDelete = async (appointment) => {
-    setSelectedAppointment(appointment);
-    setOpenConfirm(true);
-  };
-
-  const confirmDelete = async () => {
+  // Delete appointment
+  const handleDelete = async () => {
     try {
-      await authAPI.deleteAppointment(selectedAppointment.id);
-      toast.success(t('appointments.deleteSuccess'));
+      await appointmentAPI.delete(deleteId);
+      setSnackbar({ open: true, message: t('appointments.deleteSuccess'), severity: 'success' });
+      setDeleteId(null);
       fetchData();
-    } catch (error) {
-      // Don't show error toast for session expiration as it's handled by the API service
-      if (error.isSessionExpired) {
-        return;
-      }
-      // Use the error message from the API error object
-      const errorMessage = error.isApiError ? error.message : t('appointments.deleteError');
-      toast.error(errorMessage);
-      console.error('Error deleting appointment:', error);
-    } finally {
-      setOpenConfirm(false);
-      setSelectedAppointment(null);
+    } catch (err) {
+      setSnackbar({ 
+        open: true, 
+        message: err.response?.data?.message || t('appointments.deleteError'), 
+        severity: 'error' 
+      });
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'scheduled':
-        return 'primary';
-      case 'completed':
-        return 'success';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
+  // Filter handlers
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const getPatientName = (patientId) => {
-    const patient = patients.find((p) => p.id === patientId);
-    return patient ? patient.name : '';
-  };
+  // Statistics
+  const stats = useMemo(() => {
+    const total = appointments.length;
+    const completed = appointments.filter(apt => apt.status === 'completed').length;
+    const pending = appointments.filter(apt => ['scheduled', 'confirmed'].includes(apt.status)).length;
+    const cancelled = appointments.filter(apt => apt.status === 'cancelled').length;
+    
+    return { total, completed, pending, cancelled };
+  }, [appointments]);
 
-  const getDoctorName = (doctorId) => {
-    const doctor = doctors.find((d) => d.id === doctorId);
-    return doctor ? doctor.name : '';
-  };
-
-  if (loading) {
+  if (loading && appointments.length === 0) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (appointments.length === 0) {
-    return (
-      <NoContent message={t('appointments.noAppointmentsFound')} />
+      <Container>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      </Container>
     );
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          {t('appointments.title')}
-        </Typography>
-        <Fab
-          color="primary"
-          aria-label="add"
-          onClick={() => handleOpenDialog()}
-          size="medium"
-        >
-          <AddIcon />
-        </Fab>
+    <Container maxWidth="xl">
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">{t('appointments.title')}</Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchData}
+          >
+            {t('common.refresh')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => { setFormOpen(true); setEditData(null); }}
+          >
+            {t('appointments.addTitle')}
+          </Button>
+        </Box>
       </Box>
 
-      <Grid container spacing={3}>
-        {appointments.map((appointment) => (
-          <Grid item xs={12} sm={6} md={4} key={appointment.id}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <EventIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-                  <Box>
-                    <Typography variant="h6" component="h2">
-                      {format(parseISO(appointment.date), 'dd/MM/yyyy')}
-                    </Typography>
-                    <Typography color="textSecondary">
-                      {format(parseISO(appointment.time), 'HH:mm')}
-                    </Typography>
-                  </Box>
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Schedule color="primary" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>{t('common.total')}</Typography>
+                  <Typography variant="h4">{stats.total}</Typography>
                 </Box>
-                <Box mb={2}>
-                  <Chip
-                    label={t(`appointments.status.${appointment.status}`)}
-                    color={getStatusColor(appointment.status)}
-                    size="small"
-                  />
-                </Box>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <PersonIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="textSecondary">
-                    {getPatientName(appointment.patientId)}
-                  </Typography>
-                </Box>
-                <Box display="flex" alignItems="center" mb={1}>
-                  <DoctorIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="textSecondary">
-                    {getDoctorName(appointment.doctorId)}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  {t('appointments.type')}: {t(`appointments.types.${appointment.type}`)}
-                </Typography>
-                {appointment.notes && (
-                  <Typography variant="body2" color="textSecondary">
-                    {t('appointments.notes')}: {appointment.notes}
-                  </Typography>
-                )}
-              </CardContent>
-              <Box display="flex" justifyContent="flex-end" p={1}>
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => handleOpenDialog(appointment)}
-                >
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleDelete(appointment)}
-                >
-                  <DeleteIcon />
-                </IconButton>
               </Box>
-            </Card>
-          </Grid>
-        ))}
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <CheckCircle color="success" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>{t('appointments.status.completed')}</Typography>
+                  <Typography variant="h4">{stats.completed}</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Pending color="warning" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>{t('appointments.status.pending')}</Typography>
+                  <Typography variant="h4">{stats.pending}</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Cancel color="error" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>{t('appointments.status.cancelled')}</Typography>
+                  <Typography variant="h4">{stats.cancelled}</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {selectedAppointment ? t('appointments.editTitle') : t('appointments.addTitle')}
-        </DialogTitle>
-        <DialogContent>
-          <Box component="form" sx={{ mt: 2 }}>
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>{t('appointments.patient')}</InputLabel>
+      {/* Filters */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              placeholder={t('appointments.searchPlaceholder')}
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>{t('common.status')}</InputLabel>
               <Select
-                name="patientId"
-                value={formData.patientId}
-                onChange={handleInputChange}
-                label={t('appointments.patient')}
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                label={t('common.status')}
               >
-                {patients.map((patient) => (
-                  <MenuItem key={patient.id} value={patient.id}>
-                    {patient.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>{t('appointments.doctor')}</InputLabel>
-              <Select
-                name="doctorId"
-                value={formData.doctorId}
-                onChange={handleInputChange}
-                label={t('appointments.doctor')}
-              >
-                {doctors.map((doctor) => (
-                  <MenuItem key={doctor.id} value={doctor.id}>
-                    {doctor.name} - {doctor.specialization}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <Box sx={{ mt: 2, mb: 2 }}>
-                <DatePicker
-                  label={t('appointments.date')}
-                  value={formData.date}
-                  onChange={handleDateChange}
-                  slotProps={{ textField: { fullWidth: true, required: true } }}
-                />
-              </Box>
-
-              <Box sx={{ mt: 2, mb: 2 }}>
-                <TimePicker
-                  label={t('appointments.time')}
-                  value={formData.time}
-                  onChange={handleTimeChange}
-                  slotProps={{ textField: { fullWidth: true, required: true } }}
-                />
-              </Box>
-            </LocalizationProvider>
-
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>{t('appointments.type')}</InputLabel>
-              <Select
-                name="type"
-                value={formData.type}
-                onChange={handleInputChange}
-                label={t('appointments.type')}
-              >
-                <MenuItem value="xray">{t('appointments.types.xray')}</MenuItem>
-                <MenuItem value="ct">{t('appointments.types.ct')}</MenuItem>
-                <MenuItem value="mri">{t('appointments.types.mri')}</MenuItem>
-                <MenuItem value="ultrasound">{t('appointments.types.ultrasound')}</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>{t('appointments.status')}</InputLabel>
-              <Select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                label={t('appointments.status')}
-              >
+                <MenuItem value="">{t('common.all')}</MenuItem>
                 <MenuItem value="scheduled">{t('appointments.status.scheduled')}</MenuItem>
+                <MenuItem value="confirmed">{t('appointments.status.confirmed')}</MenuItem>
+                <MenuItem value="in-progress">{t('appointments.status.inProgress')}</MenuItem>
                 <MenuItem value="completed">{t('appointments.status.completed')}</MenuItem>
                 <MenuItem value="cancelled">{t('appointments.status.cancelled')}</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>{t('appointments.patient')}</InputLabel>
+              <Select
+                value={filters.patientId}
+                onChange={(e) => handleFilterChange('patientId', e.target.value)}
+                label={t('appointments.patient')}
+              >
+                <MenuItem value="">{t('appointments.allPatients')}</MenuItem>
+                {patients.map(p => (
+                  <MenuItem key={p._id} value={p._id}>
+                    {p.name} - {p.phoneNumber}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>{t('appointments.doctor')}</InputLabel>
+              <Select
+                value={filters.doctorId}
+                onChange={(e) => handleFilterChange('doctorId', e.target.value)}
+                label={t('appointments.doctor')}
+              >
+                <MenuItem value="">{t('appointments.allDoctors')}</MenuItem>
+                {doctors.map(d => (
+                  <MenuItem key={d._id} value={d._id}>
+                    {d.name} ({d.specialization})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label={t('appointments.fromDate')}
+                  value={filters.startDate}
+                  onChange={(newValue) => handleFilterChange('startDate', newValue)}
+                  slotProps={{
+                    textField: { size: "small" }
+                  }}
+                />
+                <DatePicker
+                  label={t('appointments.toDate')}
+                  value={filters.endDate}
+                  onChange={(newValue) => handleFilterChange('endDate', newValue)}
+                  slotProps={{
+                    textField: { size: "small" }
+                  }}
+                />
+              </LocalizationProvider>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
 
-            <TextField
-              fullWidth
-              label={t('appointments.notes')}
-              name="notes"
-              value={formData.notes}
-              onChange={handleInputChange}
-              margin="normal"
-              multiline
-              rows={3}
-            />
-          </Box>
+      {/* View Mode Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={viewMode} onChange={(e, newValue) => setViewMode(newValue)}>
+          <Tab value="table" label={t('appointments.tableView')} icon={<FilterList />} />
+          <Tab value="calendar" label={t('appointments.calendarView')} icon={<CalendarMonth />} />
+        </Tabs>
+      </Box>
+
+      {/* Table View */}
+      {viewMode === 'table' && (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>{t('appointments.patient')}</TableCell>
+                <TableCell>{t('appointments.doctor')}</TableCell>
+                <TableCell>{t('appointments.radiologist')}</TableCell>
+                <TableCell>{t('appointments.dateTime')}</TableCell>
+                <TableCell>{t('common.status')}</TableCell>
+                <TableCell>{t('appointments.priorityLabel')}</TableCell>
+                <TableCell>{t('navigation.scans')}</TableCell>
+                <TableCell align="right">{t('common.actions')}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {appointments.map((apt) => (
+                <TableRow key={apt._id} hover>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {apt.patientId?.name || 'Unknown Patient'}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {apt.patientId?.phoneNumber}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {apt.referredBy?.name || 'Unknown Doctor'}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {apt.referredBy?.specialization}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        {apt.radiologistId?.name || 'Unknown Radiologist'}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {apt.radiologistId?.licenseId}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    {apt.scheduledAt ? new Date(apt.scheduledAt).toLocaleString() : ''}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      icon={statusIcons[apt.status] || <Warning />}
+                      label={t(`appointments.status.${apt.status}`) || apt.status}
+                      color={statusColors[apt.status] || 'default'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={t(`appointments.priority.${apt.priority}`) || apt.priority}
+                      color={apt.priority === 'emergency' ? 'error' : apt.priority === 'urgent' ? 'warning' : 'default'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      {apt.scans?.map((scan, index) => (
+                        <Typography key={index} variant="caption" display="block">
+                          {t(`appointments.types.${scan.scan}`) || scan.scan} (x{scan.quantity})
+                        </Typography>
+                      ))}
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Tooltip title={t('common.edit')}>
+                      <IconButton 
+                        onClick={() => { setEditData(apt); setFormOpen(true); }}
+                        size="small"
+                      >
+                        <Edit />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t('common.delete')}>
+                      <IconButton 
+                        color="error" 
+                        onClick={() => setDeleteId(apt._id)}
+                        size="small"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {appointments.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <Typography variant="body1" color="textSecondary">
+                      {t('appointments.noAppointmentsFound')}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {/* Calendar View */}
+      {viewMode === 'calendar' && (
+        <Paper sx={{ p: 3, minHeight: 400 }}>
+          <Typography variant="h6" gutterBottom>{t('appointments.calendarView')}</Typography>
+          <Typography color="textSecondary">
+            {t('appointments.calendarViewDescription')}
+          </Typography>
+        </Paper>
+      )}
+
+      {/* Pagination */}
+      {pagination.total > pagination.limit && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Pagination
+            count={Math.ceil(pagination.total / pagination.limit)}
+            page={pagination.page}
+            onChange={(e, page) => setPagination(prev => ({ ...prev, page }))}
+            color="primary"
+          />
+        </Box>
+      )}
+
+      {/* Create/Edit Modal */}
+      <AppointmentForm
+        open={formOpen}
+        onClose={() => { setFormOpen(false); setEditData(null); }}
+        onSubmit={handleFormSubmit}
+        initialData={editData}
+        patients={patients}
+        doctors={doctors}
+        radiologists={radiologists}
+      />
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <DialogTitle>{t('appointments.deleteConfirmTitle')}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {t('appointments.deleteConfirmMessage')}
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            {t('common.save')}
-          </Button>
+          <Button onClick={() => setDeleteId(null)}>{t('common.cancel')}</Button>
+          <Button color="error" onClick={handleDelete}>{t('common.delete')}</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={openConfirm}
-        title={t('appointments.deleteConfirmTitle')}
-        message={t('appointments.deleteConfirmMessage')}
-        onConfirm={confirmDelete}
-        onCancel={() => {
-          setOpenConfirm(false);
-          setSelectedAppointment(null);
-        }}
-      />
-    </Box>
-  );
-};
+      {/* Snackbar for feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+      >
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
 
-export default Appointments; 
+      {/* Floating Action Button for quick add */}
+      <Fab
+        color="primary"
+        aria-label={t('appointments.addTitle')}
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        onClick={() => { setFormOpen(true); setEditData(null); }}
+      >
+        <Add />
+      </Fab>
+    </Container>
+  );
+} 

@@ -2,188 +2,169 @@ import Joi from 'joi';
 import { objectId } from './commonValidation.js';
 import { errors } from '../utils/errorHandler.js';
 
-// Validation schemas for stock
+// Validation schema for creating stock item
+export const createStockSchema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).required()
+        .messages({
+            'string.empty': 'Stock name is required',
+            'string.min': 'Stock name must be at least 2 characters long',
+            'string.max': 'Stock name cannot exceed 100 characters'
+        }),
+    quantity: Joi.number().integer().min(0).required()
+        .messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be an integer',
+            'number.min': 'Quantity cannot be negative',
+            'any.required': 'Quantity is required'
+        }),
+    minimumThreshold: Joi.number().integer().min(0).required()
+        .messages({
+            'number.base': 'Minimum threshold must be a number',
+            'number.integer': 'Minimum threshold must be an integer',
+            'number.min': 'Minimum threshold cannot be negative',
+            'any.required': 'Minimum threshold is required'
+        }),
+    price: Joi.number().positive().required()
+        .messages({
+            'number.base': 'Price must be a number',
+            'number.positive': 'Price must be a positive number',
+            'any.required': 'Price is required'
+        }),
+    validUntil: Joi.date().greater('now').required()
+        .messages({
+            'date.base': 'Valid until must be a valid date',
+            'date.greater': 'Valid until date must be in the future',
+            'any.required': 'Valid until date is required'
+        })
+}).custom((value, helpers) => {
+    // Custom validation to ensure minimum threshold is not greater than quantity
+    if (value.minimumThreshold > value.quantity) {
+        return helpers.error('any.invalid', { message: 'Minimum threshold cannot be greater than current quantity' });
+    }
+    return value;
+});
+
+// Validation schema for updating stock item
+export const updateStockSchema = Joi.object({
+    name: Joi.string().trim().min(2).max(100).optional(),
+    quantity: Joi.number().integer().min(0).optional(),
+    minimumThreshold: Joi.number().integer().min(0).optional(),
+    price: Joi.number().positive().optional(),
+    validUntil: Joi.date().greater('now').optional()
+}).custom((value, helpers) => {
+    // Custom validation to ensure minimum threshold is not greater than quantity when both are provided
+    if (value.minimumThreshold !== undefined && value.quantity !== undefined && value.minimumThreshold > value.quantity) {
+        return helpers.error('any.invalid', { message: 'Minimum threshold cannot be greater than current quantity' });
+    }
+    return value;
+});
+
+// Validation schema for stock ID parameter
+export const stockIdSchema = Joi.object({
+    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid stock ID format',
+            'any.required': 'Stock ID is required'
+        })
+});
+
+// Validation schema for stock query parameters
+export const stockQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(10),
+    search: Joi.string().trim().optional(),
+    minPrice: Joi.number().positive().optional(),
+    maxPrice: Joi.number().positive().optional(),
+    lowStock: Joi.boolean().optional(),
+    expired: Joi.boolean().optional(),
+    sortBy: Joi.string().valid('name', 'quantity', 'price', 'validUntil', 'createdAt').default('createdAt'),
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+});
+
+// Validation schema for stock quantity update
+export const updateStockQuantitySchema = Joi.object({
+    quantity: Joi.number().integer().min(0).required()
+        .messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be an integer',
+            'number.min': 'Quantity cannot be negative',
+            'any.required': 'Quantity is required'
+        })
+});
+
+// Middleware to validate request body
+export const validateStockBody = (schema) => {
+    return (req, res, next) => {
+        const { error, value } = schema.validate(req.body, { abortEarly: false });
+
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: error.details.map(detail => ({
+                    field: detail.path.join('.'),
+                    message: detail.message
+                }))
+            });
+        }
+
+        req.body = value;
+        next();
+    };
+};
+
+// Middleware to validate request parameters
+export const validateStockParams = (req, res, next) => {
+    const { error, value } = stockIdSchema.validate(req.params, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
+    }
+
+    req.params = value;
+    next();
+};
+
+// Middleware to validate query parameters
+export const validateStockQuery = (req, res, next) => {
+    const { error, value } = stockQuerySchema.validate(req.query, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation error',
+            errors: error.details.map(detail => ({
+                field: detail.path.join('.'),
+                message: detail.message
+            }))
+        });
+    }
+
+    req.query = value;
+    next();
+};
+
+// Legacy validation schemas (keeping for backward compatibility)
 export const stockValidation = {
-    // Get all stock items
-    getAllStock: Joi.object({
-        search: Joi.string().trim(),
-        category: Joi.string().valid('X-Ray Film', 'Contrast Media', 'Medical Supplies', 'Equipment', 'Other'),
-        lowStock: Joi.boolean(),
-        expired: Joi.boolean(),
-        page: Joi.number().integer().min(1).default(1),
-        limit: Joi.number().integer().min(1).max(100).default(10),
-        sortBy: Joi.string().valid('itemName', 'category', 'quantity', 'createdAt', 'updatedAt').default('createdAt'),
-        sortOrder: Joi.string().valid('asc', 'desc').default('desc')
-    }),
-
-    // Create stock item
-    create: Joi.object({
-        name: Joi.string().required().min(2).max(100).messages({
-            'any.required': 'Name is required',
-            'string.min': 'Name must be at least 2 characters long',
-            'string.max': 'Name cannot exceed 100 characters'
-        }),
-        description: Joi.string().max(500).allow('').messages({
-            'string.max': 'Description cannot exceed 500 characters'
-        }),
-        category: Joi.string().required().valid('X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other').messages({
-            'any.required': 'Category is required',
-            'any.only': 'Invalid category'
-        }),
-        quantity: Joi.number().integer().min(0).required().messages({
-            'any.required': 'Quantity is required',
-            'number.min': 'Quantity cannot be negative'
-        }),
-        unit: Joi.string().required().valid('piece', 'box', 'pack', 'bottle', 'kit').messages({
-            'any.required': 'Unit is required',
-            'any.only': 'Invalid unit'
-        }),
-        price: Joi.number().min(0).required().messages({
-            'any.required': 'Price is required',
-            'number.min': 'Price cannot be negative'
-        }),
-        minQuantity: Joi.number().integer().min(0).required().messages({
-            'any.required': 'Minimum quantity is required',
-            'number.min': 'Minimum quantity cannot be negative'
-        }),
-        supplier: Joi.string().required().min(2).max(100).messages({
-            'any.required': 'Supplier is required',
-            'string.min': 'Supplier name must be at least 2 characters long',
-            'string.max': 'Supplier name cannot exceed 100 characters'
-        }),
-        expiryDate: Joi.date().min('now').allow(null).messages({
-            'date.min': 'Expiry date must be in the future',
-            'date.base': 'Invalid expiry date format'
-        }),
-        batchNumber: Joi.string().max(50).allow('').messages({
-            'string.max': 'Batch number cannot exceed 50 characters'
-        }),
-        location: Joi.string().max(100).allow('').messages({
-            'string.max': 'Location cannot exceed 100 characters'
-        }),
-        isActive: Joi.boolean().default(true)
-    }),
-
-    // Update stock item
-    update: Joi.object({
-        name: Joi.string().min(2).max(100).messages({
-            'string.min': 'Name must be at least 2 characters long',
-            'string.max': 'Name cannot exceed 100 characters'
-        }),
-        description: Joi.string().max(500).allow('').messages({
-            'string.max': 'Description cannot exceed 500 characters'
-        }),
-        category: Joi.string().valid('X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other').messages({
-            'any.only': 'Invalid category'
-        }),
-        quantity: Joi.number().integer().min(0).messages({
-            'number.min': 'Quantity cannot be negative'
-        }),
-        unit: Joi.string().valid('piece', 'box', 'pack', 'bottle', 'kit').messages({
-            'any.only': 'Invalid unit'
-        }),
-        price: Joi.number().min(0).messages({
-            'number.min': 'Price cannot be negative'
-        }),
-        minQuantity: Joi.number().integer().min(0).messages({
-            'number.min': 'Minimum quantity cannot be negative'
-        }),
-        supplier: Joi.string().min(2).max(100).messages({
-            'string.min': 'Supplier name must be at least 2 characters long',
-            'string.max': 'Supplier name cannot exceed 100 characters'
-        }),
-        expiryDate: Joi.date().min('now').allow(null).messages({
-            'date.min': 'Expiry date must be in the future',
-            'date.base': 'Invalid expiry date format'
-        }),
-        batchNumber: Joi.string().max(50).allow('').messages({
-            'string.max': 'Batch number cannot exceed 50 characters'
-        }),
-        location: Joi.string().max(100).allow('').messages({
-            'string.max': 'Location cannot exceed 100 characters'
-        }),
-        isActive: Joi.boolean()
-    }).min(1).messages({
-        'object.min': 'At least one field must be provided for update'
-    }),
-
-    // Get stock item by ID
-    getById: Joi.object({
-        id: objectId.required().messages({
-            'any.required': 'Stock item ID is required',
-            'string.pattern.base': 'Invalid stock item ID format'
-        })
-    }),
-
-    // Delete stock item
-    delete: Joi.object({
-        id: objectId.required().messages({
-            'any.required': 'Stock item ID is required',
-            'string.pattern.base': 'Invalid stock item ID format'
-        })
-    }),
-
-    // Add stock quantity
+    getAllStock: stockQuerySchema,
+    create: createStockSchema,
+    update: updateStockSchema,
+    getById: stockIdSchema,
+    delete: stockIdSchema,
     addQuantity: Joi.object({
-        id: objectId.required().messages({
-            'any.required': 'Stock item ID is required',
-            'string.pattern.base': 'Invalid stock item ID format'
-        }),
-        quantity: Joi.number().integer().min(1).required().messages({
-            'any.required': 'Quantity is required',
-            'number.min': 'Quantity must be at least 1'
-        }),
-        batchNumber: Joi.string().max(50).allow('').messages({
-            'string.max': 'Batch number cannot exceed 50 characters'
-        }),
-        expiryDate: Joi.date().min('now').allow(null).messages({
-            'date.min': 'Expiry date must be in the future',
-            'date.base': 'Invalid expiry date format'
-        })
+        id: stockIdSchema.extract('id'),
+        quantity: Joi.number().integer().min(1).required()
     }),
-
-    // Remove stock quantity
     removeQuantity: Joi.object({
-        id: objectId.required().messages({
-            'any.required': 'Stock item ID is required',
-            'string.pattern.base': 'Invalid stock item ID format'
-        }),
-        quantity: Joi.number().integer().min(1).required().messages({
-            'any.required': 'Quantity is required',
-            'number.min': 'Quantity must be at least 1'
-        }),
-        reason: Joi.string().max(200).required().messages({
-            'any.required': 'Reason is required',
-            'string.max': 'Reason cannot exceed 200 characters'
-        })
-    }),
-
-    // Search stock items
-    search: Joi.object({
-        query: Joi.string().min(1).max(100).required().messages({
-            'any.required': 'Search query is required',
-            'string.min': 'Search query must be at least 1 character long',
-            'string.max': 'Search query cannot exceed 100 characters'
-        }),
-        category: Joi.string().valid('X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography', 'Other').messages({
-            'any.only': 'Invalid category'
-        }),
-        minQuantity: Joi.number().integer().min(0).messages({
-            'number.min': 'Minimum quantity cannot be negative'
-        }),
-        maxQuantity: Joi.number().integer().min(0).custom((value, helpers) => {
-            const { minQuantity } = helpers.state.ancestors[0];
-            if (minQuantity && value < minQuantity) {
-                return helpers.error('number.min', { message: 'Maximum quantity must be greater than minimum quantity' });
-            }
-            return value;
-        }).messages({
-            'number.min': 'Maximum quantity cannot be negative'
-        }),
-        supplier: Joi.string().min(2).max(100).messages({
-            'string.min': 'Supplier name must be at least 2 characters long',
-            'string.max': 'Supplier name cannot exceed 100 characters'
-        }),
-        isActive: Joi.boolean()
+        id: stockIdSchema.extract('id'),
+        quantity: Joi.number().integer().min(1).required(),
+        reason: Joi.string().max(200).required()
     })
 }; 

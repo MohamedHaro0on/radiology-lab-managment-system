@@ -1,102 +1,141 @@
 import mongoose from 'mongoose';
+import { errors } from '../utils/errorHandler.js';
 
 const stockSchema = new mongoose.Schema({
-    itemName: {
+    name: {
         type: String,
-        required: [true, 'Item name is required'],
-        trim: true
-    },
-    category: {
-        type: String,
-        required: [true, 'Category is required'],
-        enum: ['X-Ray Film', 'Contrast Media', 'Medical Supplies', 'Equipment', 'Other'],
-        trim: true
+        required: [true, 'Stock name is required'],
+        trim: true,
+        minlength: [2, 'Stock name must be at least 2 characters long'],
+        maxlength: [100, 'Stock name cannot exceed 100 characters']
     },
     quantity: {
         type: Number,
         required: [true, 'Quantity is required'],
         min: [0, 'Quantity cannot be negative']
     },
-    unit: {
-        type: String,
-        required: [true, 'Unit is required'],
-        enum: ['Box', 'Piece', 'Pack', 'Bottle', 'Kit'],
-        trim: true
-    },
-    minimumQuantity: {
+    minimumThreshold: {
         type: Number,
-        required: [true, 'Minimum quantity is required'],
-        min: [0, 'Minimum quantity cannot be negative']
+        required: [true, 'Minimum threshold is required'],
+        min: [0, 'Minimum threshold cannot be negative']
     },
-    supplier: {
-        name: {
-            type: String,
-            required: [true, 'Supplier name is required'],
-            trim: true
-        },
-        contactPerson: {
-            type: String,
-            trim: true
-        },
-        phoneNumber: {
-            type: String,
-            trim: true
-        },
-        email: {
-            type: String,
-            trim: true,
-            lowercase: true,
-            match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
-        }
+    price: {
+        type: Number,
+        required: [true, 'Price is required'],
+        min: [0, 'Price cannot be negative']
     },
-    expiryDate: {
-        type: Date
+    validUntil: {
+        type: Date,
+        required: [true, 'Valid until date is required']
     },
-    batchNumber: {
-        type: String,
-        trim: true
+    isActive: {
+        type: Boolean,
+        default: true
     },
-    location: {
-        type: String,
-        required: [true, 'Location is required'],
-        trim: true
-    },
-    notes: {
-        type: String,
-        trim: true
-    },
-    lastUpdatedBy: {
+    createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false
+    },
+    updatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
 // Indexes for faster queries
-stockSchema.index({ itemName: 1, category: 1 });
-stockSchema.index({ expiryDate: 1 });
+stockSchema.index({ name: 1 });
 stockSchema.index({ quantity: 1 });
+stockSchema.index({ isActive: 1 });
+stockSchema.index({ validUntil: 1 });
 
 // Virtual for checking if item is low in stock
 stockSchema.virtual('isLowStock').get(function () {
-    return this.quantity <= this.minimumQuantity;
+    return this.quantity <= this.minimumThreshold;
 });
 
-// Method to check if item is expired
-stockSchema.methods.isExpired = function () {
-    if (!this.expiryDate) return false;
-    return new Date() > this.expiryDate;
+// Virtual for checking if item is expired
+stockSchema.virtual('isExpired').get(function () {
+    return new Date() > this.validUntil;
+});
+
+// Method to update quantity
+stockSchema.methods.updateQuantity = async function (newQuantity) {
+    if (newQuantity < 0) {
+        throw errors.BadRequest('Quantity cannot be negative');
+    }
+
+    this.quantity = newQuantity;
+    await this.save();
+    return this;
 };
 
-// Pre-save middleware to ensure minimum quantity is not greater than quantity
+// Method to add quantity
+stockSchema.methods.addQuantity = async function (amount) {
+    if (amount < 0) {
+        throw errors.BadRequest('Amount to add cannot be negative');
+    }
+
+    this.quantity += amount;
+    await this.save();
+    return this;
+};
+
+// Method to subtract quantity
+stockSchema.methods.subtractQuantity = async function (amount) {
+    if (amount < 0) {
+        throw errors.BadRequest('Amount to subtract cannot be negative');
+    }
+
+    if (this.quantity < amount) {
+        throw errors.BadRequest('Insufficient stock quantity');
+    }
+
+    this.quantity -= amount;
+    await this.save();
+    return this;
+};
+
+// Pre-save middleware to ensure minimum threshold is not greater than quantity
 stockSchema.pre('save', function (next) {
-    if (this.minimumQuantity > this.quantity) {
-        next(new Error('Minimum quantity cannot be greater than current quantity'));
+    if (this.minimumThreshold > this.quantity) {
+        next(new Error('Minimum threshold cannot be greater than current quantity'));
     }
     next();
 });
+
+// Static method to find active stock items
+stockSchema.statics.findActive = function () {
+    return this.find({ isActive: true });
+};
+
+// Static method to find low stock items
+stockSchema.statics.findLowStock = function () {
+    return this.find({
+        $expr: { $lte: ['$quantity', '$minimumThreshold'] },
+        isActive: true
+    });
+};
+
+// Static method to find expired items
+stockSchema.statics.findExpired = function () {
+    return this.find({
+        validUntil: { $lt: new Date() },
+        isActive: true
+    });
+};
+
+// Static method to search stock items
+stockSchema.statics.search = function (query) {
+    return this.find({
+        name: { $regex: query, $options: 'i' },
+        isActive: true
+    });
+};
 
 const Stock = mongoose.model('Stock', stockSchema);
 

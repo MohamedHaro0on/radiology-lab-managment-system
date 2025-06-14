@@ -2,32 +2,56 @@ import asyncHandler from 'express-async-handler';
 import { StatusCodes } from 'http-status-codes';
 import { errors } from '../utils/errorHandler.js';
 import Doctor from '../models/Doctor.js';
-import User from '../models/User.js';
+import User from '../models/User.js'; // Keeping User import as Doctor model references it for createdBy/updatedBy
 import { executePaginatedQuery } from '../utils/pagination.js';
+// import { MODULES, OPERATIONS } from '../config/privileges.js'; // No longer needed for doctor creation only
 
 // Create a new referring doctor
 export const createDoctor = asyncHandler(async (req, res) => {
-    const { email, licenseNumber, contactNumber } = req.body;
+    // Destructure specifically the fields that belong to the Doctor model
+    const {
+        name, specialization, contactNumber, licenseNumber,
+        totalPatientsReferred, totalScansReferred, address, isActive, experience,
+        // Explicitly exclude email and createdBy as they are not for Doctor model directly in this context
+        email, createdBy, ...otherFields // Catch any other unexpected fields
+    } = req.body;
 
+    // Construct the doctor data with only the relevant fields for Doctor model
+    const doctorData = {
+        name, specialization, contactNumber, licenseNumber,
+        totalPatientsReferred, totalScansReferred, address, isActive, experience,
+        // You can assign createdBy if you have an authenticated user and want to track it
+        // createdBy: req.user?._id
+    };
+
+    console.log("we are here");
     // Check for existing doctor
     const existingDoctor = await Doctor.findOne({
         $or: [
-            { email },
             { licenseNumber },
             { contactNumber }
         ]
     });
+    console.log("we are here");
 
     if (existingDoctor) {
-        throw errors.Conflict('A doctor with this email, license number, or contact number already exists');
+        throw errors.Conflict('A doctor with this license number or contact number already exists');
     }
+    console.log("this is the request.body after filtering: ", doctorData);
 
-    const doctor = await Doctor.create(req.body);
+    try {
+        const doctor = await Doctor.create(doctorData);
+        console.log("Doctor created successfully: ", doctor);
 
-    res.status(StatusCodes.CREATED).json({
-        status: 'success',
-        data: doctor
-    });
+        res.status(StatusCodes.CREATED).json({
+            status: 'success',
+            data: doctor
+        });
+    } catch (error) {
+        console.error("Error during doctor creation or response sending:", error);
+        // More specific error handling can be added here based on error.name or error.code
+        throw errors.InternalServerError('Failed to create doctor due to an internal error.');
+    }
 });
 
 // Get all doctors with filtering and pagination
@@ -43,8 +67,8 @@ export const getAllDoctors = asyncHandler(async (req, res) => {
     if (search) {
         query.$or = [
             { name: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } },
-            { phone: { $regex: search, $options: 'i' } }
+            { contactNumber: { $regex: search, $options: 'i' } },
+            { licenseNumber: { $regex: search, $options: 'i' } } // Added licenseNumber to search
         ];
     }
     if (specialization) {
@@ -76,7 +100,8 @@ export const getDoctor = asyncHandler(async (req, res) => {
 
 // Update a referring doctor
 export const updateDoctor = asyncHandler(async (req, res) => {
-    const { email, licenseNumber, contactNumber } = req.body;
+    // Explicitly exclude email when destructuring req.body for update
+    const { licenseNumber, contactNumber, email, ...updateFields } = req.body;
     const doctorId = req.params.id;
 
     // Check if doctor exists
@@ -85,26 +110,25 @@ export const updateDoctor = asyncHandler(async (req, res) => {
         throw errors.NotFound('Doctor not found');
     }
 
-    // Check for duplicate email, license number, or contact number
-    if (email || licenseNumber || contactNumber) {
+    // Check for duplicate license number or contact number
+    if (licenseNumber || contactNumber) {
         const existingDoctor = await Doctor.findOne({
             _id: { $ne: doctorId },
             $or: [
-                { email: email || doctor.email },
                 { licenseNumber: licenseNumber || doctor.licenseNumber },
                 { contactNumber: contactNumber || doctor.contactNumber }
             ]
         });
 
         if (existingDoctor) {
-            throw errors.Conflict('A doctor with this email, license number, or contact number already exists');
+            throw errors.Conflict('A doctor with this license number or contact number already exists');
         }
     }
 
-    // Update doctor
+    // Update doctor with only allowed fields (excluding email)
     const updatedDoctor = await Doctor.findByIdAndUpdate(
         doctorId,
-        { $set: req.body },
+        { $set: updateFields },
         { new: true, runValidators: true }
     );
 

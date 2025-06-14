@@ -11,13 +11,18 @@ const axiosInstance = axios.create({
     },
 });
 
-// Add request interceptor for auth token
+// Add request interceptor for auth token (temporarily disabled for all calls)
 axiosInstance.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+        // Temporarily skip auth headers for all calls
+        // if (config.url && config.url.includes('/dashboard')) {
+        //     return config;
+        // }
+
+        // const token = localStorage.getItem('token');
+        // if (token) {
+        //     config.headers.Authorization = `Bearer ${token}`;
+        // }
         return config;
     },
     (error) => Promise.reject(error)
@@ -29,7 +34,8 @@ axiosInstance.interceptors.response.use(
     async (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            // Temporarily redirect to dashboard instead of login since login routes are disabled
+            window.location.href = '/dashboard';
         }
         return Promise.reject(error);
     }
@@ -40,9 +46,9 @@ const createCrudService = (endpoint) => ({
     getAll: (params) => axiosInstance.get(`/${endpoint}`, { params }),
     getById: (id) => axiosInstance.get(`/${endpoint}/${id}`),
     create: (data) => axiosInstance.post(`/${endpoint}`, data),
-    update: (id, data) => axiosInstance.patch(`/${endpoint}/${id}`, data),
+    update: (id, data) => axiosInstance.put(`/${endpoint}/${id}`, data),
     delete: (id) => axiosInstance.delete(`/${endpoint}/${id}`),
-    search: (query) => axiosInstance.get(`/${endpoint}/search`, { params: { query } }),
+    search: (query) => axiosInstance.get(`/${endpoint}`, { params: { search: query } }),
 });
 
 // Auth service
@@ -65,11 +71,20 @@ export const authAPI = {
     },
 };
 
+// Dashboard service
+export const dashboardAPI = {
+    getAnalytics: () => axiosInstance.get('/dashboard/analytics'),
+    getAppointmentStats: (period = 'week') => axiosInstance.get('/dashboard/appointment-stats', { params: { period } }),
+};
+
 // Patient service
 export const patientAPI = createCrudService('patients');
 
 // Doctor service
 export const doctorAPI = createCrudService('doctors');
+
+// Radiologist service
+export const radiologistAPI = createCrudService('radiologists');
 
 // Appointment service
 export const appointmentAPI = {
@@ -84,18 +99,28 @@ export const appointmentAPI = {
 
 // Stock service
 export const stockAPI = {
-    ...createCrudService('stock'),
-    getLowStock: () => axiosInstance.get('/stock/low'),
-    getExpired: () => axiosInstance.get('/stock/expired'),
+    getAll: (params) => axiosInstance.get('/stock', { params }),
+    getById: (id) => axiosInstance.get(`/stock/${id}`),
+    create: (data) => axiosInstance.post('/stock', data),
+    update: (id, data) => axiosInstance.patch(`/stock/${id}`, data),
+    delete: (id) => axiosInstance.delete(`/stock/${id}`),
+    search: (query) => axiosInstance.get('/stock', { params: { search: query } }),
+    getLowStock: (params) => axiosInstance.get('/stock', { params: { ...params, lowStock: 'true' } }),
+    getExpired: (params) => axiosInstance.get('/stock', { params: { ...params, expired: 'true' } }),
+    updateQuantity: (id, data) => axiosInstance.patch(`/stock/${id}/quantity`, data),
 };
 
 // Scan service
 export const scanAPI = {
     ...createCrudService('scans'),
+    update: (id, data) => axiosInstance.patch(`/scans/${id}`, data),
     getByDoctor: (doctorId) =>
         axiosInstance.get(`/scans/doctor/${doctorId}`),
     getByPatient: (patientId) =>
         axiosInstance.get(`/scans/patient/${patientId}`),
+    addImage: (id, data) => axiosInstance.post(`/scans/${id}/images`, data),
+    removeImage: (id, imageId) => axiosInstance.delete(`/scans/${id}/images/${imageId}`),
+    checkStockAvailability: (id) => axiosInstance.get(`/scans/${id}/stock-availability`),
 };
 
 // Scan Category service

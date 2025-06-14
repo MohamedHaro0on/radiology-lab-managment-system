@@ -8,10 +8,12 @@ import User from '../models/User.js';
 
 // Create new stock item
 export const createStock = asyncHandler(async (req, res) => {
-    const stock = await Stock.create({
+    const stockData = {
         ...req.body,
-        lastUpdatedBy: req.user._id
-    });
+        createdBy: req.user?._id || null // Make createdBy optional when auth is disabled
+    };
+
+    const stock = await Stock.create(stockData);
 
     res.status(StatusCodes.CREATED).json({
         status: 'success',
@@ -33,26 +35,24 @@ export const getAllStock = asyncHandler(async (req, res) => {
     const query = {};
     if (search) {
         query.$or = [
-            { itemName: { $regex: search, $options: 'i' } },
-            { 'supplier.name': { $regex: search, $options: 'i' } },
-            { location: { $regex: search, $options: 'i' } }
+            { name: { $regex: search, $options: 'i' } }
         ];
     }
     if (category) {
         query.category = category;
     }
     if (lowStock === 'true') {
-        query.$expr = { $lte: ['$quantity', '$minimumQuantity'] };
+        query.$expr = { $lte: ['$quantity', '$minimumThreshold'] };
     }
     if (expired === 'true') {
-        query.expiryDate = { $lt: new Date() };
+        query.validUntil = { $lt: new Date() };
     }
 
     const result = await executePaginatedQuery(
         Stock,
         query,
         paginationOptions,
-        { path: 'lastUpdatedBy', select: 'username email' }
+        { path: 'updatedBy', select: 'username email' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -61,7 +61,7 @@ export const getAllStock = asyncHandler(async (req, res) => {
 // Get single stock item
 export const getStock = asyncHandler(async (req, res) => {
     const stock = await Stock.findById(req.params.id)
-        .populate('lastUpdatedBy', 'username email');
+        .populate('updatedBy', 'username email');
 
     if (!stock) {
         throw errors.NotFound('Stock item not found');
@@ -82,8 +82,8 @@ export const updateStock = asyncHandler(async (req, res) => {
     }
 
     // Ensure minimum quantity is not greater than new quantity if both are being updated
-    if (req.body.quantity !== undefined && req.body.minimumQuantity !== undefined) {
-        if (req.body.minimumQuantity > req.body.quantity) {
+    if (req.body.quantity !== undefined && req.body.minimumThreshold !== undefined) {
+        if (req.body.minimumThreshold > req.body.quantity) {
             throw errors.BadRequest('Minimum quantity cannot be greater than current quantity');
         }
     }
@@ -93,11 +93,11 @@ export const updateStock = asyncHandler(async (req, res) => {
         {
             $set: {
                 ...req.body,
-                lastUpdatedBy: req.user._id
+                updatedBy: req.user?._id || null // Make updatedBy optional when auth is disabled
             }
         },
         { new: true, runValidators: true }
-    ).populate('lastUpdatedBy', 'username email');
+    ).populate('updatedBy', 'username email');
 
     res.status(StatusCodes.OK).json({
         status: 'success',
@@ -129,11 +129,11 @@ export const updateQuantity = asyncHandler(async (req, res) => {
         {
             $set: {
                 quantity: newQuantity,
-                lastUpdatedBy: req.user._id
+                updatedBy: req.user?._id || null // Make updatedBy optional when auth is disabled
             }
         },
         { new: true, runValidators: true }
-    ).populate('lastUpdatedBy', 'username email');
+    ).populate('updatedBy', 'username email');
 
     res.status(StatusCodes.OK).json({
         status: 'success',
@@ -143,18 +143,24 @@ export const updateQuantity = asyncHandler(async (req, res) => {
 
 // Delete stock item
 export const deleteStock = asyncHandler(async (req, res) => {
+    console.log('DeleteStock controller called with params:', req.params);
+    console.log('DeleteStock controller called with id:', req.params.id);
+
     const stock = await Stock.findById(req.params.id);
+    console.log('Found stock item:', stock);
 
     if (!stock) {
         throw errors.NotFound('Stock item not found');
     }
 
     // Check if stock has any quantity
-    if (stock.quantity > 0) {
-        throw errors.Conflict('Cannot delete stock item with remaining quantity');
-    }
+    // console.log('Stock quantity:', stock.quantity);
+    // if (stock.quantity > 0) {
+    //     throw errors.Conflict('Cannot delete stock item with remaining quantity');
+    // }
 
     await stock.deleteOne();
+    console.log('Stock item deleted successfully');
 
     res.status(StatusCodes.OK).json({
         status: 'success',
@@ -166,14 +172,14 @@ export const deleteStock = asyncHandler(async (req, res) => {
 export const getLowStock = asyncHandler(async (req, res) => {
     const { ...paginationOptions } = req.query;
     const query = {
-        $expr: { $lte: ['$quantity', '$minimumQuantity'] }
+        $expr: { $lte: ['$quantity', '$minimumThreshold'] }
     };
 
     const result = await executePaginatedQuery(
         Stock,
         query,
         paginationOptions,
-        { path: 'lastUpdatedBy', select: 'username email' }
+        { path: 'updatedBy', select: 'username email' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -183,14 +189,14 @@ export const getLowStock = asyncHandler(async (req, res) => {
 export const getExpiredItems = asyncHandler(async (req, res) => {
     const { ...paginationOptions } = req.query;
     const query = {
-        expiryDate: { $lt: new Date() }
+        validUntil: { $lt: new Date() }
     };
 
     const result = await executePaginatedQuery(
         Stock,
         query,
         paginationOptions,
-        { path: 'lastUpdatedBy', select: 'username email' }
+        { path: 'updatedBy', select: 'username email' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -200,9 +206,9 @@ export const getExpiredItems = asyncHandler(async (req, res) => {
 export const checkLowStock = asyncHandler(async (req, res) => {
     try {
         const lowStockItems = await Stock.find({
-            $expr: { $lte: ['$quantity', '$minimumQuantity'] },
+            $expr: { $lte: ['$quantity', '$minimumThreshold'] },
             isActive: true
-        }).populate('lastUpdatedBy', 'username email');
+        }).populate('updatedBy', 'username email');
 
         // Send notifications to all admin users
         const adminUsers = await User.find({
@@ -216,9 +222,9 @@ export const checkLowStock = asyncHandler(async (req, res) => {
                 data: {
                     items: lowStockItems.map(item => ({
                         id: item._id,
-                        name: item.itemName,
+                        name: item.name,
                         quantity: item.quantity,
-                        minimumQuantity: item.minimumQuantity,
+                        minimumThreshold: item.minimumThreshold,
                         category: item.category,
                         unit: item.unit
                     }))
