@@ -1,71 +1,94 @@
-# Laboratory Management System
+# Radiology Lab Management System
 
-A comprehensive laboratory management system built with Node.js, Express, MongoDB, and React.
+A comprehensive radiology laboratory management system built with Node.js, Express, MongoDB, and React.
 
 ## Features
 
+### Authentication & Authorization
+- **JWT-based authentication** with username-based login
+- **2FA (Two-Factor Authentication)** for login and registration
+- **Role-based access control** (superAdmin, admin, etc.)
+- **Privilege management system** (per-module, per-operation)
+- **SuperAdmin management** with full system access
+
+### Audit Logging
+- **Comprehensive audit trails** for all critical actions
+- **Track create, update, delete operations** across all modules
+- **Viewable via audit log endpoints and frontend interface**
+
 ### Core Entities
 
-1. **Doctors**
+1. **Representatives**
+   - Name, age, ID (unique), phone number
+   - Patients count and doctors count (auto-calculated)
+   - Statistics and performance tracking
+   - Audit logging for all operations
+
+2. **Doctors**
    - Name, specialization, phone number
    - Total patients referred (auto-incremented)
    - Total scans referred (auto-incremented)
    - Address information
 
-2. **Patients**
+3. **Patients**
    - Name, gender, age, phone number
    - Social number (unique identifier)
    - Doctor referral
    - Scans history
    - Address information
 
-3. **Radiologists**
+4. **Radiologists**
    - Name, gender, age, phone number
    - License ID (unique)
    - Total scans performed (auto-incremented)
 
-4. **Scans**
+5. **Scans**
    - Actual cost, minimum price, paid price
    - List of items with quantities
    - Description
 
-5. **Stock**
+6. **Stock**
    - Name, quantity, minimum threshold
    - Price, valid until date
    - Low stock and expiry tracking
 
-6. **Expenses**
+7. **Expenses**
    - Date, reason, total cost, requester
    - Category, payment method, status
    - Approval workflow
 
-7. **Appointments**
+8. **Appointments**
    - Radiologist, patient, scans list
    - Cost, price, profit calculation
    - Referring doctor
    - Scheduled time and status
 
-8. **Users**
+9. **Users**
    - Role-based access control
    - Privilege management
    - Super admin functionality
 
 ### Business Logic
 
-1. **Doctor Statistics**
+1. **Representative Management**
+   - CRUD operations with pagination, filtering, and sorting
+   - Statistics tracking and performance metrics
+   - Audit logging for all operations
+
+2. **Doctor Statistics**
    - `totalPatientsReferred` increments when a new patient is registered
    - `totalScansReferred` increments when a new appointment is scheduled
 
-2. **Appointment Financials**
+3. **Appointment Financials**
    - Automatic calculation of cost, price, and profit
    - Based on scan items and quantities
 
-3. **Stock Management**
+4. **Stock Management**
    - Low stock alerts
    - Expiry date tracking
    - Quantity management
 
-4. **User Privileges**
+5. **User Privileges**
    - Super admin can assign privileges to users
    - Minimum privilege is read access
    - Granular permissions per module
@@ -73,10 +96,24 @@ A comprehensive laboratory management system built with Node.js, Express, MongoD
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/login` - User login
+- `POST /api/auth/login` - User login (username-based)
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login/2fa` - 2FA verification for login
+- `POST /api/auth/register/verify-2fa` - 2FA verification for registration
 - `POST /api/auth/2fa/enable` - Enable 2FA
 - `POST /api/auth/2fa/verify` - Verify 2FA
 - `POST /api/auth/2fa/disable` - Disable 2FA
+
+### Representatives
+- `GET /api/representatives` - Get all representatives (paginated, filtered)
+- `POST /api/representatives` - Create new representative
+- `GET /api/representatives/:id` - Get representative by ID
+- `PUT /api/representatives/:id` - Update representative
+- `DELETE /api/representatives/:id` - Delete representative
+- `GET /api/representatives/top/representatives` - Get top representatives
+- `GET /api/representatives/:id/stats` - Get representative statistics
+- `POST /api/representatives/:id/recalculate` - Recalculate counts
+- `GET /api/representatives/dropdown/representatives` - Get active representatives for dropdown
 
 ### Doctors
 - `GET /api/doctors` - Get all doctors
@@ -137,6 +174,10 @@ A comprehensive laboratory management system built with Node.js, Express, MongoD
 - `PUT /api/users/:id` - Update user
 - `DELETE /api/users/:id` - Delete user
 
+### Audit Logs
+- `GET /api/audit/appointments` - Get appointment audit logs
+- `GET /api/audit/stats` - Get audit statistics
+
 ## Installation
 
 ### Prerequisites
@@ -159,17 +200,12 @@ npm install
 3. Create a `.env` file with the following variables:
 ```env
 PORT=3000
-MONGODB_URI=mongodb://localhost:27017/laboratory-management
+MONGODB_URI=mongodb://localhost:27017/radiology-lab
 JWT_SECRET=your-jwt-secret-here
 BCRYPT_SALT_ROUNDS=10
 ```
 
-4. Create the admin user:
-```bash
-npm run create-admin
-```
-
-5. Start the development server:
+4. Start the development server:
 ```bash
 npm run dev
 ```
@@ -204,6 +240,22 @@ After running the admin creation script, you can login with:
 - **Type:** Super Admin
 
 ## Database Schema
+
+### Representative Schema
+```javascript
+{
+  name: String (required),
+  age: Number (required, min: 18, max: 100),
+  id: String (required, unique),
+  phoneNumber: String (required),
+  patientsCount: Number (default: 0),
+  doctorsCount: Number (default: 0),
+  isActive: Boolean (default: true),
+  notes: String,
+  createdBy: ObjectId (ref: User),
+  updatedBy: ObjectId (ref: User)
+}
+```
 
 ### Doctor Schema
 ```javascript
@@ -344,7 +396,42 @@ After running the admin creation script, you can login with:
 }
 ```
 
+## Response Format
+
+Standard response format for paginated endpoints:
+```json
+{
+  "success": true,
+  "message": "Representatives retrieved successfully",
+  "data": {
+    "status": "success",
+    "data": {
+      "representatives": [ ... ],
+      "pagination": {
+        "total": 0,
+        "page": 1,
+        "limit": 10,
+        "totalPages": 0,
+        "hasNextPage": false,
+        "hasPrevPage": false
+      }
+    }
+  }
+}
+```
+
+## Frontend Integration
+
+- The frontend expects the representatives array at `response.data.data.representatives`.
+- If you see `Cannot read properties of undefined (reading 'map')`, check the response structure and update the frontend to use the correct path.
+- The frontend uses an axios interceptor to attach the JWT token to all requests. If you get redirected to login, your token may be missing or expired.
+
 ## Business Logic Implementation
+
+### Representative Management
+1. **CRUD Operations**: Full create, read, update, delete functionality with pagination, filtering, and sorting.
+2. **Statistics Tracking**: Automatic calculation of patients and doctors counts.
+3. **Audit Logging**: All operations are logged for audit purposes.
 
 ### Doctor Statistics Updates
 
@@ -365,6 +452,13 @@ After running the admin creation script, you can login with:
 2. **Module-based Access**: Users can have different levels of access (view, create, update, delete) for each module.
 
 3. **Minimum Access**: All users have at least read access to all modules.
+
+## Troubleshooting
+
+- **500 Internal Server Error**: Usually caused by missing privilege middleware, route conflicts, or invalid query parameters. Check backend logs for details.
+- **401 Unauthorized**: Ensure the JWT token is valid and not expired. The backend must use the same `JWT_SECRET` as the token was signed with.
+- **Frontend map error**: Update your frontend to use the correct response path for representatives: `response.data.data.representatives`.
+- **SuperAdmin access**: Make sure your user has `userType: 'superAdmin'` and `isSuperAdmin: true` in the database.
 
 ## Contributing
 
