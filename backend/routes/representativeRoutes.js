@@ -1,4 +1,5 @@
 import express from 'express';
+import { auth } from '../middleware/auth.js';
 import {
     createRepresentative,
     getAllRepresentatives,
@@ -21,8 +22,8 @@ import { checkPrivilege } from '../middleware/privilege.js';
 
 const router = express.Router();
 
-// Apply privilege middleware to all routes
-router.use(checkPrivilege);
+// Apply authentication middleware to all routes
+router.use(auth);
 
 // Create representative
 router.post('/',
@@ -36,6 +37,18 @@ router.get('/',
     validate({ query: representativeQuerySchema }),
     checkPrivilege('representatives', 'view'),
     getAllRepresentatives
+);
+
+// Get top representatives (must come before /:id route)
+router.get('/top/representatives',
+    checkPrivilege('representatives', 'view'),
+    getTopRepresentatives
+);
+
+// Get representatives for dropdown (active only) (must come before /:id route)
+router.get('/dropdown/representatives',
+    checkPrivilege('representatives', 'view'),
+    getRepresentativesForDropdown
 );
 
 // Get representative by ID
@@ -59,12 +72,6 @@ router.delete('/:id',
     deleteRepresentative
 );
 
-// Get top representatives
-router.get('/top/representatives',
-    checkPrivilege('representatives', 'view'),
-    getTopRepresentatives
-);
-
 // Get representative statistics
 router.get('/:id/stats',
     validate({ params: representativeIdSchema }),
@@ -77,12 +84,6 @@ router.post('/:id/recalculate',
     validate({ params: representativeIdSchema }),
     checkPrivilege('representatives', 'update'),
     recalculateCounts
-);
-
-// Get representatives for dropdown (active only)
-router.get('/dropdown/representatives',
-    checkPrivilege('representatives', 'view'),
-    getRepresentativesForDropdown
 );
 
 export default router; 

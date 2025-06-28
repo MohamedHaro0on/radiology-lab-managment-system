@@ -159,6 +159,7 @@ export const patientHistoryAPI = createCrudService('patient-history');
 // Export axios instance for custom requests
 export { axiosInstance };
 
+// Branch service
 export const branchAPI = {
     getActiveBranches: () => axiosInstance.get('/branches/active'),
     getAllBranches: () => axiosInstance.get('/branches'),
@@ -166,4 +167,17 @@ export const branchAPI = {
     createBranch: (branchData) => axiosInstance.post('/branches', branchData),
     updateBranch: (id, branchData) => axiosInstance.patch(`/branches/${id}`, branchData),
     deleteBranch: (id) => axiosInstance.delete(`/branches/${id}`),
+};
+
+// Representative service
+export const representativeAPI = {
+    getAllRepresentatives: (params) => axiosInstance.get('/representatives', { params }),
+    getRepresentativeById: (id) => axiosInstance.get(`/representatives/${id}`),
+    createRepresentative: (data) => axiosInstance.post('/representatives', data),
+    updateRepresentative: (id, data) => axiosInstance.put(`/representatives/${id}`, data),
+    deleteRepresentative: (id) => axiosInstance.delete(`/representatives/${id}`),
+    getTopRepresentatives: (params) => axiosInstance.get('/representatives/top/representatives', { params }),
+    getRepresentativeStats: (id) => axiosInstance.get(`/representatives/${id}/stats`),
+    recalculateCounts: (id) => axiosInstance.post(`/representatives/${id}/recalculate`),
+    getRepresentativesForDropdown: () => axiosInstance.get('/representatives/dropdown/representatives'),
 }; 

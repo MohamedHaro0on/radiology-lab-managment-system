@@ -17,6 +17,7 @@ const PATH_TO_MODULE = {
     '/api/expenses': 'expenses',
     '/api/dashboard': 'dashboard',
     '/api/branches': 'branches',
+    '/api/representatives': 'representatives',
     '/api/meta': null // Meta routes don't need privilege checking
 };
 

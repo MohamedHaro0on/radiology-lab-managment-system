@@ -57,7 +57,13 @@ export const createRepresentative = async (req, res) => {
 // Get all representatives with pagination and filtering
 export const getAllRepresentatives = async (req, res) => {
     try {
-        const { page, limit, search, isActive, sortBy, sortOrder } = req.query;
+        // Provide defaults and parse safely
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const search = req.query.search || '';
+        const isActive = req.query.isActive;
+        const sortBy = req.query.sortBy || 'createdAt';
+        const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
         const query = {};
 
@@ -76,14 +82,14 @@ export const getAllRepresentatives = async (req, res) => {
         }
 
         const sortOptions = {};
-        sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        if (sortBy) sortOptions[sortBy] = sortOrder;
 
         const result = await executePaginatedQuery(
             Representative,
             query,
             {
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page,
+                limit,
                 sort: sortOptions
             }
         );

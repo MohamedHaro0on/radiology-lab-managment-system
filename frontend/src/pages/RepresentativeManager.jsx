@@ -76,11 +76,11 @@ const RepresentativeManager = () => {
             };
 
             const response = await representativeService.getAllRepresentatives(params);
-            setRepresentatives(response.data.docs);
+            setRepresentatives(response.data.data.representatives || []);
             setPagination(prev => ({
                 ...prev,
-                total: response.data.totalDocs,
-                totalPages: response.data.totalPages
+                total: response.data.data.pagination.total,
+                totalPages: response.data.data.pagination.totalPages
             }));
         } catch (error) {
             console.error('Error fetching representatives:', error);

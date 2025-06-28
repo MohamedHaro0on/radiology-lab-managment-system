@@ -6,8 +6,14 @@ A robust backend system for managing a radiology laboratory, built with Node.js,
 
 - **Authentication & Authorization**
   - JWT-based authentication
-  - Role-based access control
-  - Privilege management system
+  - 2FA (Two-Factor Authentication) for login and registration
+  - Role-based access control (superAdmin, admin, etc.)
+  - Privilege management system (per-module, per-operation)
+  - SuperAdmin management
+
+- **Audit Logging**
+  - Tracks all critical actions (create, update, delete)
+  - Viewable via audit log endpoints and frontend
 
 - **Patient Management**
   - Patient registration and profile management
@@ -37,18 +43,23 @@ A robust backend system for managing a radiology laboratory, built with Node.js,
   - Expiry date monitoring
   - Supplier management
 
+- **Representatives Management**
+  - CRUD for representatives
+  - Pagination, filtering, and sorting
+  - Statistics and audit logs
+
 - **Reporting**
   - Appointment statistics
   - Revenue tracking
   - Inventory reports
-  - Doctor performance metrics
+  - Doctor and representative performance metrics
 
 ## Tech Stack
 
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Database**: MongoDB with Mongoose
-- **Authentication**: JWT
+- **Authentication**: JWT, 2FA
 - **Validation**: Joi
 - **Testing**: Jest
 - **Documentation**: Swagger/OpenAPI
@@ -89,9 +100,23 @@ npm run dev
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/login` - User login
+- `POST /api/auth/login` - User login (username-based, not email)
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/me` - Get current user
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login/2fa` - 2FA verification for login
+- `POST /api/auth/register/verify-2fa` - 2FA verification for registration
+
+### Representatives
+- `GET /api/representatives` - Get all representatives (paginated, filtered)
+- `POST /api/representatives` - Create new representative
+- `GET /api/representatives/:id` - Get representative by ID
+- `PUT /api/representatives/:id` - Update representative
+- `DELETE /api/representatives/:id` - Delete representative
+- `GET /api/representatives/top/representatives` - Get top representatives
+- `GET /api/representatives/:id/stats` - Get representative statistics
+- `POST /api/representatives/:id/recalculate` - Recalculate counts
+- `GET /api/representatives/dropdown/representatives` - Get active representatives for dropdown
 
 ### Patients
 - `GET /api/patients` - Get all patients
@@ -141,6 +166,10 @@ npm run dev
 - `DELETE /api/stock/:id` - Delete stock item
 - `GET /api/stock/low` - Get low stock items
 - `GET /api/stock/expired` - Get expired items
+
+### Audit Logs
+- `GET /api/audit/appointments` - Get appointment audit logs
+- `GET /api/audit/stats` - Get audit statistics
 
 ## Data Models
 
@@ -194,6 +223,16 @@ npm run dev
 - Location
 - Last updated by
 
+### Representative
+- Name
+- Age
+- ID (unique)
+- Phone number
+- Patients count
+- Doctors count
+- isActive
+- Notes
+
 ## Error Handling
 
 The API uses a centralized error handling system with the following error types:
@@ -214,23 +253,40 @@ All list endpoints support pagination with the following query parameters:
 
 ## Response Format
 
-Standard response format:
+Standard response format for paginated endpoints:
 ```json
 {
+  "success": true,
+  "message": "Representatives retrieved successfully",
+  "data": {
     "status": "success",
     "data": {
-        "resourceName": [...],
-        "pagination": {
-            "total": 100,
-            "page": 1,
-            "limit": 10,
-            "totalPages": 10,
-            "hasNextPage": true,
-            "hasPrevPage": false
-        }
+      "representatives": [ ... ],
+      "pagination": {
+        "total": 0,
+        "page": 1,
+        "limit": 10,
+        "totalPages": 0,
+        "hasNextPage": false,
+        "hasPrevPage": false
+      }
     }
+  }
 }
 ```
+
+## Frontend Integration
+
+- The frontend expects the representatives array at `response.data.data.representatives`.
+- If you see `Cannot read properties of undefined (reading 'map')`, check the response structure and update the frontend to use the correct path.
+- The frontend uses an axios interceptor to attach the JWT token to all requests. If you get redirected to login, your token may be missing or expired.
+
+## Troubleshooting
+
+- **500 Internal Server Error**: Usually caused by missing privilege middleware, route conflicts, or invalid query parameters. Check backend logs for details.
+- **401 Unauthorized**: Ensure the JWT token is valid and not expired. The backend must use the same `JWT_SECRET` as the token was signed with.
+- **Frontend map error**: Update your frontend to use the correct response path for representatives: `response.data.data.representatives`.
+- **SuperAdmin access**: Make sure your user has `userType: 'superAdmin'` and `isSuperAdmin: true` in the database.
 
 ## Development
 
