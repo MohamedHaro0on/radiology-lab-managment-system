@@ -8,6 +8,8 @@ import PatientHistory from '../models/PatientHistory.js';
 import { executePaginatedQuery } from '../utils/pagination.js';
 import websocketManager from '../utils/websocket.js';
 import Radiologist from '../models/Radiologist.js';
+import { logAudit } from '../services/auditService.js';
+import Audit from '../models/Audit.js';
 
 // @desc    Create a new appointment
 // @route   POST /api/appointments
@@ -21,13 +23,15 @@ import Radiologist from '../models/Radiologist.js';
 //   }],
 //   referredBy: ObjectId (required, ref: Doctor),
 //   scheduledAt: Date (required),
-//   notes: string (optional)
+//   notes: string (optional),
+//   makeHugeSale: boolean (optional),
+//   customPrice: number (optional, required if makeHugeSale is true)
 // }
 // @returns Created appointment object
 // @note    Increments totalScansReferred for referring doctor
 export const createAppointment = asyncHandler(async (req, res, next) => {
     try {
-        const { radiologistId, patientId, scans, referredBy, scheduledAt, notes } = req.body;
+        const { radiologistId, patientId, scans, referredBy, scheduledAt, notes, branch, makeHugeSale, customPrice } = req.body;
 
         // Check if radiologist, patient, and doctor exist
         const [radiologist, patient, doctor] = await Promise.all([
@@ -66,9 +70,25 @@ export const createAppointment = asyncHandler(async (req, res, next) => {
             throw errors.Conflict('Time slot is already booked');
         }
 
+        // Validate huge sale privilege and custom price
+        if (makeHugeSale) {
+            const hasHugeSalePrivilege = req.user.privileges?.some(p =>
+                p.module === 'appointments' && p.operation === 'makeHugeSale'
+            );
+
+            if (!hasHugeSalePrivilege) {
+                throw errors.Forbidden('You do not have permission to make huge sales');
+            }
+
+            if (!customPrice || customPrice <= 0) {
+                throw errors.BadRequest('Custom price is required and must be greater than 0 for huge sales');
+            }
+        }
+
         const appointmentData = {
             radiologistId,
             patientId,
+            branch,
             scans,
             referredBy,
             scheduledAt,
@@ -78,7 +98,30 @@ export const createAppointment = asyncHandler(async (req, res, next) => {
         };
 
         const appointment = new Appointment(appointmentData);
+
+        // If huge sale is enabled, override the calculated price
+        if (makeHugeSale && customPrice) {
+            appointment.price = customPrice;
+            appointment.cost = 0; // We'll calculate this based on scans
+            appointment.profit = customPrice - appointment.cost;
+        } else {
+            // Calculate financials normally
+            await appointment.calculateFinancials();
+        }
+
         await appointment.save();
+
+        // Log audit trail
+        await logAudit({
+            user: req.user._id,
+            action: 'CREATE',
+            entityId: appointment._id,
+            changes: {
+                ...appointment.toObject(),
+                makeHugeSale: makeHugeSale || false,
+                customPrice: customPrice || null
+            }
+        });
 
         // Increment doctor's total scans referred
         await doctor.incrementScansReferred();
@@ -129,6 +172,7 @@ export const getAllAppointments = asyncHandler(async (req, res) => {
         endDate,
         patientId,
         doctorId,
+        representativeId,
         ...paginationOptions
     } = req.query;
 
@@ -158,6 +202,9 @@ export const getAllAppointments = asyncHandler(async (req, res) => {
     }
     if (doctorId) {
         query.referredBy = doctorId;
+    }
+    if (representativeId) {
+        query.representative = representativeId;
     }
 
     const result = await executePaginatedQuery(
@@ -214,7 +261,9 @@ export const getAppointment = asyncHandler(async (req, res) => {
 //   },
 //   type: string (optional),
 //   priority: enum['routine', 'urgent', 'emergency'] (optional),
-//   notes: string (optional)
+//   notes: string (optional),
+//   makeHugeSale: boolean (optional),
+//   customPrice: number (optional, required if makeHugeSale is true)
 // }
 // @returns Updated appointment object
 // @note    Cannot update completed, cancelled, or no-show appointments
@@ -225,9 +274,28 @@ export const updateAppointment = asyncHandler(async (req, res) => {
         throw errors.NotFound('Appointment not found');
     }
 
+    // Store original document for comparison
+    const originalAppointment = appointment.toObject();
+
     // Check if appointment can be updated
     if (['completed', 'cancelled', 'no-show'].includes(appointment.status)) {
         throw errors.BadRequest('Cannot update a completed, cancelled, or no-show appointment');
+    }
+
+    // Validate huge sale privilege and custom price if provided
+    const { makeHugeSale, customPrice } = req.body;
+    if (makeHugeSale) {
+        const hasHugeSalePrivilege = req.user.privileges?.some(p =>
+            p.module === 'appointments' && p.operation === 'makeHugeSale'
+        );
+
+        if (!hasHugeSalePrivilege) {
+            throw errors.Forbidden('You do not have permission to make huge sales');
+        }
+
+        if (!customPrice || customPrice <= 0) {
+            throw errors.BadRequest('Custom price is required and must be greater than 0 for huge sales');
+        }
     }
 
     // If updating date or time, check for conflicts
@@ -245,24 +313,42 @@ export const updateAppointment = asyncHandler(async (req, res) => {
     }
 
     // Update appointment
-    const updatedAppointment = await Appointment.findByIdAndUpdate(
-        req.params.id,
-        {
-            $set: {
-                ...req.body,
-                updatedBy: req.user._id
+    Object.assign(appointment, req.body);
+    appointment.updatedBy = req.user._id;
+
+    // Handle huge sale pricing
+    if (makeHugeSale && customPrice) {
+        appointment.price = customPrice;
+        // Recalculate cost based on scans
+        await appointment.calculateFinancials();
+        appointment.price = customPrice; // Override the calculated price
+        appointment.profit = customPrice - appointment.cost;
+    } else if (req.body.scans) {
+        // If scans were updated, recalculate financials
+        await appointment.calculateFinancials();
+    }
+
+    const updatedAppointment = await appointment.save();
+
+    // Log audit trail
+    await logAudit({
+        user: req.user._id,
+        action: 'UPDATE',
+        entityId: updatedAppointment._id,
+        changes: {
+            before: originalAppointment,
+            after: {
+                ...updatedAppointment.toObject(),
+                makeHugeSale: makeHugeSale || false,
+                customPrice: customPrice || null
             }
-        },
-        { new: true, runValidators: true }
-    ).populate([
-        { path: 'patient', select: 'firstName lastName email phoneNumber' },
-        { path: 'doctor', select: 'firstName lastName specialization' },
-        { path: 'updatedBy', select: 'username email' }
-    ]);
+        }
+    });
 
     res.status(StatusCodes.OK).json({
         status: 'success',
-        data: updatedAppointment
+        message: 'Appointment updated successfully',
+        data: updatedAppointment.info
     });
 });
 
@@ -288,6 +374,8 @@ export const updateAppointmentStatus = asyncHandler(async (req, res) => {
         throw errors.NotFound('Appointment not found');
     }
 
+    const originalStatus = appointment.status;
+
     // Validate status transition
     const validTransitions = {
         'scheduled': ['confirmed', 'cancelled'],
@@ -311,6 +399,17 @@ export const updateAppointmentStatus = asyncHandler(async (req, res) => {
     appointment.status = status;
     appointment.updatedBy = req.user._id;
     await appointment.save();
+
+    // Log audit trail
+    await logAudit({
+        user: req.user._id,
+        action: 'STATUS_CHANGE',
+        entityId: appointment._id,
+        changes: {
+            from: originalStatus,
+            to: status
+        }
+    });
 
     // If appointment is completed, create a patient history record
     if (status === 'completed') {
@@ -358,7 +457,18 @@ export const deleteAppointment = asyncHandler(async (req, res) => {
         throw errors.BadRequest('Can only delete scheduled appointments');
     }
 
+    const deletedAppointment = appointment.toObject();
     await appointment.deleteOne();
+
+    // Log audit trail
+    await logAudit({
+        user: req.user._id,
+        action: 'DELETE',
+        entityId: deletedAppointment._id,
+        changes: {
+            deleted: deletedAppointment
+        }
+    });
 
     res.status(StatusCodes.OK).json({
         status: 'success',
@@ -409,4 +519,20 @@ export const getAppointmentsByDateRange = asyncHandler(async (req, res) => {
     );
 
     res.status(StatusCodes.OK).json(result);
+});
+
+// @desc    Get audit history for an appointment
+// @route   GET /api/appointments/:id/history
+// @access  Private
+export const getAppointmentHistory = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const history = await Audit.find({ entityId: id })
+        .populate('user', 'username email')
+        .sort({ createdAt: 'desc' });
+
+    res.status(StatusCodes.OK).json({
+        status: 'success',
+        data: history
+    });
 }); 

@@ -1,4 +1,6 @@
 import express from 'express';
+import { auth } from '../middleware/auth.js';
+import { autoCheckPrivileges } from '../middleware/privilege.js';
 import {
     createCategory,
     getCategories,
@@ -7,26 +9,25 @@ import {
     deleteCategory,
     getCategoryStats
 } from '../controllers/scanCategoryController.js';
-// import { checkPrivilege } from '../middleware/privilege.js'; // Temporarily disabled
 import { MODULES } from '../config/privileges.js';
 
 const router = express.Router();
 
-// Apply privilege middleware to all routes (temporarily disabled)
-// router.use(checkPrivilege('scanCategories', 'view'));
+router.use(auth);
+router.use(autoCheckPrivileges);
 
 // Get all categories and create new category
 router.route('/')
     .get(getCategories)
-    .post(/* checkPrivilege('scanCategories', 'create'), */ createCategory);
+    .post(createCategory);
 
 // Get category statistics
-router.get('/stats', /* checkPrivilege('scanCategories', 'view'), */ getCategoryStats);
+router.get('/stats', getCategoryStats);
 
 // Get, update, and delete a single category
 router.route('/:id')
     .get(getCategory)
-    .put(/* checkPrivilege('scanCategories', 'update'), */ updateCategory)
-    .delete(/* checkPrivilege('scanCategories', 'delete'), */ deleteCategory);
+    .put(updateCategory)
+    .delete(deleteCategory);
 
 export default router; 

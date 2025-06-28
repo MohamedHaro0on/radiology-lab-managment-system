@@ -51,71 +51,60 @@ export const AuthProvider = ({ children }) => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    // Temporarily simulate authenticated user for development
-    const mockUser = {
-      id: '68308e45f146969854313e30',
-      username: 'admin',
-      email: 'admin@example.com',
-      isActive: true,
-      isSuperAdmin: true,
-      privileges: [
-        { module: 'users', permissions: ['view', 'create', 'update', 'delete'] },
-        { module: 'patients', permissions: ['view', 'create', 'update', 'delete'] },
-        { module: 'doctors', permissions: ['view', 'create', 'update', 'delete'] },
-        { module: 'appointments', permissions: ['view', 'create', 'update', 'delete'] }
-      ],
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours from now
-    };
-    
-    const mockToken = 'mock-jwt-token-for-development';
-    
-    // Set mock authentication data
-    localStorage.setItem('token', mockToken);
-    setToken(mockToken);
-    setUser(mockUser);
-    setLoading(false);
-    
-    // Original authentication logic (commented out)
-    /*
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      try {
-        const decoded = jwtDecode(storedToken);
-        if (decoded.exp && decoded.exp * 1000 > Date.now()) {
-          setUser(decoded);
-          setToken(storedToken);
-        } else {
+    const validateTokenAndFetchUser = async () => {
+      console.log('AuthContext: Starting token validation...');
+      const storedToken = localStorage.getItem('token');
+      console.log('AuthContext: Stored token exists:', !!storedToken);
+      
+      if (storedToken) {
+        try {
+          const decoded = jwtDecode(storedToken);
+          console.log('AuthContext: Token decoded successfully');
+          console.log('AuthContext: Token expiration:', new Date(decoded.exp * 1000));
+          console.log('AuthContext: Current time:', new Date());
+          console.log('AuthContext: Token is valid:', decoded.exp && decoded.exp * 1000 > Date.now());
+          
+          if (decoded.exp && decoded.exp * 1000 > Date.now()) {
+            setToken(storedToken);
+            console.log('AuthContext: Token is valid, fetching user profile...');
+            // Token is valid, now fetch user profile
+            const response = await authAPI.getProfile();
+            console.log('AuthContext: User profile fetched:', response.data);
+            setUser(response.data.user);
+          } else {
+            console.log('AuthContext: Token expired, removing from localStorage');
+            // Token expired
+            localStorage.removeItem('token');
+          }
+        } catch (error) {
+          console.error('AuthContext: Error validating token:', error);
+          // Invalid token
           localStorage.removeItem('token');
         }
-      } catch (error) {
-        localStorage.removeItem('token');
       }
-    }
-    setLoading(false);
-    */
+      console.log('AuthContext: Setting loading to false');
+      setLoading(false);
+    };
+
+    validateTokenAndFetchUser();
   }, []);
 
   /**
    * Login function
-   * @param {string} email - User email
-   * @param {string} password - User password
+   * @param {string} token - The JWT token
+   * @param {object} userData - The user object from the API
    * @returns {Promise<void>}
    */
-  const login = async (email, password) => {
-    try {
-      const response = await authAPI.login({ email, password });
-      const { token: newToken, user: userData } = response;  // Expect both token and user data from login
-      
-      // Store token and user data
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-      setUser(userData);
-      
-      toast.success(t('auth.loginSuccess'));
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('auth.loginError'));
-      throw error;
-    }
+  const login = async (token, userData) => {
+    console.log('AuthContext: Login function called');
+    console.log('AuthContext: Token:', token ? 'exists' : 'missing');
+    console.log('AuthContext: User data:', userData);
+    
+    localStorage.setItem('token', token);
+    setToken(token);
+    setUser(userData);
+    
+    console.log('AuthContext: Login completed - token and user set');
   };
 
   const logout = () => {
@@ -125,10 +114,19 @@ export const AuthProvider = ({ children }) => {
     // Temporarily redirect to dashboard instead of login since login routes are disabled
   };
 
+  // Helper function to check if user is super admin
+  const isSuperAdmin = user?.userType === 'superAdmin' || user?.isSuperAdmin === true;
+  
+  console.log('AuthContext: Current user:', user);
+  console.log('AuthContext: User userType:', user?.userType);
+  console.log('AuthContext: User isSuperAdmin:', user?.isSuperAdmin);
+  console.log('AuthContext: isSuperAdmin calculated:', isSuperAdmin);
+
   const value = {
     user,
     token,
     isAuthenticated: !!token,
+    isSuperAdmin,
     login,
     logout,
     loading

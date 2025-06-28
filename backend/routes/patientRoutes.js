@@ -1,5 +1,6 @@
 import express from 'express';
-// import { auth } from '../middleware/auth.js'; // Temporarily disabled
+import { auth } from '../middleware/auth.js'; // Temporarily disabled
+import { autoCheckPrivileges } from '../middleware/privilege.js';
 import {
     validatePatientBody,
     validatePatientParams,
@@ -14,7 +15,8 @@ import Joi from 'joi';
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-// router.use(auth);
+router.use(auth);
+router.use(autoCheckPrivileges);
 
 // Create new patient
 router.post('/', validatePatientBody(createPatientSchema), patientController.createPatient);

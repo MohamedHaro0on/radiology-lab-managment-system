@@ -4,18 +4,22 @@ import {
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, CircularProgress, IconButton, Snackbar, Alert, Box, Chip,
   FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent,
-  Tabs, Tab, Pagination, InputAdornment, Tooltip, Fab
+  Tabs, Tab, Pagination, InputAdornment, Tooltip, Fab, FormControlLabel, Switch
 } from '@mui/material';
 import {
   Add, Edit, Delete, Search, FilterList, CalendarMonth, 
   Schedule, Refresh,
-  CheckCircle, Cancel, Pending, Warning
+  CheckCircle, Cancel, Pending, Warning,
+  History as HistoryIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { appointmentAPI, patientAPI, doctorAPI, radiologistAPI } from '../../services/api';
+import { appointmentAPI, patientAPI, doctorAPI, radiologistAPI, branchAPI, scanAPI } from '../../services/api';
+import { representativeService } from '../../services/representativeService';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 // Status color mapping
 const statusColors = {
@@ -41,19 +45,24 @@ const statusIcons = {
 };
 
 // Advanced Appointment Form Component
-function AppointmentForm({ open, onClose, onSubmit, initialData, patients, doctors, radiologists }) {
+function AppointmentForm({ open, onClose, onSubmit, initialData, patients, doctors, radiologists, branches, scans }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [form, setForm] = useState(initialData || {
     radiologistId: '',
     patientId: '',
     scans: [{ scan: '', quantity: 1 }],
     referredBy: '',
+    branch: '',
     scheduledAt: '',
     notes: '',
-    priority: 'routine'
+    priority: 'routine',
+    makeHugeSale: false,
+    customPrice: null
   });
 
   const [errors, setErrors] = useState({});
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
 
   useEffect(() => {
     setForm(initialData || {
@@ -61,16 +70,32 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
       patientId: '',
       scans: [{ scan: '', quantity: 1 }],
       referredBy: '',
+      branch: '',
       scheduledAt: '',
       notes: '',
-      priority: 'routine'
+      priority: 'routine',
+      makeHugeSale: false,
+      customPrice: null
     });
     setErrors({});
   }, [initialData, open]);
 
+  // Check if user has makeHugeSale privilege
+  const hasHugeSalePrivilege = user?.privileges?.some(p => 
+    p.module === 'appointments' && p.operation === 'makeHugeSale'
+  );
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    
+    setForm(prev => ({ ...prev, [name]: newValue }));
+    
+    // If makeHugeSale is unchecked, clear customPrice
+    if (name === 'makeHugeSale' && !checked) {
+      setForm(prev => ({ ...prev, customPrice: null }));
+    }
+    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -104,6 +129,12 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
     if (!form.patientId) newErrors.patientId = t('appointments.patientRequired');
     if (!form.referredBy) newErrors.referredBy = t('appointments.referredByRequired');
     if (!form.scheduledAt) newErrors.scheduledAt = t('appointments.dateRequired');
+    if (!form.branch) newErrors.branch = t('appointments.branchRequired');
+    
+    // Validate custom price if huge sale is enabled
+    if (form.makeHugeSale && (!form.customPrice || form.customPrice <= 0)) {
+      newErrors.customPrice = 'Custom price is required and must be greater than 0';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -142,6 +173,24 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
               </FormControl>
             </Grid>
             
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.branch}>
+                <InputLabel>{t('appointments.branch')}</InputLabel>
+                <Select
+                  name="branch"
+                  value={form.branch}
+                  onChange={handleChange}
+                  label={t('appointments.branch')}
+                >
+                  {branches.map(b => (
+                    <MenuItem key={b._id} value={b._id}>
+                      {b.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
             <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.referredBy}>
                 <InputLabel>{t('appointments.referredBy')}</InputLabel>
@@ -212,6 +261,41 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
               </LocalizationProvider>
             </Grid>
 
+            {/* Huge Sale Section */}
+            {hasHugeSalePrivilege && (
+              <>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={form.makeHugeSale}
+                        onChange={handleChange}
+                        name="makeHugeSale"
+                        color="primary"
+                      />
+                    }
+                    label="Make Huge Sale (Override Minimum Price)"
+                  />
+                </Grid>
+                
+                {form.makeHugeSale && (
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      name="customPrice"
+                      label="Custom Total Price"
+                      value={form.customPrice || ''}
+                      onChange={handleChange}
+                      error={!!errors.customPrice}
+                      helperText={errors.customPrice || 'Enter the total price for this appointment'}
+                      inputProps={{ min: 0, step: 0.01 }}
+                    />
+                  </Grid>
+                )}
+              </>
+            )}
+
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>{t('navigation.scans')}</Typography>
               {form.scans.map((scan, index) => (
@@ -223,10 +307,11 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
                     onChange={(e) => handleScanChange(index, 'scan', e.target.value)}
                     sx={{ flexGrow: 1 }}
                   >
-                    <MenuItem value="xray">{t('appointments.types.xray')}</MenuItem>
-                    <MenuItem value="mri">{t('appointments.types.mri')}</MenuItem>
-                    <MenuItem value="ct">{t('appointments.types.ct')}</MenuItem>
-                    <MenuItem value="ultrasound">{t('appointments.types.ultrasound')}</MenuItem>
+                    {scans.map(s => (
+                      <MenuItem key={s._id} value={s._id}>
+                        {s.name} - ${s.minPrice}
+                      </MenuItem>
+                    ))}
                   </TextField>
                   <TextField
                     type="number"
@@ -275,10 +360,14 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
 // Main Appointments Component
 export default function Appointments() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [radiologists, setRadiologists] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [scans, setScans] = useState([]);
+  const [representatives, setRepresentatives] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editData, setEditData] = useState(null);
@@ -292,7 +381,8 @@ export default function Appointments() {
     startDate: null,
     endDate: null,
     patientId: '',
-    doctorId: ''
+    doctorId: '',
+    representativeId: ''
   });
   const [pagination, setPagination] = useState({
     page: 1,
@@ -313,19 +403,26 @@ export default function Appointments() {
         ...(filters.status ? { status: filters.status } : {}),
         ...(filters.patientId ? { patientId: filters.patientId } : {}),
         ...(filters.doctorId ? { doctorId: filters.doctorId } : {}),
+        ...(filters.representativeId ? { representativeId: filters.representativeId } : {}),
         ...(filters.startDate ? { startDate: filters.startDate } : {}),
         ...(filters.endDate ? { endDate: filters.endDate } : {}),
       };
-      const [aptRes, patRes, docRes, radRes] = await Promise.all([
+      const [aptRes, patRes, docRes, radRes, branchRes, scansRes, repsRes] = await Promise.all([
         appointmentAPI.getAll(params),
-        patientAPI.getAll(),
-        doctorAPI.getAll(),
-        radiologistAPI.getAll()
+        patientAPI.getAllPatients({ limit: 1000 }),
+        doctorAPI.getAllDoctors({ limit: 1000 }),
+        radiologistAPI.getAllRadiologists({ limit: 1000 }),
+        branchAPI.getActiveBranches(),
+        scanAPI.getAllScans({ limit: 1000 }),
+        representativeService.getRepresentativesForDropdown()
       ]);
       setAppointments(aptRes.data.data?.appointments || aptRes.data.appointments || aptRes.data || []);
-      setPatients(patRes.data.data?.patients || patRes.data.patients || patRes.data || []);
-      setDoctors(docRes.data.data?.doctors || docRes.data.doctors || docRes.data || []);
-      setRadiologists(radRes.data.data?.radiologists || radRes.data.radiologists || radRes.data || []);
+      setPatients(patRes.data.data);
+      setDoctors(docRes.data.data);
+      setRadiologists(radRes.data.data);
+      setBranches(branchRes.data.data);
+      setScans(scansRes.data.data);
+      setRepresentatives(repsRes.data);
       if (aptRes.data.data?.pagination || aptRes.data.pagination) {
         const paginationData = aptRes.data.data?.pagination || aptRes.data.pagination;
         setPagination(prev => ({ ...prev, total: paginationData.total }));
@@ -394,6 +491,15 @@ export default function Appointments() {
     
     return { total, completed, pending, cancelled };
   }, [appointments]);
+
+  const handleEdit = (appointment) => {
+    setEditData(appointment);
+    setFormOpen(true);
+  };
+
+  const handleViewHistory = (id) => {
+    navigate(`/appointments/${id}/history`);
+  };
 
   if (loading && appointments.length === 0) {
     return (
@@ -553,6 +659,23 @@ export default function Appointments() {
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>{t('representatives.title')}</InputLabel>
+              <Select
+                value={filters.representativeId}
+                onChange={(e) => handleFilterChange('representativeId', e.target.value)}
+                label={t('representatives.title')}
+              >
+                <MenuItem value="">{t('representatives.allRepresentatives')}</MenuItem>
+                {representatives.map(r => (
+                  <MenuItem key={r._id} value={r._id}>
+                    {r.name} ({r.id})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
           <Grid item xs={12} md={3}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -595,9 +718,11 @@ export default function Appointments() {
                 <TableCell>{t('appointments.patient')}</TableCell>
                 <TableCell>{t('appointments.doctor')}</TableCell>
                 <TableCell>{t('appointments.radiologist')}</TableCell>
+                <TableCell>{t('appointments.branch')}</TableCell>
                 <TableCell>{t('appointments.dateTime')}</TableCell>
                 <TableCell>{t('common.status')}</TableCell>
                 <TableCell>{t('appointments.priorityLabel')}</TableCell>
+                <TableCell>{t('common.price')}</TableCell>
                 <TableCell>{t('navigation.scans')}</TableCell>
                 <TableCell align="right">{t('common.actions')}</TableCell>
               </TableRow>
@@ -636,6 +761,11 @@ export default function Appointments() {
                     </Box>
                   </TableCell>
                   <TableCell>
+                    <Typography variant="body2">
+                      {apt.branch?.name || 'Unknown Branch'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
                     {apt.scheduledAt ? new Date(apt.scheduledAt).toLocaleString() : ''}
                   </TableCell>
                   <TableCell>
@@ -655,17 +785,36 @@ export default function Appointments() {
                   </TableCell>
                   <TableCell>
                     <Box>
-                      {apt.scans?.map((scan, index) => (
-                        <Typography key={index} variant="caption" display="block">
-                          {t(`appointments.types.${scan.scan}`) || scan.scan} (x{scan.quantity})
-                        </Typography>
-                      ))}
+                      <Typography variant="body2" fontWeight="bold">
+                        ${apt.price?.toFixed(2) || '0.00'}
+                      </Typography>
+                      {apt.makeHugeSale && (
+                        <Chip
+                          label="Huge Sale"
+                          color="secondary"
+                          size="small"
+                          variant="outlined"
+                          sx={{ mt: 0.5 }}
+                        />
+                      )}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      {apt.scans?.map((scanItem, index) => {
+                        const scanData = scans.find(s => s._id === scanItem.scan);
+                        return (
+                          <Typography key={index} variant="caption" display="block">
+                            {scanData?.name || 'Unknown Scan'} (x{scanItem.quantity})
+                          </Typography>
+                        );
+                      })}
                     </Box>
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title={t('common.edit')}>
                       <IconButton 
-                        onClick={() => { setEditData(apt); setFormOpen(true); }}
+                        onClick={() => handleEdit(apt)}
                         size="small"
                       >
                         <Edit />
@@ -680,12 +829,20 @@ export default function Appointments() {
                         <Delete />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title={t('appointments.viewHistory')}>
+                      <IconButton 
+                        onClick={() => handleViewHistory(apt._id)}
+                        size="small"
+                      >
+                        <HistoryIcon />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
               {appointments.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={10} align="center">
                     <Typography variant="body1" color="textSecondary">
                       {t('appointments.noAppointmentsFound')}
                     </Typography>
@@ -728,6 +885,8 @@ export default function Appointments() {
         patients={patients}
         doctors={doctors}
         radiologists={radiologists}
+        branches={branches}
+        scans={scans}
       />
 
       {/* Delete Confirmation */}

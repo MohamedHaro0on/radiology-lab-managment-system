@@ -9,10 +9,22 @@ const stockSchema = new mongoose.Schema({
         minlength: [2, 'Stock name must be at least 2 characters long'],
         maxlength: [100, 'Stock name cannot exceed 100 characters']
     },
+    branch: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Branch',
+        required: [true, 'Branch is required']
+    },
     quantity: {
         type: Number,
         required: [true, 'Quantity is required'],
         min: [0, 'Quantity cannot be negative']
+    },
+    unit: {
+        type: String,
+        required: [true, 'Unit is required'],
+        trim: true,
+        maxlength: [20, 'Unit cannot exceed 20 characters'],
+        default: 'pcs'
     },
     minimumThreshold: {
         type: Number,
@@ -52,6 +64,8 @@ stockSchema.index({ name: 1 });
 stockSchema.index({ quantity: 1 });
 stockSchema.index({ isActive: 1 });
 stockSchema.index({ validUntil: 1 });
+stockSchema.index({ branch: 1 });
+stockSchema.index({ unit: 1 });
 
 // Virtual for checking if item is low in stock
 stockSchema.virtual('isLowStock').get(function () {
@@ -61,6 +75,11 @@ stockSchema.virtual('isLowStock').get(function () {
 // Virtual for checking if item is expired
 stockSchema.virtual('isExpired').get(function () {
     return new Date() > this.validUntil;
+});
+
+// Virtual for formatted quantity with unit
+stockSchema.virtual('formattedQuantity').get(function () {
+    return `${this.quantity} ${this.unit}`;
 });
 
 // Method to update quantity

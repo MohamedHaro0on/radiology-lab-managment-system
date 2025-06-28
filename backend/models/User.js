@@ -20,6 +20,11 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
     },
+    userType: {
+        type: String,
+        enum: ['admin', 'manager', 'doctor', 'staff', 'superAdmin'],
+        default: 'staff'
+    },
     password: {
         type: String,
         required: [true, 'Password is required'],
@@ -209,7 +214,6 @@ userSchema.methods.grantPrivilege = async function (module, operations, grantedB
             });
         }
 
-        await this.save();
         return this;
     } catch (error) {
         throw errors.BadRequest(error.message);
@@ -241,7 +245,6 @@ userSchema.methods.revokePrivilege = async function (module, operations) {
             this.privileges = this.privileges.filter(p => p.module !== module);
         }
 
-        await this.save();
         return this;
     } catch (error) {
         throw errors.BadRequest(error.message);
@@ -270,12 +273,15 @@ userSchema.statics.findByCredentials = async function (email, password) {
     return user;
 };
 
-// Default privileges for new users (view privileges for stock, appointments, doctors, patients)
+// Default privileges for new users (view privileges for stock, appointments, doctors, patients, branches, users)
 const DEFAULT_VIEW_PRIVILEGES = [
     { module: 'stock', operations: ['view'] },
     { module: 'appointments', operations: ['view'] },
     { module: 'doctors', operations: ['view'] },
-    { module: 'patients', operations: ['view'] }
+    { module: 'patients', operations: ['view'] },
+    { module: 'branches', operations: ['view'] },
+    { module: 'representatives', operations: ['view'] },
+    { module: 'users', operations: ['view'] }
 ];
 
 // Pre-save hook: grant default view privileges to new users (granted by the user's own _id)

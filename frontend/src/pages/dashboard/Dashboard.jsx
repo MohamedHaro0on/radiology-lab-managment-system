@@ -62,13 +62,18 @@ const Dashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
+      console.log('Dashboard: Starting to fetch analytics...');
       setLoading(true);
       const response = await dashboardAPI.getAnalytics();
+      console.log('Dashboard: Analytics response:', response);
       setAnalytics(response.data.data);
       setError('');
     } catch (err) {
+      console.error('Dashboard: Error fetching analytics:', err);
+      console.error('Dashboard: Error response:', err.response);
       setError(err.response?.data?.message || t('dashboard.fetchError'));
     } finally {
+      console.log('Dashboard: Finished fetching analytics');
       setLoading(false);
     }
   };
@@ -335,6 +340,57 @@ const Dashboard = () => {
                 );
               })}
             </List>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Third Row - Top Representatives */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('dashboard.topRepresentatives')}
+            </Typography>
+            <Grid container spacing={2}>
+              {analytics.topRepresentatives?.map((representative, index) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={representative._id}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <Avatar sx={{ bgcolor: COLORS[index % COLORS.length], mr: 2 }}>
+                          {representative.name.charAt(0)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {representative.name}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            ID: {representative.id}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Box>
+                          <Chip
+                            size="small"
+                            label={`${representative.patientsCount} ${t('representatives.patients')}`}
+                            color="primary"
+                            variant="outlined"
+                            sx={{ mr: 1 }}
+                          />
+                          <Chip
+                            size="small"
+                            label={`${representative.doctorsCount} ${t('representatives.doctors')}`}
+                            color="secondary"
+                            variant="outlined"
+                          />
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
           </Paper>
         </Grid>
       </Grid>

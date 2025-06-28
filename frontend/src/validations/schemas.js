@@ -8,7 +8,7 @@ const passwordRegex = /^.{8,}$/; // Only requires minimum 8 characters
 
 // Auth schemas
 export const loginSchema = yup.object({
-    email: yup.string().email('Invalid email format').required('Email is required'),
+    username: yup.string().required('Username is required'),
     password: yup.string().required('Password is required'),
 });
 
@@ -23,10 +23,11 @@ export const registerSchema = yup.object({
         .string()
         .oneOf([yup.ref('password'), null], 'Passwords must match')
         .required('Confirm password is required'),
+    role: yup.string().oneOf(['user', 'superAdmin'], 'Invalid role').required('Role is required'),
 });
 
 export const twoFactorSchema = yup.object({
-    code: yup
+    token: yup
         .string()
         .matches(/^[0-9]{6}$/, 'Code must be exactly 6 digits')
         .required('Verification code is required'),
@@ -129,6 +130,7 @@ export const appointmentSchema = yup.object({
 export const stockSchema = yup.object({
     name: yup.string().required('Stock name is required'),
     quantity: yup.number().min(0, 'Quantity cannot be negative').required('Quantity is required'),
+    unit: yup.string().max(20, 'Unit cannot exceed 20 characters').required('Unit is required'),
     minimumThreshold: yup.number().min(0, 'Minimum threshold cannot be negative').required('Minimum threshold is required'),
     price: yup.number().min(0, 'Price cannot be negative').required('Price is required'),
     validUntil: yup.date().min(new Date(), 'Valid until date must be in the future').required('Valid until date is required'),

@@ -14,15 +14,10 @@ const axiosInstance = axios.create({
 // Add request interceptor for auth token (temporarily disabled for all calls)
 axiosInstance.interceptors.request.use(
     (config) => {
-        // Temporarily skip auth headers for all calls
-        // if (config.url && config.url.includes('/dashboard')) {
-        //     return config;
-        // }
-
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //     config.headers.Authorization = `Bearer ${token}`;
-        // }
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => Promise.reject(error)
@@ -32,10 +27,10 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response?.status === 401) {
+        // Don't redirect on 401 for login requests
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
             localStorage.removeItem('token');
-            // Temporarily redirect to dashboard instead of login since login routes are disabled
-            window.location.href = '/dashboard';
+            window.location.href = '/login';
         }
         return Promise.reject(error);
     }
@@ -55,13 +50,15 @@ const createCrudService = (endpoint) => ({
 export const authAPI = {
     login: (credentials) => axiosInstance.post('/auth/login', credentials),
     register: (userData) => axiosInstance.post('/auth/register', userData),
+    verifyRegistration2FA: (data) => axiosInstance.post('/auth/register/verify-2fa', data),
+    verifyLogin2FA: (data) => axiosInstance.post('/auth/login/2fa', data),
     logout: () => axiosInstance.post('/auth/logout'),
     refreshToken: () => axiosInstance.post('/auth/refresh-token'),
     setup2FA: () => axiosInstance.post('/auth/2fa/enable'),
     verify2FA: (token) => axiosInstance.post('/auth/2fa/verify', { token }),
     disable2FA: (data) => axiosInstance.post('/auth/2fa/disable', data),
-    getProfile: () => axiosInstance.get('/auth/profile'),
-    updateProfile: (data) => axiosInstance.patch('/auth/profile', data),
+    getProfile: () => axiosInstance.get('/auth/me'),
+    updateProfile: (data) => axiosInstance.patch('/auth/me', data),
     changePassword: (data) => axiosInstance.post('/auth/change-password', data),
     forgotPassword: (email) => {
         return axios.post(`${API_URL}/auth/forgot-password`, { email });
@@ -69,6 +66,27 @@ export const authAPI = {
     resetPassword: (token, password) => {
         return axios.post(`${API_URL}/auth/reset-password`, { token, password });
     },
+};
+
+// User service
+export const userAPI = {
+    getAll: (params) => axiosInstance.get('/users', { params }),
+    getById: (id) => axiosInstance.get(`/users/${id}`),
+    update: (id, data) => axiosInstance.patch(`/users/${id}`, data),
+    delete: (id) => axiosInstance.delete(`/users/${id}`),
+    grantPrivileges: (userId, data) => axiosInstance.post(`/users/${userId}/privileges`, data),
+    revokePrivileges: (userId, data) => axiosInstance.delete(`/users/${userId}/privileges`, { data }),
+};
+
+// Meta service
+export const metaAPI = {
+    getPrivilegeModules: () => axiosInstance.get('/meta/privileges'),
+};
+
+// Audit service
+export const auditAPI = {
+    getAppointmentLogs: (params) => axiosInstance.get('/audit/appointments', { params }),
+    getAuditStats: (params) => axiosInstance.get('/audit/stats', { params }),
 };
 
 // Dashboard service
@@ -88,7 +106,13 @@ export const radiologistAPI = createCrudService('radiologists');
 
 // Appointment service
 export const appointmentAPI = {
-    ...createCrudService('appointments'),
+    getAllAppointments: (params) => axiosInstance.get('/appointments', { params }),
+    getAppointmentById: (id) => axiosInstance.get(`/appointments/${id}`),
+    createAppointment: (appointmentData) => axiosInstance.post('/appointments', appointmentData),
+    updateAppointment: (id, appointmentData) => axiosInstance.patch(`/appointments/${id}`, appointmentData),
+    deleteAppointment: (id) => axiosInstance.delete(`/appointments/${id}`),
+    updateAppointmentStatus: (id, statusData) => axiosInstance.patch(`/appointments/${id}/status`, statusData),
+    getAppointmentHistory: (id) => axiosInstance.get(`/appointments/${id}/history`),
     getByDateRange: (startDate, endDate) =>
         axiosInstance.get('/appointments/date-range', { params: { startDate, endDate } }),
     getByDoctor: (doctorId) =>
@@ -133,4 +157,13 @@ export const scanCategoryAPI = {
 export const patientHistoryAPI = createCrudService('patient-history');
 
 // Export axios instance for custom requests
-export { axiosInstance }; 
+export { axiosInstance };
+
+export const branchAPI = {
+    getActiveBranches: () => axiosInstance.get('/branches/active'),
+    getAllBranches: () => axiosInstance.get('/branches'),
+    getBranchById: (id) => axiosInstance.get(`/branches/${id}`),
+    createBranch: (branchData) => axiosInstance.post('/branches', branchData),
+    updateBranch: (id, branchData) => axiosInstance.patch(`/branches/${id}`, branchData),
+    deleteBranch: (id) => axiosInstance.delete(`/branches/${id}`),
+}; 

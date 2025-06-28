@@ -13,7 +13,7 @@ export const MODULES = {
     appointments: {
         name: 'appointments',
         description: 'Appointment management',
-        operations: ['view', 'create', 'update', 'delete']
+        operations: ['view', 'create', 'update', 'delete', 'makeHugeSale']
     },
     radiologists: {
         name: 'radiologists',
@@ -49,11 +49,26 @@ export const MODULES = {
         name: 'users',
         description: 'User management',
         operations: ['view', 'create', 'update', 'delete']
+    },
+    branches: {
+        name: 'branches',
+        description: 'Branch management',
+        operations: ['view', 'create', 'update', 'delete']
+    },
+    representatives: {
+        name: 'representatives',
+        description: 'Representative management',
+        operations: ['view', 'create', 'update', 'delete']
+    },
+    dashboard: {
+        name: 'dashboard',
+        description: 'Dashboard access',
+        operations: ['view']
     }
 };
 
 // Available operations
-export const OPERATIONS = ['view', 'create', 'update', 'delete'];
+export const OPERATIONS = ['view', 'create', 'update', 'delete', 'makeHugeSale'];
 
 // Helper function to get module names
 export const getModuleNames = () => Object.keys(MODULES);

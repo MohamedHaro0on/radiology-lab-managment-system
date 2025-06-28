@@ -63,6 +63,10 @@ import patientHistoryRoutes from './routes/patientHistoryRoutes.js';
 import scanCategoryRoutes from './routes/scanCategoryRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import metaRoutes from './routes/metaRoutes.js';
+import branchRoutes from './routes/branchRoutes.js';
+import auditRoutes from './routes/auditRoutes.js';
+import representativeRoutes from './routes/representativeRoutes.js';
 
 // Apply routes
 app.use('/api/auth', authRoutes);
@@ -77,6 +81,10 @@ app.use('/api/patient-history', patientHistoryRoutes);
 app.use('/api/scan-categories', scanCategoryRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/meta', metaRoutes);
+app.use('/api/branches', branchRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/representatives', representativeRoutes);
 
 // Error handling middleware
 app.use((req, res, next) => {

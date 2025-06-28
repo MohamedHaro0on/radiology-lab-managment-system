@@ -6,6 +6,7 @@ import Doctor from '../models/Doctor.js';
 import Scan from '../models/Scan.js';
 import Patient from '../models/Patient.js';
 import Expense from '../models/Expense.js';
+import Representative from '../models/Representative.js';
 
 // Get dashboard analytics
 export const getDashboardAnalytics = asyncHandler(async (req, res) => {
@@ -254,6 +255,9 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
             .sort({ appointmentDate: -1 })
             .limit(10);
 
+        // Top representatives
+        const topRepresentatives = await Representative.getTopRepresentatives(5);
+
         // Monthly income trend (last 6 months)
         const monthlyIncomeTrend = await Appointment.aggregate([
             {
@@ -319,6 +323,7 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
                 topRatedDoctors,
                 mostRequestedScans,
                 recentAppointments,
+                topRepresentatives,
                 monthlyIncomeTrend
             }
         });

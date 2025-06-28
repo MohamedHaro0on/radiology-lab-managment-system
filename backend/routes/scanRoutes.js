@@ -1,22 +1,21 @@
 import express from 'express';
 import { validate } from '../middleware/validate.js';
-// import { auth } from '../middleware/auth.js'; // Temporarily disabled
-// import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js'; // Temporarily disabled
+import { auth } from '../middleware/auth.js';
+import { autoCheckPrivileges } from '../middleware/privilege.js';
 import { scanValidation } from '../validations/scanValidation.js';
 import * as scanController from '../controllers/scanController.js';
 import Joi from 'joi';
 
 const router = express.Router();
 
-// Apply authentication middleware (temporarily disabled)
-// router.use(auth);
+// Apply authentication middleware
+router.use(auth);
 
-// Apply auto privilege checking middleware (temporarily disabled)
-// router.use(autoCheckPrivileges);
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
 
 // Get all scans
 router.get('/',
-    // checkPrivilege('scans', 'view'), // Temporarily disabled
     validate(scanValidation.getAllScans || Joi.object({
         query: Joi.object({
             page: Joi.number().integer().min(1).default(1),
@@ -33,7 +32,6 @@ router.get('/',
 
 // Get scan by ID
 router.get('/:id',
-    // checkPrivilege('scans', 'view'), // Temporarily disabled
     validate({
         params: Joi.object({
             id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
@@ -48,7 +46,6 @@ router.get('/:id',
 
 // Create new scan
 router.post('/',
-    // checkPrivilege('scans', 'create'), // Temporarily disabled
     validate({
         body: Joi.object({
             name: Joi.string().trim().min(2).max(100).required()
@@ -100,7 +97,6 @@ router.post('/',
 
 // Update scan
 router.patch('/:id',
-    // checkPrivilege('scans', 'update'), // Temporarily disabled
     validate({
         params: Joi.object({
             id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
@@ -127,7 +123,6 @@ router.patch('/:id',
 
 // Delete scan
 router.delete('/:id',
-    // checkPrivilege('scans', 'delete'), // Temporarily disabled
     validate({
         params: Joi.object({
             id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
@@ -143,7 +138,6 @@ router.delete('/:id',
 // Check stock availability
 router.get(
     '/:id/stock-availability',
-    // checkPrivilege('scans', 'view'), // Temporarily disabled
     validate({
         params: Joi.object({
             id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
@@ -159,7 +153,6 @@ router.get(
 // Get scans by patient ID
 router.get(
     '/patient/:patientId',
-    // checkPrivilege('scans', 'view'), // Temporarily disabled
     validate({
         params: Joi.object({
             patientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
@@ -175,7 +168,6 @@ router.get(
 // Get scans by doctor ID
 router.get(
     '/doctor/:doctorId',
-    // checkPrivilege('scans', 'view'), // Temporarily disabled
     validate({
         params: Joi.object({
             doctorId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
@@ -191,7 +183,6 @@ router.get(
 // Add image to scan
 router.post(
     '/:id/images',
-    // checkPrivilege('scans', 'update'), // Temporarily disabled
     validate({
         params: Joi.object({
             id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
@@ -224,7 +215,6 @@ router.post(
 // Remove image from scan
 router.delete(
     '/:id/images/:imageId',
-    // checkPrivilege('scans', 'update'), // Temporarily disabled
     validate({
         params: Joi.object({
             id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()

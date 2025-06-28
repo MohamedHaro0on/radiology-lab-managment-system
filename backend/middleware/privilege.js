@@ -12,7 +12,12 @@ const PATH_TO_MODULE = {
     '/api/stock': 'stock',
     '/api/patient-history': 'patientHistory',
     '/api/users': 'users',
-    '/api/privileges': 'users' // Privilege management is part of user management
+    '/api/privileges': 'users', // Privilege management is part of user management
+    '/api/scan-categories': 'scanCategories',
+    '/api/expenses': 'expenses',
+    '/api/dashboard': 'dashboard',
+    '/api/branches': 'branches',
+    '/api/meta': null // Meta routes don't need privilege checking
 };
 
 // Middleware to check if user has required privileges

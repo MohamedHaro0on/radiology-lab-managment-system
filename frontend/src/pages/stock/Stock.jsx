@@ -58,6 +58,7 @@ const Stock = () => {
     initialValues: {
       name: '',
       quantity: '',
+      unit: 'pcs',
       minimumThreshold: '',
       price: '',
       validUntil: null,
@@ -272,7 +273,7 @@ const Stock = () => {
                   </Box>
                   <Box mb={2} display="flex" gap={1}>
                     <Chip
-                      label={`${item.quantity} units`}
+                      label={`${item.quantity} ${item.unit || 'pcs'}`}
                       color={isLowStock(item) ? 'warning' : 'success'}
                       size="small"
                     />
@@ -285,7 +286,7 @@ const Stock = () => {
                     )}
                   </Box>
                   <Typography variant="body2" color="textSecondary" paragraph>
-                    {t('stock.minimumThreshold')}: {item.minimumThreshold} units
+                    {t('stock.minimumThreshold')}: {item.minimumThreshold} {item.unit || 'pcs'}
                   </Typography>
                   <Box display="flex" alignItems="center" gap={1} mb={2}>
                     <Button
@@ -365,6 +366,18 @@ const Stock = () => {
                   onBlur={formik.handleBlur}
                   error={formik.touched.quantity && Boolean(formik.errors.quantity)}
                   helperText={formik.touched.quantity && formik.errors.quantity}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('stock.unit')}
+                  name="unit"
+                  value={formik.values.unit}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.unit && Boolean(formik.errors.unit)}
+                  helperText={formik.touched.unit && formik.errors.unit}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

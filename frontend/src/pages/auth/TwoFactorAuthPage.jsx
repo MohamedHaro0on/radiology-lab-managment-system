@@ -30,13 +30,13 @@ const TwoFactorAuthPage = () => {
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('verify');
-  const [tempToken, setTempToken] = useState(location.state?.tempToken || '');
+  const [twoFactorToken, setTwoFactorToken] = useState(location.state?.twoFactorToken || '');
 
   useEffect(() => {
-    if (mode === 'verify' && !tempToken) {
+    if (mode === 'verify' && !twoFactorToken) {
       navigate('/login');
     }
-  }, [mode, tempToken, navigate]);
+  }, [mode, twoFactorToken, navigate]);
 
   const formik = useFormik({
     initialValues: {
@@ -68,7 +68,10 @@ const TwoFactorAuthPage = () => {
             navigate('/settings');
           }
         } else {
-          const response = await authAPI.verify2FA(values.token);
+          const response = await authAPI.verifyLogin2FA({
+            token: values.token,
+            twoFactorToken: twoFactorToken,
+          });
           if (response.data.token) {
             await completeLogin(response.data.token, response.data.user);
             toast.success(t('auth.loginSuccess'));

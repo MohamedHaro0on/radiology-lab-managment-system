@@ -98,6 +98,12 @@ const createAdminUser = async () => {
                     operations: ['view', 'create', 'update', 'delete'],
                     grantedBy: null,
                     grantedAt: new Date()
+                },
+                {
+                    module: 'branches',
+                    operations: ['view', 'create', 'update', 'delete'],
+                    grantedBy: null,
+                    grantedAt: new Date()
                 }
             ]
         });

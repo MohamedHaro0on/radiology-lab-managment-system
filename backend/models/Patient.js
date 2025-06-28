@@ -41,6 +41,11 @@ const patientSchema = new mongoose.Schema({
         ref: 'Doctor',
         required: [true, 'Doctor referral is required']
     },
+    representative: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Representative',
+        required: false
+    },
     medicalHistory: [{
         type: String,
         trim: true
@@ -125,8 +130,8 @@ patientSchema.index({ name: 1 });
 patientSchema.index({ gender: 1 });
 patientSchema.index({ isActive: 1 });
 patientSchema.index({ phoneNumber: 1, isActive: 1 });
-patientSchema.index({ socialNumber: 1, isActive: 1 });
 patientSchema.index({ doctorReferred: 1 });
+patientSchema.index({ representative: 1 });
 patientSchema.index({ dateOfBirth: 1 });
 
 // Virtual for full address

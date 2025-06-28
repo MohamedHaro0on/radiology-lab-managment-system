@@ -39,6 +39,10 @@ import {
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
   Scanner as ScannerIcon,
+  Business as BusinessIcon,
+  AdminPanelSettings as AdminIcon,
+  Security as SecurityIcon,
+  Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -59,6 +63,7 @@ const menuItems = [
   { text: 'navigation.patients', icon: <PeopleIcon />, path: '/patients' },
   { text: 'navigation.scans', icon: <ScannerIcon />, path: '/scans' },
   { text: 'navigation.stock', icon: <InventoryIcon />, path: '/stock' },
+  { text: 'navigation.branches', icon: <BusinessIcon />, path: '/admin/branches' },
   { text: 'navigation.profile', icon: <AccountCircleIcon />, path: '/profile' },
   { text: 'navigation.settings', icon: <SettingsIcon />, path: '/settings' },
 ];
@@ -78,7 +83,35 @@ export const MainLayout = ({ children }) => {
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, isSuperAdmin } = useAuth();
+
+  console.log('MainLayout: User:', user);
+  console.log('MainLayout: isSuperAdmin:', isSuperAdmin);
+  console.log('MainLayout: User userType:', user?.userType);
+
+  // Admin menu items (super admin only) - defined inside component to access t function
+  const adminMenuItems = [
+    {
+      text: t('privilegeManagement'),
+      icon: <SecurityIcon />,
+      path: '/admin/privileges'
+    },
+    {
+      text: t('branchManagement'),
+      icon: <BusinessIcon />,
+      path: '/admin/branches'
+    },
+    {
+      text: t('representativeManagement'),
+      icon: <PeopleIcon />,
+      path: '/admin/representatives'
+    },
+    {
+      text: t('auditLog'),
+      icon: <TimelineIcon />,
+      path: '/admin/audit'
+    }
+  ];
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -282,6 +315,34 @@ export const MainLayout = ({ children }) => {
                       </ListItemButton>
                     </ListItem>
                   ))}
+                  
+                  {/* Admin section for super admins */}
+                  {isSuperAdmin && (
+                    <>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="caption" sx={{ px: 2, py: 1, color: 'text.secondary' }}>
+                        {t('navigation.admin')}
+                      </Typography>
+                      {adminMenuItems.map((item) => (
+                        <ListItem key={item.text} disablePadding>
+                          <ListItemButton
+                            selected={location.pathname === item.path}
+                            onClick={() => {
+                              navigate(item.path);
+                              if (isMobile) {
+                                setMobileOpen(false);
+                              }
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: isRtl ? '48px' : '40px' }}>
+                              {item.icon}
+                            </ListItemIcon>
+                            <ListItemText primary={t(item.text)} />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </>
+                  )}
                 </List>
               </div>
             ) : (
@@ -304,6 +365,31 @@ export const MainLayout = ({ children }) => {
                     </ListItemButton>
                   </ListItem>
                 ))}
+                
+                {/* Admin section for super admins in collapsed view */}
+                {isSuperAdmin && (
+                  <>
+                    <Divider sx={{ my: 1 }} />
+                    {adminMenuItems.map((item) => (
+                      <ListItem key={item.text} disablePadding>
+                        <ListItemButton
+                          selected={location.pathname === item.path}
+                          onClick={() => {
+                            navigate(item.path);
+                            if (isMobile) {
+                              setMobileOpen(false);
+                            }
+                          }}
+                          sx={{ justifyContent: 'center' }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 0 }}>
+                            {item.icon}
+                          </ListItemIcon>
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </>
+                )}
               </List>
             )}
           </Box>

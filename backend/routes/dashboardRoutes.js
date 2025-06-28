@@ -1,22 +1,21 @@
 import express from 'express';
 import { auth } from '../middleware/auth.js';
-import { checkPrivilege } from '../middleware/privilege.js';
+import { autoCheckPrivileges } from '../middleware/privilege.js';
 import * as dashboardController from '../controllers/dashboardController.js';
 
 const router = express.Router();
 
-// Apply authentication middleware (temporarily disabled)
-// router.use(auth);
+// Apply authentication middleware
+router.use(auth);
+router.use(autoCheckPrivileges);
 
-// Get dashboard analytics (privilege check temporarily disabled)
+// Get dashboard analytics
 router.get('/analytics',
-    // checkPrivilege('appointments', 'view'),
     dashboardController.getDashboardAnalytics
 );
 
 // Get appointment statistics
 router.get('/appointment-stats',
-    // checkPrivilege('appointments', 'view'),
     dashboardController.getAppointmentStats
 );
 

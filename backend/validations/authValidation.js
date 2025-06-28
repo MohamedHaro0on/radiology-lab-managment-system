@@ -30,6 +30,12 @@ export const authValidation = {
                     'any.required': 'Email is required'
                 }),
             password: passwordSchema.required(),
+            role: Joi.string()
+                .valid('admin', 'manager', 'doctor', 'staff', 'superAdmin')
+                .default('staff')
+                .messages({
+                    'any.only': 'Role must be one of: admin, manager, doctor, staff, superAdmin'
+                }),
             // confirmPassword: Joi.string()
             // .valid(Joi.ref('password'))
             // .required()
@@ -42,12 +48,10 @@ export const authValidation = {
 
     login: {
         body: Joi.object({
-            email: Joi.string()
-                .email()
+            username: Joi.string()
                 .required()
                 .messages({
-                    'string.email': 'Please provide a valid email address',
-                    'any.required': 'Email is required'
+                    'any.required': 'Username is required'
                 }),
             password: Joi.string()
                 .required()
@@ -139,6 +143,25 @@ export const authValidation = {
         })
     },
 
+    verifyLogin2FA: {
+        body: Joi.object({
+            token: Joi.string()
+                .length(6)
+                .pattern(/^[0-9]+$/)
+                .required()
+                .messages({
+                    'string.length': 'Token must be 6 digits',
+                    'string.pattern.base': 'Token must contain only numbers',
+                    'any.required': 'Token is required'
+                }),
+            twoFactorToken: Joi.string()
+                .required()
+                .messages({
+                    'any.required': 'Two-factor token is required'
+                })
+        })
+    },
+
     disable2FA: {
         body: Joi.object({
             password: Joi.string()
@@ -211,44 +234,21 @@ export const authValidation = {
         }).min(1).messages({
             'object.min': 'At least one field must be provided for update'
         })
-    }
-};
-
-// Add privilege validation schemas
-export const privilegeValidation = {
-    grantPrivileges: {
-        body: Joi.object({
-            module: Joi.string()
-                .valid(...Object.keys(MODULES))
-                .required()
-                .messages({
-                    'string.empty': 'Module is required',
-                    'any.only': 'Invalid module name'
-                }),
-            operations: Joi.array()
-                .items(Joi.string().valid(...OPERATIONS))
-                .min(1)
-                .required()
-                .messages({
-                    'array.min': 'At least one operation must be specified',
-                    'any.only': 'Invalid operation'
-                })
-        })
     },
 
-    revokePrivileges: {
+    verifyRegistration2FA: {
         body: Joi.object({
-            module: Joi.string()
-                .valid(...Object.keys(MODULES))
+            userId: Joi.string().required().messages({
+                'any.required': 'User ID is required'
+            }),
+            token: Joi.string()
+                .length(6)
+                .pattern(/^[0-9]+$/)
                 .required()
                 .messages({
-                    'string.empty': 'Module is required',
-                    'any.only': 'Invalid module name'
-                }),
-            operations: Joi.array()
-                .items(Joi.string().valid(...OPERATIONS))
-                .messages({
-                    'any.only': 'Invalid operation'
+                    'string.length': 'Token must be 6 digits',
+                    'string.pattern.base': 'Token must contain only numbers',
+                    'any.required': 'Token is required'
                 })
         })
     }

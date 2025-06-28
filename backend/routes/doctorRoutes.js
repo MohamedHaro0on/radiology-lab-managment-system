@@ -1,6 +1,7 @@
 import express from 'express';
 import { validate } from '../middleware/validate.js';
-// import { auth } from '../middleware/auth.js'; // Temporarily disabled
+import { auth } from '../middleware/auth.js'; // Temporarily disabled
+import { autoCheckPrivileges } from '../middleware/privilege.js';
 import { doctorValidation } from '../validations/doctorValidation.js';
 import {
     validateDoctorBody,
@@ -13,7 +14,8 @@ import * as doctorController from '../controllers/doctorController.js';
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-// router.use(auth);
+router.use(auth);
+router.use(autoCheckPrivileges);
 
 // Create new doctor
 router.post('/', validateDoctorBody(createDoctorSchema), doctorController.createDoctor);

@@ -20,18 +20,18 @@ export const apiLimiter = rateLimit({
 });
 
 // Stricter limiter for auth routes
-export const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // Limit each IP to 5 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: rateLimitHandler
-});
+// export const authLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 10, // max 10 requests per 15 minutes
+//     message: 'Too many authentication attempts from this IP, please try again after 15 minutes',
+//     standardHeaders: true,
+//     legacyHeaders: false,
+// });
 
 // Password reset limiter
 export const passwordResetLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // Greatly increased limit to effectively disable for testing
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // max 5 requests per hour
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,

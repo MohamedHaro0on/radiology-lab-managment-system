@@ -45,4 +45,20 @@ router.delete(
     userController.deleteUser
 );
 
+// Grant privileges (super admin only)
+router.post(
+    '/:id/privileges',
+    checkPrivilege('users', 'update'), // Or a more specific privilege
+    validate(userValidation.grantPrivileges),
+    userController.grantPrivileges
+);
+
+// Revoke privileges (super admin only)
+router.delete(
+    '/:id/privileges',
+    checkPrivilege('users', 'update'), // Or a more specific privilege
+    validate(userValidation.revokePrivileges),
+    userController.revokePrivileges
+);
+
 export default router; 

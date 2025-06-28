@@ -27,6 +27,11 @@ export const createAppointmentSchema = Joi.object({
             'string.pattern.base': 'Invalid patient ID format',
             'any.required': 'Patient is required'
         }),
+    branch: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+        .messages({
+            'string.pattern.base': 'Invalid branch ID format',
+            'any.required': 'Branch is required'
+        }),
     scans: Joi.array().items(appointmentScanSchema).min(1).required()
         .messages({
             'array.min': 'At least one scan is required',
@@ -46,17 +51,40 @@ export const createAppointmentSchema = Joi.object({
     notes: Joi.string().trim().max(1000).optional()
         .messages({
             'string.max': 'Notes cannot exceed 1000 characters'
-        })
+        }),
+    makeHugeSale: Joi.boolean().optional(),
+    customPrice: Joi.when('makeHugeSale', {
+        is: true,
+        then: Joi.number().positive().required()
+            .messages({
+                'number.base': 'Custom price must be a number',
+                'number.positive': 'Custom price must be positive',
+                'any.required': 'Custom price is required when making huge sale'
+            }),
+        otherwise: Joi.forbidden()
+    })
 });
 
 // Validation schema for updating appointment
 export const updateAppointmentSchema = Joi.object({
     radiologistId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     patientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    branch: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     scans: Joi.array().items(appointmentScanSchema).min(1).optional(),
     referredBy: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     scheduledAt: Joi.date().greater('now').optional(),
-    notes: Joi.string().trim().max(1000).optional()
+    notes: Joi.string().trim().max(1000).optional(),
+    makeHugeSale: Joi.boolean().optional(),
+    customPrice: Joi.when('makeHugeSale', {
+        is: true,
+        then: Joi.number().positive().required()
+            .messages({
+                'number.base': 'Custom price must be a number',
+                'number.positive': 'Custom price must be positive',
+                'any.required': 'Custom price is required when making huge sale'
+            }),
+        otherwise: Joi.forbidden()
+    })
 });
 
 // Validation schema for appointment ID parameter

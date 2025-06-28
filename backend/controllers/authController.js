@@ -28,72 +28,210 @@ const generateRefreshToken = (userId) => {
 
 // Register new user
 export const register = asyncHandler(async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
+
+    // Map role to userType
+    let userType = 'staff';
+    if (role === 'superAdmin') {
+        userType = 'admin';
+    } else if (role === 'admin') {
+        userType = 'admin';
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
         throw errors.Conflict('User with this email or username already exists');
     }
 
-    // Create user
+    // Generate 2FA secret
+    const secret = speakeasy.generateSecret({
+        name: `RadiologyLab:${email}`
+    });
+
+    // Create user without privileges first
     const user = await User.create({
         username,
         email,
         password,
-        createdBy: req.user?._id // If registering through admin
+        userType: userType,
+        twoFactorSecret: secret.base32,
+        twoFactorEnabled: false,
+        privileges: []
     });
 
-    // Generate tokens
-    const token = generateToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
-
-    // Return user info and tokens
-    res.status(StatusCodes.CREATED).json({
-        status: 'success',
-        message: 'User registered successfully',
-        data: {
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                role: user.role
+    // Add privileges with correct grantedBy field
+    if (userType === 'admin') {
+        user.privileges = [
+            {
+                module: 'dashboard',
+                operations: ['view'],
+                grantedBy: user._id,
+                grantedAt: new Date()
             },
-            token
-        }
+            {
+                module: 'patients',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'doctors',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'appointments',
+                operations: ['view', 'create', 'update', 'delete', 'makeHugeSale'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'scans',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'stock',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'radiologists',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'patientHistory',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'scanCategories',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'expenses',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'users',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'branches',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            },
+            {
+                module: 'representatives',
+                operations: ['view', 'create', 'update', 'delete'],
+                grantedBy: user._id,
+                grantedAt: new Date()
+            }
+        ];
+
+        await user.save();
+    }
+
+    // Return otpauth_url and user ID for setup
+    res.status(StatusCodes.CREATED).json({
+        message: 'Registration successful. Please scan the QR code to set up 2FA.',
+        otpAuthUrl: secret.otpauth_url,
+        secret: secret.base32,
+        userId: user._id
     });
 });
 
 // Login user
 export const login = asyncHandler(async (req, res) => {
-    console.log('=== LOGIN REQUEST DEBUG ===');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-    console.log('Content-Type:', req.headers['content-type']);
-    console.log('User-Agent:', req.headers['user-agent']);
-    console.log('Origin:', req.headers['origin']);
-    console.log('Referer:', req.headers['referer']);
-    console.log('Body keys:', Object.keys(req.body));
-    console.log('Email value:', req.body.email);
-    console.log('Password value:', req.body.password);
-    console.log('Email type:', typeof req.body.email);
-    console.log('Password type:', typeof req.body.password);
-    console.log('Email length:', req.body.email?.length);
-    console.log('Password length:', req.body.password?.length);
-    console.log('==========================');
+    const { username, password } = req.body;
 
-    const { email, password } = req.body;
+    // Find user by username and select password field
+    let user;
+    if (username) {
+        user = await User.findOne({ username }).select('+password');
+    } else {
+        throw errors.BadRequest('Username is required');
+    }
+    if (!user) {
+        throw errors.Unauthorized('Invalid username or password');
+    }
 
-    // Find user and check password
-    const user = await User.findByCredentials(email, password);
+    // Check password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        throw errors.Unauthorized('Invalid username or password');
+    }
 
-    // Generate tokens
-    const token = generateToken(user._id);
+    // Always require 2FA after successful password validation
+    res.json({
+        message: '2FA token required',
+        twoFactorRequired: true,
+        twoFactorToken: jwt.sign({ id: user._id, action: '2fa_verify' }, process.env.JWT_SECRET, { expiresIn: '5m' })
+    });
+});
+
+// Verify 2FA during registration
+export const verifyRegistration2FA = asyncHandler(async (req, res) => {
+    const { userId, token } = req.body;
+
+    const user = await User.findById(userId).select('+twoFactorSecret');
+    if (!user) {
+        throw errors.NotFound('User not found');
+    }
+
+    // Verify 2FA token
+    // --- 2FA DEBUGGING START ---
+    console.log(`[2FA DEBUG] Verifying token for user: ${user.email}`);
+    console.log(`[2FA DEBUG]   - User's 2FA Secret (from DB): ${user.twoFactorSecret}`);
+    console.log(`[2FA DEBUG]   - Token from client: ${token}`);
+
+    console.log(`[2FA DEBUG]   - Server-generated tokens (window +/- 60s):`);
+    for (let i = -2; i <= 2; i++) {
+        const tokenAtDelta = speakeasy.totp({
+            secret: user.twoFactorSecret,
+            encoding: 'base32',
+            time: Math.floor(Date.now() / 1000) + (i * 30)
+        });
+        console.log(`[2FA DEBUG]     - Delta ${i * 30}s: ${tokenAtDelta}`);
+    }
+    // --- 2FA DEBUGGING END ---
+    const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token,
+        window: 2
+    });
+
+    if (!verified) {
+        throw errors.BadRequest('Invalid 2FA token');
+    }
+
+    // Enable 2FA for the user
+    user.twoFactorEnabled = true;
+    await user.save();
+
+    // Generate tokens to log the user in
+    const authToken = generateToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
     // Return user info and tokens
     res.json({
         user: user.info,
-        token,
+        token: authToken,
         refreshToken
     });
 });
@@ -181,7 +319,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // Find user
-        const user = await User.findById(decoded.id);
+        const user = await User.findById(decoded.id).select('+twoFactorSecret');
         if (!user || user.passwordResetToken !== token || user.passwordResetExpires < Date.now()) {
             throw errors.BadRequest('Invalid or expired reset token');
         }
@@ -261,10 +399,26 @@ export const verify2FA = asyncHandler(async (req, res) => {
     const user = req.user;
 
     // Verify token
+    // --- 2FA DEBUGGING START ---
+    console.log(`[2FA DEBUG] Verifying token for user: ${user.email}`);
+    console.log(`[2FA DEBUG]   - User's 2FA Secret (from DB): ${user.twoFactorSecret}`);
+    console.log(`[2FA DEBUG]   - Token from client: ${token}`);
+
+    console.log(`[2FA DEBUG]   - Server-generated tokens (window +/- 60s):`);
+    for (let i = -2; i <= 2; i++) {
+        const tokenAtDelta = speakeasy.totp({
+            secret: user.twoFactorSecret,
+            encoding: 'base32',
+            time: Math.floor(Date.now() / 1000) + (i * 30)
+        });
+        console.log(`[2FA DEBUG]     - Delta ${i * 30}s: ${tokenAtDelta}`);
+    }
+    // --- 2FA DEBUGGING END ---
     const verified = speakeasy.totp.verify({
         secret: user.twoFactorSecret,
         encoding: 'base32',
-        token
+        token,
+        window: 2
     });
 
     if (!verified) {
@@ -293,7 +447,8 @@ export const disable2FA = asyncHandler(async (req, res) => {
     const verified = speakeasy.totp.verify({
         secret: user.twoFactorSecret,
         encoding: 'base32',
-        token
+        token,
+        window: 2
     });
 
     if (!verified) {
@@ -320,7 +475,7 @@ const getProfile = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json({
         status: 'success',
-        data: user
+        user: user
     });
 });
 
@@ -460,6 +615,61 @@ export const deleteUser = asyncHandler(async (req, res) => {
 
     res.json({
         message: 'User deleted successfully'
+    });
+});
+
+// Verify 2FA during login
+export const verifyLogin2FA = asyncHandler(async (req, res) => {
+    const { token, twoFactorToken } = req.body;
+
+    // Verify the temporary 2FA token
+    const decoded = jwt.verify(twoFactorToken, process.env.JWT_SECRET);
+    if (decoded.action !== '2fa_verify') {
+        throw errors.Unauthorized('Invalid token for this action');
+    }
+
+    // Find user
+    const user = await User.findById(decoded.id).select('+twoFactorSecret');
+    if (!user) {
+        throw errors.NotFound('User not found');
+    }
+
+    // Verify 2FA token
+    // --- 2FA DEBUGGING START ---
+    console.log(`[2FA DEBUG] Verifying token for user: ${user.email}`);
+    console.log(`[2FA DEBUG]   - User's 2FA Secret (from DB): ${user.twoFactorSecret}`);
+    console.log(`[2FA DEBUG]   - Token from client: ${token}`);
+
+    console.log(`[2FA DEBUG]   - Server-generated tokens (window +/- 60s):`);
+    for (let i = -2; i <= 2; i++) {
+        const tokenAtDelta = speakeasy.totp({
+            secret: user.twoFactorSecret,
+            encoding: 'base32',
+            time: Math.floor(Date.now() / 1000) + (i * 30)
+        });
+        console.log(`[2FA DEBUG]     - Delta ${i * 30}s: ${tokenAtDelta}`);
+    }
+    // --- 2FA DEBUGGING END ---
+    const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token,
+        window: 2
+    });
+
+    if (!verified) {
+        throw errors.BadRequest('Invalid 2FA token');
+    }
+
+    // Generate tokens
+    const authToken = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Return user info and tokens
+    res.json({
+        user: user.info,
+        token: authToken,
+        refreshToken
     });
 });
 

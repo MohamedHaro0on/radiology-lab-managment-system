@@ -19,10 +19,21 @@ router.post('/register',
     authController.register
 );
 
+router.post('/register/verify-2fa',
+    validate(authValidation.verifyRegistration2FA),
+    authController.verifyRegistration2FA
+);
+
 router.post('/login',
     // authLimiter,
-    // validate(authValidation.login), // Temporarily disabled due to validation issues
+    validate(authValidation.login),
     authController.login
+);
+
+router.post('/login/2fa',
+    // authLimiter,
+    validate(authValidation.verifyLogin2FA),
+    authController.verifyLogin2FA
 );
 
 router.post('/refresh-token',

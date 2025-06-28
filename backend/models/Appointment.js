@@ -7,6 +7,11 @@ const appointmentSchema = new mongoose.Schema({
         ref: 'Radiologist',
         required: [true, 'Radiologist is required']
     },
+    branch: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Branch',
+        required: [true, 'Branch is required']
+    },
     patientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Patient',
@@ -16,7 +21,7 @@ const appointmentSchema = new mongoose.Schema({
         scan: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Scan',
-            required: true
+            required: [true, 'Scan is required']
         },
         quantity: {
             type: Number,
@@ -26,23 +31,27 @@ const appointmentSchema = new mongoose.Schema({
     }],
     cost: {
         type: Number,
-        required: [true, 'Cost is required'],
+        required: true,
         min: [0, 'Cost cannot be negative']
     },
     price: {
         type: Number,
-        required: [true, 'Price is required'],
+        required: true,
         min: [0, 'Price cannot be negative']
     },
     profit: {
         type: Number,
-        required: [true, 'Profit is required'],
-        min: [0, 'Profit cannot be negative']
+        required: true
     },
     referredBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Doctor',
         required: [true, 'Referring doctor is required']
+    },
+    representative: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Representative',
+        required: false
     },
     scheduledAt: {
         type: Date,
@@ -50,8 +59,19 @@ const appointmentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['scheduled', 'in_progress', 'completed', 'cancelled', 'no_show'],
+        enum: {
+            values: ['scheduled', 'in_progress', 'completed', 'cancelled', 'no-show'],
+            message: 'Status must be one of: scheduled, in_progress, completed, cancelled, no-show'
+        },
         default: 'scheduled'
+    },
+    priority: {
+        type: String,
+        enum: {
+            values: ['routine', 'urgent', 'emergency'],
+            message: 'Priority must be one of: routine, urgent, emergency'
+        },
+        default: 'routine'
     },
     notes: {
         type: String,
@@ -69,6 +89,14 @@ const appointmentSchema = new mongoose.Schema({
         type: String,
         trim: true,
         maxlength: [500, 'Cancellation reason cannot exceed 500 characters']
+    },
+    makeHugeSale: {
+        type: Boolean,
+        default: false
+    },
+    customPrice: {
+        type: Number,
+        min: [0, 'Custom price cannot be negative']
     },
     isActive: {
         type: Boolean,
@@ -96,6 +124,8 @@ appointmentSchema.index({ scheduledAt: 1 });
 appointmentSchema.index({ status: 1 });
 appointmentSchema.index({ isActive: 1 });
 appointmentSchema.index({ createdBy: 1 });
+appointmentSchema.index({ branch: 1 });
+appointmentSchema.index({ representative: 1 });
 
 // Virtual for appointment info
 appointmentSchema.virtual('info').get(function () {
@@ -103,6 +133,7 @@ appointmentSchema.virtual('info').get(function () {
         id: this._id,
         radiologistId: this.radiologistId,
         patientId: this.patientId,
+        branch: this.branch,
         scans: this.scans,
         cost: this.cost,
         price: this.price,
@@ -110,7 +141,10 @@ appointmentSchema.virtual('info').get(function () {
         referredBy: this.referredBy,
         scheduledAt: this.scheduledAt,
         status: this.status,
+        priority: this.priority,
         notes: this.notes,
+        makeHugeSale: this.makeHugeSale,
+        customPrice: this.customPrice,
         cancelledAt: this.cancelledAt,
         cancelledBy: this.cancelledBy,
         cancellationReason: this.cancellationReason,

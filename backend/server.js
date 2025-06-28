@@ -14,6 +14,10 @@ import patientHistoryRoutes from './routes/patientHistoryRoutes.js';
 import radiologistRoutes from './routes/radiologistRoutes.js';
 import scanRoutes from './routes/scanRoutes.js';
 import scanCategoryRoutes from './routes/scanCategoryRoutes.js';
+import expenseRoutes from './routes/expenseRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import metaRoutes from './routes/metaRoutes.js';
+import branchRoutes from './routes/branchRoutes.js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -73,6 +77,10 @@ app.use('/api/scan-categories', scanCategoryRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/radiologists', radiologistRoutes);
 app.use('/api/patient-history', patientHistoryRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/meta', metaRoutes);
+app.use('/api/branches', branchRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

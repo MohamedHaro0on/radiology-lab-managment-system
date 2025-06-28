@@ -11,6 +11,7 @@ import {
     getExpenseStats
 } from '../controllers/expenseController.js';
 import { auth } from '../middleware/auth.js';
+import { autoCheckPrivileges } from '../middleware/privilege.js';
 import {
     validateExpenseBody,
     validateExpenseParams,
@@ -26,6 +27,7 @@ const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(auth);
+router.use(autoCheckPrivileges);
 
 // Create new expense
 router.post('/', validateExpenseBody(createExpenseSchema), createExpense);

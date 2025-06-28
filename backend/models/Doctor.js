@@ -75,6 +75,11 @@ const doctorSchema = new mongoose.Schema({
     updatedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
+    },
+    representative: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Representative',
+        required: false
     }
 }, {
     timestamps: true,
@@ -88,6 +93,7 @@ doctorSchema.index({ specialization: 1 });
 doctorSchema.index({ isActive: 1 });
 doctorSchema.index({ contactNumber: 1, isActive: 1 });
 doctorSchema.index({ licenseNumber: 1 }, { unique: true, sparse: true }); // Add unique index for licenseNumber
+doctorSchema.index({ representative: 1 }); // Add index for representative
 
 // Virtual for full address
 doctorSchema.virtual('fullAddress').get(function () {
@@ -136,7 +142,8 @@ doctorSchema.statics.search = function (query) {
             { name: { $regex: query, $options: 'i' } },
             { specialization: { $regex: query, $options: 'i' } },
             { contactNumber: { $regex: query, $options: 'i' } },
-            { licenseNumber: { $regex: query, $options: 'i' } } // Add licenseNumber to search
+            { licenseNumber: { $regex: query, $options: 'i' } }, // Add licenseNumber to search
+            { representative: { $regex: query, $options: 'i' } } // Add representative to search
         ],
         isActive: true
     });

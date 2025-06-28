@@ -17,6 +17,12 @@ export const createStockSchema = Joi.object({
             'number.min': 'Quantity cannot be negative',
             'any.required': 'Quantity is required'
         }),
+    unit: Joi.string().trim().max(20).required()
+        .messages({
+            'string.empty': 'Unit is required',
+            'string.max': 'Unit cannot exceed 20 characters',
+            'any.required': 'Unit is required'
+        }),
     minimumThreshold: Joi.number().integer().min(0).required()
         .messages({
             'number.base': 'Minimum threshold must be a number',
@@ -48,6 +54,10 @@ export const createStockSchema = Joi.object({
 export const updateStockSchema = Joi.object({
     name: Joi.string().trim().min(2).max(100).optional(),
     quantity: Joi.number().integer().min(0).optional(),
+    unit: Joi.string().trim().max(20).optional()
+        .messages({
+            'string.max': 'Unit cannot exceed 20 characters'
+        }),
     minimumThreshold: Joi.number().integer().min(0).optional(),
     price: Joi.number().positive().optional(),
     validUntil: Joi.date().greater('now').optional()

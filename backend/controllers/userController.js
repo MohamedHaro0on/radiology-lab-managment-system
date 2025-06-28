@@ -27,7 +27,12 @@ export const getAllUsers = asyncHandler(async (req, res) => {
         select: '-password -twoFactorSecret'
     });
 
-    res.status(StatusCodes.OK).json(result);
+    // Return the correct format that frontend expects
+    res.status(StatusCodes.OK).json({
+        status: 'success',
+        data: result.data.users || result.data,
+        pagination: result.data.pagination
+    });
 });
 
 // Get single user
@@ -98,5 +103,53 @@ export const deleteUser = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json({
         message: 'User deleted successfully'
+    });
+});
+
+// Grant privileges
+export const grantPrivileges = asyncHandler(async (req, res) => {
+    const { module, operations } = req.body;
+    const { id: userId } = req.params;
+
+    // Only super admin can grant privileges
+    if (!req.user.isSuperAdmin) {
+        throw errors.Forbidden('Only super admins can grant privileges');
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw errors.NotFound('User not found');
+    }
+
+    await user.grantPrivilege(module, operations, req.user._id);
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+        message: 'Privileges granted successfully',
+        privileges: user.privileges
+    });
+});
+
+// Revoke privileges
+export const revokePrivileges = asyncHandler(async (req, res) => {
+    const { module, operations } = req.body;
+    const { id: userId } = req.params;
+
+    // Only super admin can revoke privileges
+    if (!req.user.isSuperAdmin) {
+        throw errors.Forbidden('Only super admins can revoke privileges');
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw errors.NotFound('User not found');
+    }
+
+    await user.revokePrivilege(module, operations);
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+        message: 'Privileges revoked successfully',
+        privileges: user.privileges
     });
 }); 

@@ -11,7 +11,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { MainLayout } from './layouts/MainLayout';
-// import Login from './pages/auth/Login'; // Temporarily disabled
+import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import Appointments from './pages/appointments/Appointments';
 import Doctors from './pages/doctors/Doctors';
@@ -23,11 +23,18 @@ import Profile from './pages/profile/Profile';
 import Settings from './pages/settings/Settings';
 import PatientDetails from './pages/patients/PatientDetails';
 import Radiologists from './pages/radiologists/Radiologists';
-// import ForgotPassword from './pages/auth/ForgotPassword'; // Temporarily disabled
-// import ResetPassword from './pages/auth/ResetPassword'; // Temporarily disabled
-// import TwoFactorAuthPage from './pages/auth/TwoFactorAuthPage'; // Temporarily disabled
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import TwoFactorAuthPage from './pages/auth/TwoFactorAuthPage';
+import PrivilegeManager from './pages/admin/PrivilegeManager';
+import Register from './pages/auth/Register';
 import './i18n/config';
 import { useTranslation } from 'react-i18next';
+import BranchManager from './pages/admin/BranchManager';
+import AppointmentHistory from './pages/appointments/AppointmentHistory';
+import AuditLog from './pages/admin/AuditLog';
+import RepresentativeManager from './pages/RepresentativeManager';
+import { Box, CircularProgress } from '@mui/material';
 
 /**
  * Protected Route component that ensures user is authenticated
@@ -35,16 +42,37 @@ import { useTranslation } from 'react-i18next';
  * @param {React.ReactNode} props.children - Child components to render
  */
 const ProtectedRoute = ({ children }) => {
-  // Temporarily bypass authentication
-  // const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   
-  // if (loading) {
-  //   return null; // or a loading spinner
-  // }
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/login" />;
-  // }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  return <MainLayout>{children}</MainLayout>;
+};
+
+const SuperAdminRoute = ({ children }) => {
+  const { isSuperAdmin, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated || !isSuperAdmin) {
+    return <Navigate to="/dashboard" />;
+  }
 
   return <MainLayout>{children}</MainLayout>;
 };
@@ -64,12 +92,11 @@ const AppContent = () => {
       >
         <AuthProvider>
           <Routes>
-            {/* Temporarily disabled login routes
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/two-factor-auth" element={<TwoFactorAuthPage />} />
-            */}
             <Route
               path="/"
               element={
@@ -91,6 +118,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <Appointments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/appointments/:id/history"
+              element={
+                <ProtectedRoute>
+                  <AppointmentHistory />
                 </ProtectedRoute>
               }
             />
@@ -164,6 +199,38 @@ const AppContent = () => {
                 <ProtectedRoute>
                   <Radiologists />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/privileges"
+              element={
+                <SuperAdminRoute>
+                  <PrivilegeManager />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/branches"
+              element={
+                <ProtectedRoute>
+                  <BranchManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/audit"
+              element={
+                <SuperAdminRoute>
+                  <AuditLog />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/representatives"
+              element={
+                <SuperAdminRoute>
+                  <RepresentativeManager />
+                </SuperAdminRoute>
               }
             />
           </Routes>

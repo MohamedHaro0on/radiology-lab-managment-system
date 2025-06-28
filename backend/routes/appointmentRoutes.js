@@ -1,7 +1,7 @@
 import express from 'express';
 import { validate } from '../middleware/validate.js';
-// import { auth } from '../middleware/auth.js'; // Temporarily disabled
-// import { checkPrivilege, autoCheckPrivileges } from '../middleware/privilege.js'; // Temporarily disabled
+import { auth } from '../middleware/auth.js';
+import { autoCheckPrivileges } from '../middleware/privilege.js';
 import { appointmentValidation } from '../validations/appointmentValidation.js';
 import {
     createAppointmentSchema,
@@ -14,19 +14,19 @@ import {
     validateAppointmentQuery
 } from '../validations/appointmentValidation.js';
 import * as appointmentController from '../controllers/appointmentController.js';
+import { checkPrivilege } from '../middleware/privilege.js';
 
 const router = express.Router();
 
-// Apply authentication middleware (temporarily disabled)
-// router.use(auth);
+// Apply authentication middleware
+router.use(auth);
 
-// Apply auto privilege checking middleware (temporarily disabled)
-// router.use(autoCheckPrivileges);
+// Apply auto privilege checking middleware
+router.use(autoCheckPrivileges);
 
 // Create new appointment
 router.post(
     '/',
-    // checkPrivilege('appointments', 'create'), // Temporarily disabled
     validateAppointmentBody(createAppointmentSchema),
     appointmentController.createAppointment
 );
@@ -34,7 +34,6 @@ router.post(
 // Get all appointments
 router.get(
     '/',
-    // checkPrivilege('appointments', 'view'), // Temporarily disabled
     validateAppointmentQuery,
     appointmentController.getAllAppointments
 );
@@ -42,7 +41,6 @@ router.get(
 // Get appointments by date range
 router.get(
     '/date-range',
-    // checkPrivilege('appointments', 'view'), // Temporarily disabled
     validateAppointmentQuery,
     appointmentController.getAppointmentsByDateRange
 );
@@ -50,7 +48,6 @@ router.get(
 // Get single appointment
 router.get(
     '/:id',
-    // checkPrivilege('appointments', 'view'), // Temporarily disabled
     validateAppointmentParams,
     appointmentController.getAppointment
 );
@@ -58,7 +55,6 @@ router.get(
 // Update appointment
 router.patch(
     '/:id',
-    // checkPrivilege('appointments', 'update'), // Temporarily disabled
     validateAppointmentParams,
     validateAppointmentBody(updateAppointmentSchema),
     appointmentController.updateAppointment
@@ -67,7 +63,6 @@ router.patch(
 // Update appointment status
 router.patch(
     '/:id/status',
-    // checkPrivilege('appointments', 'update'), // Temporarily disabled
     validateAppointmentParams,
     validateAppointmentBody(updateAppointmentStatusSchema),
     appointmentController.updateAppointmentStatus
@@ -76,9 +71,11 @@ router.patch(
 // Delete appointment
 router.delete(
     '/:id',
-    // checkPrivilege('appointments', 'delete'), // Temporarily disabled
     validateAppointmentParams,
     appointmentController.deleteAppointment
 );
+
+router.route('/:id/history')
+    .get(checkPrivilege('appointments', 'view'), appointmentController.getAppointmentHistory);
 
 export default router; 

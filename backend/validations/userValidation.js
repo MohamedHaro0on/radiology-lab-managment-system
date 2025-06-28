@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { StatusCodes } from 'http-status-codes';
+import { MODULES, OPERATIONS } from '../config/privileges.js';
 
 const userId = Joi.string().regex(/^[0-9a-fA-F]{24}$/).required()
     .messages({
@@ -47,6 +48,43 @@ export const userValidation = {
     deleteUser: {
         params: Joi.object({
             id: userId
+        })
+    },
+
+    grantPrivileges: {
+        body: Joi.object({
+            module: Joi.string()
+                .valid(...Object.keys(MODULES))
+                .required()
+                .messages({
+                    'string.empty': 'Module is required',
+                    'any.only': 'Invalid module name'
+                }),
+            operations: Joi.array()
+                .items(Joi.string().valid(...OPERATIONS))
+                .min(1)
+                .required()
+                .messages({
+                    'array.min': 'At least one operation must be specified',
+                    'any.only': 'Invalid operation'
+                })
+        })
+    },
+
+    revokePrivileges: {
+        body: Joi.object({
+            module: Joi.string()
+                .valid(...Object.keys(MODULES))
+                .required()
+                .messages({
+                    'string.empty': 'Module is required',
+                    'any.only': 'Invalid module name'
+                }),
+            operations: Joi.array()
+                .items(Joi.string().valid(...OPERATIONS))
+                .messages({
+                    'any.only': 'Invalid operation'
+                })
         })
     }
 }; 
