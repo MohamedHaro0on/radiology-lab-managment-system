@@ -7,7 +7,6 @@ import Patient from '../models/Patient.js';
 import PatientHistory from '../models/PatientHistory.js';
 import { executePaginatedQuery } from '../utils/pagination.js';
 import websocketManager from '../utils/websocket.js';
-import Radiologist from '../models/Radiologist.js';
 import { logAudit } from '../services/auditService.js';
 import Audit from '../models/Audit.js';
 
@@ -214,7 +213,7 @@ export const getAllAppointments = asyncHandler(async (req, res) => {
         [
             { path: 'patientId', select: 'name phoneNumber gender dateOfBirth', ref: 'Patient' },
             { path: 'referredBy', select: 'name specialization', ref: 'Doctor' },
-            { path: 'radiologistId', select: 'name licenseId', ref: 'Radiologist' }
+            { path: 'radiologistId', select: 'name licenseId', ref: 'User' }
         ]
     );
 

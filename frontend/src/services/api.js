@@ -76,6 +76,7 @@ export const userAPI = {
     delete: (id) => axiosInstance.delete(`/users/${id}`),
     grantPrivileges: (userId, data) => axiosInstance.post(`/users/${userId}/privileges`, data),
     revokePrivileges: (userId, data) => axiosInstance.delete(`/users/${userId}/privileges`, { data }),
+    getRadiologists: (params = {}) => axiosInstance.get('/users', { params: { ...params, role: 'radiologist' } }),
 };
 
 // Meta service
@@ -100,9 +101,6 @@ export const patientAPI = createCrudService('patients');
 
 // Doctor service
 export const doctorAPI = createCrudService('doctors');
-
-// Radiologist service
-export const radiologistAPI = createCrudService('radiologists');
 
 // Appointment service
 export const appointmentAPI = {

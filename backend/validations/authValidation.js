@@ -22,6 +22,15 @@ export const authValidation = {
                     'string.max': 'Username cannot exceed 30 characters',
                     'any.required': 'Username is required'
                 }),
+            name: Joi.string()
+                .min(3)
+                .max(100)
+                .required()
+                .messages({
+                    'string.min': 'Name must be at least 3 characters long',
+                    'string.max': 'Name cannot exceed 100 characters',
+                    'any.required': 'Name is required'
+                }),
             email: Joi.string()
                 .email()
                 .required()
@@ -31,10 +40,10 @@ export const authValidation = {
                 }),
             password: passwordSchema.required(),
             role: Joi.string()
-                .valid('admin', 'manager', 'doctor', 'staff', 'superAdmin')
-                .default('staff')
+                .valid('doctor', 'receptionist', 'superAdmin', 'radiologist')
+                .default('receptionist')
                 .messages({
-                    'any.only': 'Role must be one of: admin, manager, doctor, staff, superAdmin'
+                    'any.only': "Role must be one of: doctor, receptionist, superAdmin, radiologist"
                 }),
             // confirmPassword: Joi.string()
             // .valid(Joi.ref('password'))

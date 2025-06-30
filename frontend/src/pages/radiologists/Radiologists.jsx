@@ -6,9 +6,9 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Person as PersonIcon } from '@mui/icons-material';
 import { toast } from 'react-toastify';
-import { radiologistAPI } from '../../services/api';
+import { userAPI, authAPI } from '../../services/api';
 // You should define radiologistSchema in validations/schemas.js
-import { radiologistSchema } from '../../validations/schemas';
+import { radiologistSchema, registerSchema, twoFactorSchema } from '../../validations/schemas';
 
 const Radiologists = () => {
   const { t } = useTranslation();
@@ -16,9 +16,15 @@ const Radiologists = () => {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedRadiologist, setSelectedRadiologist] = useState(null);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [step, setStep] = useState('register'); // 'register', 'verify2fa', 'edit'
+  const [otpAuthUrl, setOtpAuthUrl] = useState('');
+  const [secret, setSecret] = useState('');
+  const [userId, setUserId] = useState('');
 
-  const formik = useFormik({
+  const editFormik = useFormik({
     initialValues: {
+      username: '',
       name: '',
       gender: '',
       age: '',
@@ -31,11 +37,8 @@ const Radiologists = () => {
       try {
         setLoading(true);
         if (selectedRadiologist) {
-          await radiologistAPI.update(selectedRadiologist._id, values);
+          await userAPI.update(selectedRadiologist._id, values);
           toast.success(t('radiologists.updateSuccess'));
-        } else {
-          await radiologistAPI.create(values);
-          toast.success(t('radiologists.createSuccess'));
         }
         handleCloseDialog();
         fetchRadiologists();
@@ -47,10 +50,60 @@ const Radiologists = () => {
     },
   });
 
+  const registerFormik = useFormik({
+    initialValues: {
+      username: '',
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'radiologist'
+    },
+    validationSchema: registerSchema,
+    onSubmit: async (values, { resetForm }) => {
+      try {
+        setLoading(true);
+        const response = await authAPI.register(values);
+        setOtpAuthUrl(response.data.otpAuthUrl);
+        setSecret(response.data.secret);
+        setUserId(response.data.userId);
+        setStep('verify2fa');
+        fetchRadiologists();
+        resetForm();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Registration failed');
+      } finally {
+        setLoading(false);
+      }
+    }
+  });
+
+  const twoFaFormik = useFormik({
+    initialValues: {
+      token: ''
+    },
+    validationSchema: twoFactorSchema,
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        await authAPI.verifyRegistration2FA({ userId, token: values.token });
+        toast.success('2FA setup successful!');
+        setStep('register');
+        handleCloseDialog();
+      } catch (err) {
+        toast.error(err.response?.data?.message || '2FA verification failed');
+      } finally {
+        setLoading(false);
+      }
+    }
+  });
+
+  const formik = isRegisterMode ? registerFormik : editFormik;
+
   const fetchRadiologists = async () => {
     setLoading(true);
-    const response = await radiologistAPI.getAll();
-    setRadiologists(response.data.data.radiologists || []);
+    const response = await userAPI.getRadiologists({ page: 1, limit: 100 });
+    setRadiologists(response.data.data || []);
     setLoading(false);
   };
 
@@ -58,21 +111,27 @@ const Radiologists = () => {
 
   const handleOpenDialog = (radiologist = null) => {
     setSelectedRadiologist(radiologist);
-    if (radiologist) formik.setValues(radiologist);
-    else formik.resetForm();
+    if (radiologist) {
+      setIsRegisterMode(false);
+      editFormik.setValues(radiologist);
+    } else {
+      setIsRegisterMode(true);
+      registerFormik.resetForm();
+    }
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedRadiologist(null);
-    formik.resetForm();
+    editFormik.resetForm();
+    registerFormik.resetForm();
   };
 
   const handleDelete = async () => {
     try {
       setLoading(true);
-      await radiologistAPI.delete(selectedRadiologist._id);
+      await userAPI.delete(selectedRadiologist._id);
       toast.success(t('radiologists.deleteSuccess'));
       setOpenDialog(false);
       fetchRadiologists();
@@ -115,38 +174,38 @@ const Radiologists = () => {
                 <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
                   <Table size="small">
                     <TableBody>
-                      <TableRow>
+                       {radiologist.gender && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold', width: '40%' }}>
                           {t('radiologists.gender')}
                         </TableCell>
                         <TableCell>
                           {t(`genders.${radiologist.gender}`)}
                         </TableCell>
-                      </TableRow>
-                      <TableRow>
+                      </TableRow>}
+                      {radiologist.age && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold' }}>
                           {t('radiologists.age')}
                         </TableCell>
                         <TableCell>
                           {radiologist.age} {t('patients.years')}
                         </TableCell>
-                      </TableRow>
-                      <TableRow>
+                      </TableRow>}
+                      {radiologist.phoneNumber && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold' }}>
                           {t('radiologists.phoneNumber')}
                         </TableCell>
                         <TableCell>
                           {radiologist.phoneNumber}
                         </TableCell>
-                      </TableRow>
-                      <TableRow>
+                      </TableRow>}
+                      {radiologist.licenseId && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold' }}>
                           {t('radiologists.licenseId')}
                         </TableCell>
                         <TableCell>
                           {radiologist.licenseId}
                         </TableCell>
-                      </TableRow>
+                      </TableRow>}
                       {radiologist.totalScansPerformed !== undefined && (
                         <TableRow>
                           <TableCell component="th" sx={{ fontWeight: 'bold' }}>
@@ -174,85 +233,200 @@ const Radiologists = () => {
         ))}
       </Grid>
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{selectedRadiologist ? t('radiologists.editTitle') : t('radiologists.addTitle')}</DialogTitle>
+        <DialogTitle>{isRegisterMode ? (step === 'verify2fa' ? 'Verify 2FA' : 'Register New Radiologist') : t('radiologists.editTitle')}</DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              label={t('radiologists.name') || 'Name'}
-              name="name"
-              value={formik.values.name}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.name && Boolean(formik.errors.name)}
-              helperText={formik.touched.name && formik.errors.name}
-              required
-              sx={{ mb: 2 }}
-            />
-            <FormControl fullWidth error={formik.touched.gender && Boolean(formik.errors.gender)} sx={{ mb: 2 }}>
-              <InputLabel>{t('radiologists.gender') || 'Gender'}</InputLabel>
-              <Select
-                name="gender"
-                value={formik.values.gender}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                label={t('radiologists.gender') || 'Gender'}
-              >
-                <MenuItem value="male">{t('genders.male')}</MenuItem>
-                <MenuItem value="female">{t('genders.female')}</MenuItem>
-                <MenuItem value="other">{t('genders.other')}</MenuItem>
-              </Select>
-              {formik.touched.gender && formik.errors.gender && (
-                <Typography color="error" variant="caption">
-                  {formik.errors.gender}
+          {isRegisterMode ? (
+            step === 'verify2fa' ? (
+              <Box component="form" onSubmit={twoFaFormik.handleSubmit} sx={{ mt: 2 }}>
+                <Typography variant="body1" align="center" sx={{ mb: 2 }}>
+                  Scan the QR code with your authenticator app.
                 </Typography>
-              )}
-            </FormControl>
-            <TextField
-              fullWidth
-              label={t('radiologists.age') || 'Age'}
-              name="age"
-              type="number"
-              value={formik.values.age}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.age && Boolean(formik.errors.age)}
-              helperText={formik.touched.age && formik.errors.age}
-              required
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label={t('radiologists.phoneNumber') || 'Phone Number'}
-              name="phoneNumber"
-              value={formik.values.phoneNumber}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
-              helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
-              required
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label={t('radiologists.licenseId') || 'License ID'}
-              name="licenseId"
-              value={formik.values.licenseId}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.licenseId && Boolean(formik.errors.licenseId)}
-              helperText={formik.touched.licenseId && formik.errors.licenseId}
-              required
-              sx={{ mb: 2 }}
-            />
-          </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+                  {otpAuthUrl && <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(otpAuthUrl)}&size=200x200`} alt="2FA QR Code" />}
+                </Box>
+                <Typography variant="body2" align="center" sx={{ mb: 2 }}>
+                  Or manually enter this secret:
+                  <Typography component="p" sx={{ fontFamily: 'monospace', userSelect: 'all', my: 1 }}>{secret}</Typography>
+                </Typography>
+                <TextField
+                  margin="normal"
+                  fullWidth
+                  id="token"
+                  name="token"
+                  label="Verification Code"
+                  value={twoFaFormik.values.token}
+                  onChange={twoFaFormik.handleChange}
+                  error={twoFaFormik.touched.token && Boolean(twoFaFormik.errors.token)}
+                  helperText={twoFaFormik.touched.token && twoFaFormik.errors.token}
+                  disabled={loading}
+                />
+                <DialogActions>
+                  <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
+                  <Button type="submit" variant="contained" disabled={loading}>
+                    {loading ? <CircularProgress size={24} /> : 'Verify and Complete'}
+                  </Button>
+                </DialogActions>
+              </Box>
+            ) : (
+              <Box component="form" onSubmit={registerFormik.handleSubmit} sx={{ mt: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Full Name"
+                  name="name"
+                  value={registerFormik.values.name}
+                  onChange={registerFormik.handleChange}
+                  onBlur={registerFormik.handleBlur}
+                  error={registerFormik.touched.name && Boolean(registerFormik.errors.name)}
+                  helperText={registerFormik.touched.name && registerFormik.errors.name}
+                  required
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Username"
+                  name="username"
+                  value={registerFormik.values.username}
+                  onChange={registerFormik.handleChange}
+                  onBlur={registerFormik.handleBlur}
+                  error={registerFormik.touched.username && Boolean(registerFormik.errors.username)}
+                  helperText={registerFormik.touched.username && registerFormik.errors.username}
+                  required
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={registerFormik.values.email}
+                  onChange={registerFormik.handleChange}
+                  onBlur={registerFormik.handleBlur}
+                  error={registerFormik.touched.email && Boolean(registerFormik.errors.email)}
+                  helperText={registerFormik.touched.email && registerFormik.errors.email}
+                  required
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={registerFormik.values.password}
+                  onChange={registerFormik.handleChange}
+                  onBlur={registerFormik.handleBlur}
+                  error={registerFormik.touched.password && Boolean(registerFormik.errors.password)}
+                  helperText={registerFormik.touched.password && registerFormik.errors.password}
+                  required
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  type="password"
+                  value={registerFormik.values.confirmPassword}
+                  onChange={registerFormik.handleChange}
+                  onBlur={registerFormik.handleBlur}
+                  error={registerFormik.touched.confirmPassword && Boolean(registerFormik.errors.confirmPassword)}
+                  helperText={registerFormik.touched.confirmPassword && registerFormik.errors.confirmPassword}
+                  required
+                  sx={{ mb: 2 }}
+                />
+                <DialogActions>
+                  <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loading}
+                  >
+                    {loading ? <CircularProgress size={24} /> : 'Register'}
+                  </Button>
+                </DialogActions>
+              </Box>
+            )
+          ) : (
+            <Box component="form" onSubmit={editFormik.handleSubmit} sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                label={t('radiologists.name') || 'Name'}
+                name="name"
+                value={editFormik.values.name}
+                onChange={editFormik.handleChange}
+                onBlur={editFormik.handleBlur}
+                error={editFormik.touched.name && Boolean(editFormik.errors.name)}
+                helperText={editFormik.touched.name && editFormik.errors.name}
+                required
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth error={editFormik.touched.gender && Boolean(editFormik.errors.gender)} sx={{ mb: 2 }}>
+                <InputLabel>{t('radiologists.gender') || 'Gender'}</InputLabel>
+                <Select
+                  name="gender"
+                  value={editFormik.values.gender}
+                  onChange={editFormik.handleChange}
+                  onBlur={editFormik.handleBlur}
+                  label={t('radiologists.gender') || 'Gender'}
+                >
+                  <MenuItem value="male">{t('genders.male')}</MenuItem>
+                  <MenuItem value="female">{t('genders.female')}</MenuItem>
+                  <MenuItem value="other">{t('genders.other')}</MenuItem>
+                </Select>
+                {editFormik.touched.gender && editFormik.errors.gender && (
+                  <Typography color="error" variant="caption">
+                    {editFormik.errors.gender}
+                  </Typography>
+                )}
+              </FormControl>
+              <TextField
+                fullWidth
+                label={t('radiologists.age') || 'Age'}
+                name="age"
+                type="number"
+                value={editFormik.values.age}
+                onChange={editFormik.handleChange}
+                onBlur={editFormik.handleBlur}
+                error={editFormik.touched.age && Boolean(editFormik.errors.age)}
+                helperText={editFormik.touched.age && editFormik.errors.age}
+                required
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label={t('radiologists.phoneNumber') || 'Phone Number'}
+                name="phoneNumber"
+                value={editFormik.values.phoneNumber}
+                onChange={editFormik.handleChange}
+                onBlur={editFormik.handleBlur}
+                error={editFormik.touched.phoneNumber && Boolean(editFormik.errors.phoneNumber)}
+                helperText={editFormik.touched.phoneNumber && editFormik.errors.phoneNumber}
+                required
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label={t('radiologists.licenseId') || 'License ID'}
+                name="licenseId"
+                value={editFormik.values.licenseId}
+                onChange={editFormik.handleChange}
+                onBlur={editFormik.handleBlur}
+                error={editFormik.touched.licenseId && Boolean(editFormik.errors.licenseId)}
+                helperText={editFormik.touched.licenseId && editFormik.errors.licenseId}
+                required
+                sx={{ mb: 2 }}
+              />
+              <DialogActions>
+                <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={24} /> : t('common.update')}
+                </Button>
+              </DialogActions>
+            </Box>
+          )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
-          <Button type="submit" variant="contained" onClick={formik.handleSubmit} disabled={loading}>
-            {selectedRadiologist ? t('common.update') : t('common.create')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );

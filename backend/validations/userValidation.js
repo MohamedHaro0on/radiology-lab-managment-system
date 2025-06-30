@@ -21,7 +21,8 @@ export const userValidation = {
             ...paginationSchema,
             search: Joi.string().min(1).max(50),
             isActive: Joi.boolean(),
-            isSuperAdmin: Joi.boolean()
+            isSuperAdmin: Joi.boolean(),
+            role: Joi.string().valid('admin', 'manager', 'doctor', 'staff', 'superAdmin', 'radiologist'),
         })
     },
 
@@ -37,6 +38,7 @@ export const userValidation = {
         }),
         body: Joi.object({
             username: Joi.string().min(3).max(30),
+            name: Joi.string().min(3).max(100),
             email: Joi.string().email(),
             isActive: Joi.boolean(),
             isSuperAdmin: Joi.boolean()

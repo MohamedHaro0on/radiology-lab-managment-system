@@ -28,14 +28,16 @@ const generateRefreshToken = (userId) => {
 
 // Register new user
 export const register = asyncHandler(async (req, res) => {
-    const { username, email, password, role } = req.body;
+    const { username, name, email, password, role } = req.body;
 
     // Map role to userType
-    let userType = 'staff';
+    let userType = 'receptionist';
+    let isSuperAdmin = false;
     if (role === 'superAdmin') {
-        userType = 'admin';
-    } else if (role === 'admin') {
-        userType = 'admin';
+        userType = 'superAdmin';
+        isSuperAdmin = true;
+    } else {
+        userType = role;
     }
 
     // Check if user already exists
@@ -52,99 +54,17 @@ export const register = asyncHandler(async (req, res) => {
     // Create user without privileges first
     const user = await User.create({
         username,
+        name,
         email,
         password,
         userType: userType,
+        isSuperAdmin: isSuperAdmin,
         twoFactorSecret: secret.base32,
         twoFactorEnabled: false,
         privileges: []
     });
 
-    // Add privileges with correct grantedBy field
-    if (userType === 'admin') {
-        user.privileges = [
-            {
-                module: 'dashboard',
-                operations: ['view'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'patients',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'doctors',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'appointments',
-                operations: ['view', 'create', 'update', 'delete', 'makeHugeSale'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'scans',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'stock',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'radiologists',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'patientHistory',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'scanCategories',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'expenses',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'users',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'branches',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            },
-            {
-                module: 'representatives',
-                operations: ['view', 'create', 'update', 'delete'],
-                grantedBy: user._id,
-                grantedAt: new Date()
-            }
-        ];
-
-        await user.save();
-    }
+    // Default privileges for other roles can be handled by the User model's pre-save hook
 
     // Return otpauth_url and user ID for setup
     res.status(StatusCodes.CREATED).json({

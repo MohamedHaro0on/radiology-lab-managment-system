@@ -10,6 +10,7 @@ import { RtlCacheProvider } from './theme/theme';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { SocketProvider } from './context/SocketContext';
 import { MainLayout } from './layouts/MainLayout';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -91,149 +92,151 @@ const AppContent = () => {
         }}
       >
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/two-factor-auth" element={<TwoFactorAuthPage />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Navigate to="/dashboard" replace />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/appointments"
-              element={
-                <ProtectedRoute>
-                  <Appointments />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/appointments/:id/history"
-              element={
-                <ProtectedRoute>
-                  <AppointmentHistory />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/doctors"
-              element={
-                <ProtectedRoute>
-                  <Doctors />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients"
-              element={
-                <ProtectedRoute>
-                  <Patients />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients/:id"
-              element={
-                <ProtectedRoute>
-                  <PatientDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/scans"
-              element={
-                <ProtectedRoute>
-                  <Scans />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/scans/:id"
-              element={
-                <ProtectedRoute>
-                  <ScanDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/stock"
-              element={
-                <ProtectedRoute>
-                  <Stock />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/radiologists"
-              element={
-                <ProtectedRoute>
-                  <Radiologists />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/privileges"
-              element={
-                <SuperAdminRoute>
-                  <PrivilegeManager />
-                </SuperAdminRoute>
-              }
-            />
-            <Route
-              path="/admin/branches"
-              element={
-                <ProtectedRoute>
-                  <BranchManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/audit"
-              element={
-                <SuperAdminRoute>
-                  <AuditLog />
-                </SuperAdminRoute>
-              }
-            />
-            <Route
-              path="/admin/representatives"
-              element={
-                <SuperAdminRoute>
-                  <RepresentativeManager />
-                </SuperAdminRoute>
-              }
-            />
-          </Routes>
+          <SocketProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/two-factor-auth" element={<TwoFactorAuthPage />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Navigate to="/dashboard" replace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/appointments"
+                element={
+                  <ProtectedRoute>
+                    <Appointments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/appointments/:id/history"
+                element={
+                  <ProtectedRoute>
+                    <AppointmentHistory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/doctors"
+                element={
+                  <ProtectedRoute>
+                    <Doctors />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients"
+                element={
+                  <ProtectedRoute>
+                    <Patients />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/:id"
+                element={
+                  <ProtectedRoute>
+                    <PatientDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scans"
+                element={
+                  <ProtectedRoute>
+                    <Scans />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scans/:id"
+                element={
+                  <ProtectedRoute>
+                    <ScanDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/stock"
+                element={
+                  <ProtectedRoute>
+                    <Stock />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/radiologists"
+                element={
+                  <ProtectedRoute>
+                    <Radiologists />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/privileges"
+                element={
+                  <SuperAdminRoute>
+                    <PrivilegeManager />
+                  </SuperAdminRoute>
+                }
+              />
+              <Route
+                path="/admin/branches"
+                element={
+                  <ProtectedRoute>
+                    <BranchManager />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/audit"
+                element={
+                  <SuperAdminRoute>
+                    <AuditLog />
+                  </SuperAdminRoute>
+                }
+              />
+              <Route
+                path="/admin/representatives"
+                element={
+                  <SuperAdminRoute>
+                    <RepresentativeManager />
+                  </SuperAdminRoute>
+                }
+              />
+            </Routes>
+          </SocketProvider>
         </AuthProvider>
         <ToastContainer
           position={isRtl ? 'top-left' : 'top-right'}

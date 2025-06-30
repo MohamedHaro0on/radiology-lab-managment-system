@@ -36,6 +36,7 @@ const Register = () => {
     const registrationFormik = useFormik({
         initialValues: {
             username: '',
+            name: '',
             email: '',
             password: '',
             confirmPassword: '',
@@ -91,6 +92,19 @@ const Register = () => {
                 {step === 'register' ? (
                     <Box component="form" onSubmit={registrationFormik.handleSubmit} sx={{ mt: 1, width: '100%' }}>
                         {/* Registration form fields */}
+                        <TextField
+                            margin="normal"
+                            fullWidth
+                            id="name"
+                            name="name"
+                            label="Full Name"
+                            autoComplete="name"
+                            value={registrationFormik.values.name}
+                            onChange={registrationFormik.handleChange}
+                            error={registrationFormik.touched.name && Boolean(registrationFormik.errors.name)}
+                            helperText={registrationFormik.touched.name && registrationFormik.errors.name}
+                            disabled={loading}
+                        />
                         <TextField
                             margin="normal"
                             fullWidth
@@ -157,7 +171,9 @@ const Register = () => {
                                 onChange={registrationFormik.handleChange}
                                 disabled={loading}
                             >
-                                <MenuItem value="user">User</MenuItem>
+                                <MenuItem value="receptionist">Receptionist</MenuItem>
+                                <MenuItem value="doctor">Doctor</MenuItem>
+                                <MenuItem value="radiologist">Radiologist</MenuItem>
                                 <MenuItem value="superAdmin">Super Admin</MenuItem>
                             </Select>
                         </FormControl>

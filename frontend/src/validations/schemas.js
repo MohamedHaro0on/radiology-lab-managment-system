@@ -14,6 +14,7 @@ export const loginSchema = yup.object({
 
 export const registerSchema = yup.object({
     username: yup.string().min(3, 'Username must be at least 3 characters').required('Username is required'),
+    name: yup.string().min(3, 'Full name must be at least 3 characters').required('Full name is required'),
     email: yup.string().email('Invalid email format').required('Email is required'),
     password: yup
         .string()
@@ -23,7 +24,7 @@ export const registerSchema = yup.object({
         .string()
         .oneOf([yup.ref('password'), null], 'Passwords must match')
         .required('Confirm password is required'),
-    role: yup.string().oneOf(['user', 'superAdmin'], 'Invalid role').required('Role is required'),
+    role: yup.string().oneOf(['receptionist', 'doctor', 'radiologist', 'superAdmin'], 'Invalid role').required('Role is required'),
 });
 
 export const twoFactorSchema = yup.object({

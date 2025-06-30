@@ -15,7 +15,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { appointmentAPI, patientAPI, doctorAPI, radiologistAPI, branchAPI, scanAPI } from '../../services/api';
+import { appointmentAPI, patientAPI, doctorAPI, userAPI, branchAPI, scanAPI } from '../../services/api';
 import { representativeService } from '../../services/representativeService';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -408,20 +408,20 @@ export default function Appointments() {
         ...(filters.endDate ? { endDate: filters.endDate } : {}),
       };
       const [aptRes, patRes, docRes, radRes, branchRes, scansRes, repsRes] = await Promise.all([
-        appointmentAPI.getAll(params),
-        patientAPI.getAllPatients({ limit: 1000 }),
-        doctorAPI.getAllDoctors({ limit: 1000 }),
-        radiologistAPI.getAllRadiologists({ limit: 1000 }),
+        appointmentAPI.getAllAppointments(params),
+        patientAPI.getAll({ page: 1, limit: 100 }),
+        doctorAPI.getAll({ page: 1, limit: 100 }),
+        userAPI.getRadiologists({ page: 1, limit: 100 }),
         branchAPI.getActiveBranches(),
-        scanAPI.getAllScans({ limit: 1000 }),
+        scanAPI.getAll({ page: 1, limit: 100 }),
         representativeService.getRepresentativesForDropdown()
       ]);
       setAppointments(aptRes.data.data?.appointments || aptRes.data.appointments || aptRes.data || []);
-      setPatients(patRes.data.data);
-      setDoctors(docRes.data.data);
-      setRadiologists(radRes.data.data);
+      setPatients(patRes.data.data?.patients || []);
+      setDoctors(docRes.data.data?.doctors || []);
+      setRadiologists(radRes.data.data || []);
       setBranches(branchRes.data.data);
-      setScans(scansRes.data.data);
+      setScans(scansRes.data.data?.scans || []);
       setRepresentatives(repsRes.data);
       if (aptRes.data.data?.pagination || aptRes.data.pagination) {
         const paginationData = aptRes.data.data?.pagination || aptRes.data.pagination;
@@ -442,10 +442,10 @@ export default function Appointments() {
   const handleFormSubmit = async (form) => {
     try {
       if (editData) {
-        await appointmentAPI.update(editData._id, form);
+        await appointmentAPI.updateAppointment(editData._id, form);
         setSnackbar({ open: true, message: t('appointments.updateSuccess'), severity: 'success' });
       } else {
-        await appointmentAPI.create(form);
+        await appointmentAPI.createAppointment(form);
         setSnackbar({ open: true, message: t('appointments.createSuccess'), severity: 'success' });
       }
       setFormOpen(false);
@@ -463,7 +463,7 @@ export default function Appointments() {
   // Delete appointment
   const handleDelete = async () => {
     try {
-      await appointmentAPI.delete(deleteId);
+      await appointmentAPI.deleteAppointment(deleteId);
       setSnackbar({ open: true, message: t('appointments.deleteSuccess'), severity: 'success' });
       setDeleteId(null);
       fetchData();

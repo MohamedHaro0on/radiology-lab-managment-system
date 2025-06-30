@@ -6,7 +6,7 @@ import { executePaginatedQuery } from '../utils/pagination.js';
 
 // Get all users with pagination and filtering
 export const getAllUsers = asyncHandler(async (req, res) => {
-    const { page, limit, sortBy, sortOrder, search, isActive, isSuperAdmin } = req.query;
+    const { page, limit, sortBy, sortOrder, search, isActive, isSuperAdmin, role } = req.query;
 
     // Build query
     const query = {};
@@ -18,6 +18,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     }
     if (typeof isActive === 'boolean') query.isActive = isActive;
     if (typeof isSuperAdmin === 'boolean') query.isSuperAdmin = isSuperAdmin;
+    if (role) query.userType = role;
 
     // Execute paginated query
     const result = await executePaginatedQuery(User, query, {
@@ -50,7 +51,7 @@ export const getUser = asyncHandler(async (req, res) => {
 
 // Update user
 export const updateUser = asyncHandler(async (req, res) => {
-    const { username, email, isActive, isSuperAdmin } = req.body;
+    const { username, name, email, isActive, isSuperAdmin } = req.body;
 
     // Check if user exists
     const user = await User.findById(req.params.id);
@@ -65,6 +66,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 
     // Update user
     if (username) user.username = username;
+    if (name) user.name = name;
     if (email) user.email = email;
     if (typeof isActive === 'boolean') user.isActive = isActive;
     if (typeof isSuperAdmin === 'boolean' && req.user.isSuperAdmin) {

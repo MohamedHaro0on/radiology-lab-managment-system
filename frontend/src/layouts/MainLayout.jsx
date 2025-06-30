@@ -138,7 +138,7 @@ export const MainLayout = ({ children }) => {
     setLang(event.target.value);
   };
 
-  const drawerWidth = sidebarOpen ? 240 : 65;
+  const drawerWidth = sidebarOpen ? 280 : 65;
 
   return (
     <Box sx={{ display: 'flex', direction: isRtl ? 'rtl' : 'ltr' }}>

@@ -12,6 +12,12 @@ const userSchema = new mongoose.Schema({
         minlength: [3, 'Username must be at least 3 characters long'],
         maxlength: [30, 'Username cannot exceed 30 characters']
     },
+    name: {
+        type: String,
+        required: [true, 'Name is required'],
+        trim: true,
+        maxlength: [100, 'Name cannot exceed 100 characters']
+    },
     email: {
         type: String,
         // required: [true, 'Email is required'],
@@ -22,8 +28,8 @@ const userSchema = new mongoose.Schema({
     },
     userType: {
         type: String,
-        enum: ['admin', 'manager', 'doctor', 'staff', 'superAdmin'],
-        default: 'staff'
+        enum: ['doctor', 'receptionist', 'superAdmin', 'radiologist'],
+        default: 'receptionist'
     },
     password: {
         type: String,
@@ -108,7 +114,22 @@ const userSchema = new mongoose.Schema({
     passwordResetExpires: {
         type: Date,
         select: false
-    }
+    },
+    gender: {
+        type: String,
+        enum: ['male', 'female', 'other'],
+    },
+    age: {
+        type: Number,
+        min: 18,
+        max: 150
+    },
+    licenseId: {
+        type: String,
+        trim: true,
+        minlength: 5,
+        maxlength: 20
+    },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
