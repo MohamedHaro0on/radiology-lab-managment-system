@@ -102,8 +102,15 @@ const Radiologists = () => {
 
   const fetchRadiologists = async () => {
     setLoading(true);
-    const response = await userAPI.getRadiologists({ page: 1, limit: 100 });
-    setRadiologists(response.data.data || []);
+    try {
+      const response = await userAPI.getRadiologists({ page: 1, limit: 100 });
+      // Safely extract the users array from the deeply nested response
+      const users = response?.data?.data?.data?.users;
+      const list = Array.isArray(users) ? users : [];
+      setRadiologists(list);
+    } catch (err) {
+      setRadiologists([]); // fallback to empty array on error
+    }
     setLoading(false);
   };
 
@@ -153,19 +160,19 @@ const Radiologists = () => {
         </Fab>
       </Box>
       <Grid container spacing={3}>
-        {radiologists.map((radiologist) => (
-          <Grid item xs={12} sm={6} md={4} key={radiologist._id}>
+        {(Array.isArray(radiologists) ? radiologists : []).map((radiologist) => (
+          <Grid item xs={12} sm={6} md={4} key={radiologist?._id || radiologist?.id || Math.random()}>
             <Card>
               <CardContent>
                 <Box display="flex" alignItems="center" mb={2}>
                   <PersonIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
                   <Box>
                     <Typography variant="h6" component="h2">
-                      {radiologist.name}
+                      {radiologist?.name || 'N/A'}
                     </Typography>
                     <Chip
-                      label={radiologist.isActive ? t('common.active') : t('common.inactive')}
-                      color={radiologist.isActive ? 'success' : 'default'}
+                      label={radiologist?.isActive ? t('common.active') : t('common.inactive')}
+                      color={radiologist?.isActive ? 'success' : 'default'}
                       size="small"
                     />
                   </Box>
@@ -174,7 +181,7 @@ const Radiologists = () => {
                 <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
                   <Table size="small">
                     <TableBody>
-                       {radiologist.gender && <TableRow>
+                       {radiologist?.gender && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold', width: '40%' }}>
                           {t('radiologists.gender')}
                         </TableCell>
@@ -182,7 +189,7 @@ const Radiologists = () => {
                           {t(`genders.${radiologist.gender}`)}
                         </TableCell>
                       </TableRow>}
-                      {radiologist.age && <TableRow>
+                      {radiologist?.age && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold' }}>
                           {t('radiologists.age')}
                         </TableCell>
@@ -190,7 +197,7 @@ const Radiologists = () => {
                           {radiologist.age} {t('patients.years')}
                         </TableCell>
                       </TableRow>}
-                      {radiologist.phoneNumber && <TableRow>
+                      {radiologist?.phoneNumber && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold' }}>
                           {t('radiologists.phoneNumber')}
                         </TableCell>
@@ -198,7 +205,7 @@ const Radiologists = () => {
                           {radiologist.phoneNumber}
                         </TableCell>
                       </TableRow>}
-                      {radiologist.licenseId && <TableRow>
+                      {radiologist?.licenseId && <TableRow>
                         <TableCell component="th" sx={{ fontWeight: 'bold' }}>
                           {t('radiologists.licenseId')}
                         </TableCell>
@@ -206,7 +213,7 @@ const Radiologists = () => {
                           {radiologist.licenseId}
                         </TableCell>
                       </TableRow>}
-                      {radiologist.totalScansPerformed !== undefined && (
+                      {radiologist?.totalScansPerformed !== undefined && (
                         <TableRow>
                           <TableCell component="th" sx={{ fontWeight: 'bold' }}>
                             {t('radiologists.totalScans')}

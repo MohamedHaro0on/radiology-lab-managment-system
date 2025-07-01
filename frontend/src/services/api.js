@@ -76,7 +76,7 @@ export const userAPI = {
     delete: (id) => axiosInstance.delete(`/users/${id}`),
     grantPrivileges: (userId, data) => axiosInstance.post(`/users/${userId}/privileges`, data),
     revokePrivileges: (userId, data) => axiosInstance.delete(`/users/${userId}/privileges`, { data }),
-    getRadiologists: (params = {}) => axiosInstance.get('/users', { params: { ...params, role: 'radiologist' } }),
+    getRadiologists: (params = {}) => userAPI.getAll({ ...params, userType: 'radiologist' }),
 };
 
 // Meta service
@@ -158,14 +158,7 @@ export const patientHistoryAPI = createCrudService('patient-history');
 export { axiosInstance };
 
 // Branch service
-export const branchAPI = {
-    getActiveBranches: () => axiosInstance.get('/branches/active'),
-    getAllBranches: () => axiosInstance.get('/branches'),
-    getBranchById: (id) => axiosInstance.get(`/branches/${id}`),
-    createBranch: (branchData) => axiosInstance.post('/branches', branchData),
-    updateBranch: (id, branchData) => axiosInstance.patch(`/branches/${id}`, branchData),
-    deleteBranch: (id) => axiosInstance.delete(`/branches/${id}`),
-};
+export const branchAPI = createCrudService('branches');
 
 // Representative service
 export const representativeAPI = {
@@ -178,4 +171,4 @@ export const representativeAPI = {
     getRepresentativeStats: (id) => axiosInstance.get(`/representatives/${id}/stats`),
     recalculateCounts: (id) => axiosInstance.post(`/representatives/${id}/recalculate`),
     getRepresentativesForDropdown: () => axiosInstance.get('/representatives/dropdown/representatives'),
-}; 
+};

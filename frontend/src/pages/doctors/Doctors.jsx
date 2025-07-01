@@ -31,6 +31,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -45,6 +46,7 @@ import { doctorSchema } from '../../validations/schemas';
 import SearchBar from '../../components/common/SearchBar';
 import NoContent from '../../components/common/NoContent';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { representativeService } from '../../services/representativeService';
 
 /**
  * Doctors component for managing doctors
@@ -61,6 +63,8 @@ const Doctors = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [representatives, setRepresentatives] = useState([]);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -72,13 +76,14 @@ const Doctors = () => {
         street: '',
         city: '',
         state: '',
-        postalCode: '',
         country: 'Egypt',
       },
       active: true,
+      representative: '',
     },
     validationSchema: doctorSchema,
     onSubmit: async (values) => {
+      setFormSubmitted(true);
       console.log('🚀 Doctor formik onSubmit triggered with values:', values);
       console.log('🔍 Form validation errors:', formik.errors);
       console.log('🔍 Form touched fields:', formik.touched);
@@ -87,16 +92,30 @@ const Doctors = () => {
         setLoading(true);
         console.log('📝 Preparing doctor submit data...');
 
+        // Format contact number to +20XXXXXXXXXX
+        let contact = values.contactNumber;
+        if (contact) {
+          contact = contact.replace(/\D/g, ''); // Remove all non-digits
+          if (contact.startsWith('0')) {
+            contact = contact.substring(1);
+          }
+          contact = contact.slice(-10); // Only keep last 10 digits
+        }
+
         // Map frontend fields to backend schema
         const backendDoctor = {
           name: values.name,
           specialization: values.specialization,
           licenseNumber: values.licenseNumber,
-          contactNumber: values.contactNumber,
+          contactNumber: contact ? `+20${contact}` : '',
           address: values.address,
           experience: 0, // Default experience
           isActive: values.active ?? true,
         };
+        // Only include representative if not empty
+        if (values.representative) {
+          backendDoctor.representative = values.representative;
+        }
 
         console.log('📤 Final doctor submit data:', backendDoctor);
         console.log('🎯 Selected doctor for update:', selectedDoctor);
@@ -161,6 +180,16 @@ const Doctors = () => {
 
   useEffect(() => {
     fetchDoctors();
+    // Fetch representatives for dropdown
+    const fetchReps = async () => {
+      try {
+        const repsRes = await representativeService.getRepresentativesForDropdown();
+        setRepresentatives(Array.isArray(repsRes.data) ? repsRes.data : []);
+      } catch (err) {
+        setRepresentatives([]);
+      }
+    };
+    fetchReps();
   }, [page, rowsPerPage, searchQuery]);
 
   const fetchDoctors = async () => {
@@ -195,6 +224,7 @@ const Doctors = () => {
   };
 
   const handleOpenDialog = (doctor = null) => {
+    setFormSubmitted(false);
     console.log('🚪 Doctor handleOpenDialog called with doctor:', doctor);
     if (doctor) {
       console.log('✏️ Editing existing doctor:', doctor);
@@ -203,21 +233,22 @@ const Doctors = () => {
         name: doctor.name || '',
         specialization: doctor.specialization || '',
         licenseNumber: doctor.licenseNumber || '',
-        contactNumber: doctor.contactNumber || '',
+        contactNumber: doctor.contactNumber?.startsWith('+20') ? doctor.contactNumber.substring(3) : doctor.contactNumber || '',
         address: doctor.address || {
           street: '',
           city: '',
           state: '',
-          postalCode: '',
           country: 'Egypt',
         },
         active: doctor.isActive ?? true,
+        representative: doctor.representative?._id || '',
       });
       console.log('📝 Form values set for editing:', formik.values);
     } else {
       console.log('➕ Creating new doctor');
       setSelectedDoctor(null);
       formik.resetForm();
+      formik.setFieldValue('representative', '');
       console.log('📝 Form reset for new doctor');
     }
     setOpenDialog(true);
@@ -422,7 +453,7 @@ const Doctors = () => {
           }} noValidate sx={{ mt: 2 }}>
             
             {/* General error display */}
-            {Object.keys(formik.errors).length > 0 && (
+            {formSubmitted && Object.keys(formik.errors).length > 0 && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 <Typography variant="body2">
                   Please fix the following errors:
@@ -481,14 +512,19 @@ const Doctors = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label={t('doctors.phoneNumber')}
+                  label={t('doctors.contactNumber')}
                   name="contactNumber"
                   value={formik.values.contactNumber}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                   error={formik.touched.contactNumber && Boolean(formik.errors.contactNumber)}
-                  helperText={formik.touched.contactNumber && formik.errors.contactNumber}
-                  required
+                  helperText={
+                    (formik.touched.contactNumber && formik.errors.contactNumber) ||
+                    'Enter the 10-digit Egyptian mobile number (without +20 or leading zero).'
+                  }
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">+20</InputAdornment>,
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -528,20 +564,8 @@ const Doctors = () => {
                   value={formik.values.address.state}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched['address.state'] && Boolean(formik.errors['address.state'])}
-                  helperText={formik.touched['address.state'] && formik.errors['address.state']}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('doctors.address.postalCode')}
-                  name="address.postalCode"
-                  value={formik.values.address.postalCode}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  error={formik.touched['address.postalCode'] && Boolean(formik.errors['address.postalCode'])}
-                  helperText={formik.touched['address.postalCode'] && formik.errors['address.postalCode']}
+                  error={formik.touched.address?.state && Boolean(formik.errors.address?.state)}
+                  helperText={formik.touched.address?.state && formik.errors.address?.state}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -552,8 +576,8 @@ const Doctors = () => {
                   value={formik.values.address.country}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
-                  error={formik.touched['address.country'] && Boolean(formik.errors['address.country'])}
-                  helperText={formik.touched['address.country'] && formik.errors['address.country']}
+                  error={formik.touched.address?.country && Boolean(formik.errors.address?.country)}
+                  helperText={formik.touched.address?.country && formik.errors.address?.country}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -567,6 +591,24 @@ const Doctors = () => {
                   }
                   label={t('doctors.active')}
                 />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>{t('representatives.title')}</InputLabel>
+                  <Select
+                    name="representative"
+                    value={formik.values.representative}
+                    onChange={formik.handleChange}
+                    label={t('representatives.title')}
+                  >
+                    <MenuItem value="">{t('representatives.noRepresentative') || 'No Representative'}</MenuItem>
+                    {representatives.map((rep) => (
+                      <MenuItem key={rep._id} value={rep._id}>
+                        {rep.name} ({rep.id})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
           </Box>

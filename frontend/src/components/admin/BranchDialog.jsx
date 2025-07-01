@@ -12,7 +12,8 @@ import {
     Grid,
     Box,
     Typography,
-    Alert
+    Alert,
+    InputAdornment
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -34,7 +35,7 @@ const validationSchema = Yup.object({
         .max(500, 'Address cannot exceed 500 characters'),
     phone: Yup.string()
         .required('Phone number is required')
-        .matches(/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number'),
+        .matches(/^\\d{10}$/, 'Please enter a valid 10-digit phone number'),
     email: Yup.string()
         .email('Please enter a valid email address')
         .required('Email is required'),
@@ -54,7 +55,7 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
             name: branch?.name || '',
             location: branch?.location || '',
             address: branch?.address || '',
-            phone: branch?.phone || '',
+            phone: branch?.phone?.startsWith('+20') ? branch.phone.substring(3) : branch?.phone || '',
             email: branch?.email || '',
             manager: branch?.manager || '',
             isActive: branch?.isActive ?? true,
@@ -63,17 +64,22 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
         onSubmit: async (values) => {
             setLoading(true);
             setError('');
+            console.log('--- Create/Update Branch: Form Values ---');
+            console.log(values);
+            const submissionValues = { ...values, phone: `+20${values.phone}` };
             try {
                 if (isEditing) {
-                    await branchAPI.updateBranch(branch._id, values);
+                    await branchAPI.update(branch._id, submissionValues);
                     toast.success('Branch updated successfully');
                 } else {
-                    await branchAPI.createBranch(values);
+                    await branchAPI.create(submissionValues);
                     toast.success('Branch created successfully');
                 }
                 onSave();
                 onClose();
             } catch (err) {
+                console.log('--- Create/Update Branch: API Error ---');
+                console.error(err);
                 const errorMessage = err.response?.data?.message || 
                     (isEditing ? 'Failed to update branch' : 'Failed to create branch');
                 setError(errorMessage);
@@ -96,16 +102,14 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
             <DialogTitle>
-                <Typography variant="h6">
-                    {isEditing ? 'Edit Branch' : 'Add New Branch'}
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                    {isEditing ? 'Update branch information' : 'Create a new laboratory branch'}
-                </Typography>
+                {isEditing ? 'Edit Branch' : 'Add New Branch'}
             </DialogTitle>
             
             <form onSubmit={formik.handleSubmit}>
                 <DialogContent>
+                    <Typography variant="body2" color="textSecondary" sx={{ mt: -2, mb: 2 }}>
+                        {isEditing ? 'Update branch information' : 'Create a new laboratory branch'}
+                    </Typography>
                     {error && (
                         <Alert severity="error" sx={{ mb: 2 }}>
                             {error}
@@ -179,7 +183,10 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 helperText={formik.touched.phone && formik.errors.phone}
                                 margin="normal"
                                 disabled={loading}
-                                placeholder="Enter phone number"
+                                placeholder="Enter 10-digit number"
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start">+20</InputAdornment>,
+                                }}
                             />
                         </Grid>
                         

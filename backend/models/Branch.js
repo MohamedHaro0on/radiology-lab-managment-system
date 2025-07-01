@@ -24,7 +24,7 @@ const branchSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Phone number is required'],
         trim: true,
-        match: [/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number']
+        match: [/^\\+20\d{10}$/, 'Please provide a valid phone number (+20 followed by 10 digits)']
     },
     email: {
         type: String,

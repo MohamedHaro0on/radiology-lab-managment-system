@@ -3,7 +3,7 @@ import * as Yup from 'yup';
 import { t } from 'i18next';
 
 // Common validation patterns
-const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
+const phoneRegex = /^\d{10}$/;
 const passwordRegex = /^.{8,}$/; // Only requires minimum 8 characters
 
 // Auth schemas
@@ -47,8 +47,8 @@ export const patientSchema = yup.object().shape({
         .oneOf(['male', 'female', 'other'], 'Please select a valid gender')
         .required('Gender is required'),
     phoneNumber: yup.string()
-        .matches(phoneRegex, 'Please enter a valid phone number (e.g., +1234567890 or 123-456-7890)')
-        .required('Phone number is required'),
+        .matches(phoneRegex, 'Please enter a valid 10-digit phone number')
+        .optional(),
     socialNumber: yup.string()
         .min(5, 'Social number must be at least 5 characters long')
         .max(20, 'Social number cannot exceed 20 characters')
@@ -72,20 +72,20 @@ export const patientSchema = yup.object().shape({
 export const doctorSchema = yup.object({
     name: yup.string().required('Name is required'),
     specialization: yup.string().required('Specialization is required'),
-    licenseNumber: yup.string(), // Made optional as per previous discussions
+    licenseNumber: yup.string().optional(),
     contactNumber: yup
         .string()
-        .matches(phoneRegex, 'Invalid phone number format')
-        .required('Phone number is required'),
+        .matches(phoneRegex, 'Please enter a valid 10-digit phone number')
+        .optional(),
     address: yup.object({
-        street: yup.string(),
-        city: yup.string(),
-        state: yup.string(),
-        postalCode: yup.string(),
+        street: yup.string().optional(),
+        city: yup.string().optional(),
+        state: yup.string().optional(),
         country: yup.string().default('India'),
-    }),
+    }).optional(),
     experience: yup.number().min(0, 'Experience cannot be negative'),
     isActive: yup.boolean().default(true),
+    representative: yup.string().nullable().optional(),
 });
 
 // Radiologist schemas
@@ -101,7 +101,7 @@ export const radiologistSchema = yup.object({
         .required('Age is required'),
     phoneNumber: yup
         .string()
-        .matches(phoneRegex, 'Invalid phone number format')
+        .matches(phoneRegex, 'Please enter a valid 10-digit phone number')
         .required('Phone number is required'),
     licenseId: yup.string()
         .min(5, 'License ID must be at least 5 characters long')
@@ -130,6 +130,7 @@ export const appointmentSchema = yup.object({
 // Stock schemas
 export const stockSchema = yup.object({
     name: yup.string().required('Stock name is required'),
+    branch: yup.string().required('Branch is required'),
     quantity: yup.number().min(0, 'Quantity cannot be negative').required('Quantity is required'),
     unit: yup.string().max(20, 'Unit cannot exceed 20 characters').required('Unit is required'),
     minimumThreshold: yup.number().min(0, 'Minimum threshold cannot be negative').required('Minimum threshold is required'),
@@ -177,7 +178,7 @@ export const profileUpdateSchema = yup.object({
     email: yup.string().email('Invalid email format').required('Email is required'),
     contactNumber: yup
         .string()
-        .matches(phoneRegex, 'Invalid phone number format')
+        .matches(phoneRegex, 'Please enter a valid 10-digit phone number')
         .required('Phone number is required'),
     currentPassword: yup.string().when('newPassword', {
         is: (val) => val?.length > 0,

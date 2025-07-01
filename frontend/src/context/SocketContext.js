@@ -12,7 +12,10 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         if (token) {
-            const ws = new WebSocket(`ws://localhost:3000?token=${token}`);
+            const wsUrl = (
+                process.env.REACT_APP_API_URL || 'http://localhost:3000'
+            ).replace(/^http/, 'ws');
+            const ws = new WebSocket(`${wsUrl}?token=${token}`);
 
             ws.onopen = () => {
                 console.log('WebSocket connected');

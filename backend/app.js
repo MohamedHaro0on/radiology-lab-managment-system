@@ -6,6 +6,8 @@ import { setupSecurityMiddleware } from './config/security.js';
 import { initializeDatabase, checkDatabaseHealth } from './config/database.js';
 import { errors } from './utils/errorHandler.js';
 import { StatusCodes } from 'http-status-codes';
+import { createServer } from 'http';
+import websocketManager from './utils/websocket.js';
 // import cors from 'cors';
 // import helmet from 'helmet';
 // import morgan from 'morgan';
@@ -141,12 +143,14 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database and start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
         await initializeDatabase();
-        app.listen(PORT, () => {
+        const server = createServer(app);
+        websocketManager.initialize(server);
+        server.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
         });
     } catch (error) {

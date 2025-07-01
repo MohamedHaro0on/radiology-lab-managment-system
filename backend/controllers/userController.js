@@ -31,8 +31,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     // Return the correct format that frontend expects
     res.status(StatusCodes.OK).json({
         status: 'success',
-        data: result.data.users || result.data,
-        pagination: result.data.pagination
+        data: result
     });
 });
 

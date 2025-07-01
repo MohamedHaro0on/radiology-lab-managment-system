@@ -37,11 +37,6 @@ export const createAppointmentSchema = Joi.object({
             'array.min': 'At least one scan is required',
             'any.required': 'Scans are required'
         }),
-    referredBy: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
-        .messages({
-            'string.pattern.base': 'Invalid doctor ID format',
-            'any.required': 'Referring doctor is required'
-        }),
     scheduledAt: Joi.date().greater('now').required()
         .messages({
             'date.base': 'Scheduled time must be a valid date',
@@ -71,7 +66,6 @@ export const updateAppointmentSchema = Joi.object({
     patientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     branch: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     scans: Joi.array().items(appointmentScanSchema).min(1).optional(),
-    referredBy: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     scheduledAt: Joi.date().greater('now').optional(),
     notes: Joi.string().trim().max(1000).optional(),
     makeHugeSale: Joi.boolean().optional(),

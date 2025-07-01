@@ -24,8 +24,8 @@ const patientSchema = new mongoose.Schema({
     },
     phoneNumber: {
         type: String,
-        required: [true, 'Phone number is required'],
-        match: [/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Please provide a valid phone number']
+        required: false,
+        match: [/^(|\+20\d{10})$/, 'Please provide a valid phone number (+20 followed by 10 digits)']
     },
     socialNumber: {
         type: String,

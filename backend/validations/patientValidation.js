@@ -19,10 +19,9 @@ export const createPatientSchema = Joi.object({
             'any.only': 'Gender must be male, female, or other',
             'any.required': 'Gender is required'
         }),
-    phoneNumber: Joi.string().pattern(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/).required()
+    phoneNumber: Joi.string().pattern(/^(|\+20\d{10})$/).optional().allow('')
         .messages({
-            'string.pattern.base': 'Please provide a valid phone number',
-            'any.required': 'Phone number is required'
+            'string.pattern.base': 'Phone number must be in the format +20 followed by 10 digits.'
         }),
     socialNumber: Joi.string().trim().min(5).max(20).optional()
         .messages({
@@ -39,10 +38,10 @@ export const createPatientSchema = Joi.object({
             'array.base': 'Medical history must be an array'
         }),
     address: Joi.object({
-        street: Joi.string().trim().optional(),
-        city: Joi.string().trim().optional(),
-        state: Joi.string().trim().optional(),
-        postalCode: Joi.string().trim().optional(),
+        street: Joi.string().trim().optional().allow(''),
+        city: Joi.string().trim().optional().allow(''),
+        state: Joi.string().trim().optional().allow(''),
+        postalCode: Joi.string().trim().optional().allow(''),
         country: Joi.string().trim().default('India')
     }).optional()
 });
@@ -52,15 +51,18 @@ export const updatePatientSchema = Joi.object({
     name: Joi.string().trim().min(2).max(100).optional(),
     dateOfBirth: Joi.date().max('now').optional(),
     gender: Joi.string().valid('male', 'female', 'other').optional(),
-    phoneNumber: Joi.string().pattern(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/).optional(),
+    phoneNumber: Joi.string().pattern(/^(|\+20\d{10})$/).optional().allow('')
+        .messages({
+            'string.pattern.base': 'Phone number must be in the format +20 followed by 10 digits.'
+        }),
     socialNumber: Joi.string().trim().min(5).max(20).optional(),
     doctorReferred: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     medicalHistory: Joi.array().items(Joi.string().trim()).optional(),
     address: Joi.object({
-        street: Joi.string().trim().optional(),
-        city: Joi.string().trim().optional(),
-        state: Joi.string().trim().optional(),
-        postalCode: Joi.string().trim().optional(),
+        street: Joi.string().trim().optional().allow(''),
+        city: Joi.string().trim().optional().allow(''),
+        state: Joi.string().trim().optional().allow(''),
+        postalCode: Joi.string().trim().optional().allow(''),
         country: Joi.string().trim().optional()
     }).optional()
 });

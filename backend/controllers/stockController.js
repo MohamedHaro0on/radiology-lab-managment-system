@@ -26,6 +26,7 @@ export const getAllStock = asyncHandler(async (req, res) => {
     const {
         search,
         category,
+        branch,
         lowStock,
         expired,
         ...paginationOptions
@@ -41,6 +42,9 @@ export const getAllStock = asyncHandler(async (req, res) => {
     if (category) {
         query.category = category;
     }
+    if (branch) {
+        query.branch = branch;
+    }
     if (lowStock === 'true') {
         query.$expr = { $lte: ['$quantity', '$minimumThreshold'] };
     }
@@ -52,7 +56,7 @@ export const getAllStock = asyncHandler(async (req, res) => {
         Stock,
         query,
         paginationOptions,
-        { path: 'updatedBy', select: 'username email' }
+        { path: 'updatedBy branch', select: 'username email name' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -170,16 +174,19 @@ export const deleteStock = asyncHandler(async (req, res) => {
 
 // Get low stock items
 export const getLowStock = asyncHandler(async (req, res) => {
-    const { ...paginationOptions } = req.query;
+    const { branch, ...paginationOptions } = req.query;
     const query = {
         $expr: { $lte: ['$quantity', '$minimumThreshold'] }
     };
+    if (branch) {
+        query.branch = branch;
+    }
 
     const result = await executePaginatedQuery(
         Stock,
         query,
         paginationOptions,
-        { path: 'updatedBy', select: 'username email' }
+        { path: 'updatedBy branch', select: 'username email name' }
     );
 
     res.status(StatusCodes.OK).json(result);
@@ -187,16 +194,19 @@ export const getLowStock = asyncHandler(async (req, res) => {
 
 // Get expired items
 export const getExpiredItems = asyncHandler(async (req, res) => {
-    const { ...paginationOptions } = req.query;
+    const { branch, ...paginationOptions } = req.query;
     const query = {
         validUntil: { $lt: new Date() }
     };
+    if (branch) {
+        query.branch = branch;
+    }
 
     const result = await executePaginatedQuery(
         Stock,
         query,
         paginationOptions,
-        { path: 'updatedBy', select: 'username email' }
+        { path: 'updatedBy branch', select: 'username email name' }
     );
 
     res.status(StatusCodes.OK).json(result);

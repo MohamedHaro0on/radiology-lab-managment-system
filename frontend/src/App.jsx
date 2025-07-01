@@ -72,7 +72,7 @@ const SuperAdminRoute = ({ children }) => {
   }
 
   if (!isAuthenticated || !isSuperAdmin) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/appointments" />;
   }
 
   return <MainLayout>{children}</MainLayout>;
@@ -103,16 +103,16 @@ const AppContent = () => {
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <Navigate to="/dashboard" replace />
+                    <Navigate to="/appointments" replace />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/dashboard"
                 element={
-                  <ProtectedRoute>
+                  <SuperAdminRoute>
                     <Dashboard />
-                  </ProtectedRoute>
+                  </SuperAdminRoute>
                 }
               />
               <Route
@@ -214,9 +214,9 @@ const AppContent = () => {
               <Route
                 path="/admin/branches"
                 element={
-                  <ProtectedRoute>
+                  <SuperAdminRoute>
                     <BranchManager />
-                  </ProtectedRoute>
+                  </SuperAdminRoute>
                 }
               />
               <Route

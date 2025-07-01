@@ -10,6 +10,10 @@ export const createStockSchema = Joi.object({
             'string.min': 'Stock name must be at least 2 characters long',
             'string.max': 'Stock name cannot exceed 100 characters'
         }),
+    branch: objectId.required().messages({
+        'any.required': 'Branch is required',
+        'string.pattern.base': 'Invalid branch ID format'
+    }),
     quantity: Joi.number().integer().min(0).required()
         .messages({
             'number.base': 'Quantity must be a number',
@@ -53,6 +57,9 @@ export const createStockSchema = Joi.object({
 // Validation schema for updating stock item
 export const updateStockSchema = Joi.object({
     name: Joi.string().trim().min(2).max(100).optional(),
+    branch: objectId.optional().messages({
+        'string.pattern.base': 'Invalid branch ID format'
+    }),
     quantity: Joi.number().integer().min(0).optional(),
     unit: Joi.string().trim().max(20).optional()
         .messages({
@@ -83,6 +90,9 @@ export const stockQuerySchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
     search: Joi.string().trim().optional(),
+    branch: objectId.optional().messages({
+        'string.pattern.base': 'Invalid branch ID format'
+    }),
     minPrice: Joi.number().positive().optional(),
     maxPrice: Joi.number().positive().optional(),
     lowStock: Joi.boolean().optional(),

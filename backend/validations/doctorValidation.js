@@ -61,48 +61,31 @@ export const doctorValidation = {
             'string.min': 'Specialization must be at least 2 characters long',
             'string.max': 'Specialization cannot exceed 100 characters'
         }),
-        licenseNumber: Joi.string().required().min(3).max(50).messages({
-            'any.required': 'License number is required',
-            'string.min': 'License number must be at least 3 characters long',
+        licenseNumber: Joi.string().allow('').max(50).messages({
             'string.max': 'License number cannot exceed 50 characters'
         }),
-        contactNumber: Joi.string().required().pattern(/^\+?[\d\s-]{10,}$/).messages({
-            'any.required': 'Contact number is required',
-            'string.pattern.base': 'Invalid contact number format'
+        contactNumber: Joi.string().allow('').pattern(/^\+20\d{10}$/).messages({
+            'string.pattern.base': 'Invalid contact number format. Must be +20 followed by 10 digits.'
         }),
         // email: Joi.string().required().email().messages({
         //     'any.required': 'Email is required',
         //     'string.email': 'Invalid email format'
         // }),
         address: Joi.object({
-            street: Joi.string().required().min(3).max(200).messages({
-                'any.required': 'Street address is required',
-                'string.min': 'Street address must be at least 3 characters long',
+            street: Joi.string().allow('').max(200).messages({
                 'string.max': 'Street address cannot exceed 200 characters'
             }),
-            city: Joi.string().required().min(2).max(100).messages({
-                'any.required': 'City is required',
-                'string.min': 'City must be at least 2 characters long',
+            city: Joi.string().allow('').max(100).messages({
                 'string.max': 'City cannot exceed 100 characters'
             }),
-            state: Joi.string().required().min(2).max(100).messages({
-                'any.required': 'State is required',
-                'string.min': 'State must be at least 2 characters long',
+            state: Joi.string().allow('').max(100).messages({
                 'string.max': 'State cannot exceed 100 characters'
             }),
-            country: Joi.string().required().min(2).max(100).messages({
-                'any.required': 'Country is required',
+            country: Joi.string().min(2).max(100).messages({
                 'string.min': 'Country must be at least 2 characters long',
                 'string.max': 'Country cannot exceed 100 characters'
-            }),
-            postalCode: Joi.string().required().min(3).max(20).messages({
-                'any.required': 'Postal code is required',
-                'string.min': 'Postal code must be at least 3 characters long',
-                'string.max': 'Postal code cannot exceed 20 characters'
             })
-        }).required().messages({
-            'any.required': 'Address is required'
-        }),
+        }).optional(),
         qualifications: Joi.array().items(
             Joi.object({
                 degree: Joi.string().required().min(2).max(100).messages({
@@ -133,46 +116,35 @@ export const doctorValidation = {
 
     // Update doctor
     update: Joi.object({
-        name: Joi.string().min(2).max(100).messages({
+        name: Joi.string().min(2).max(100).optional().messages({
             'string.min': 'Name must be at least 2 characters long',
             'string.max': 'Name cannot exceed 100 characters'
         }),
-        specialization: Joi.string().min(2).max(100).messages({
+        specialization: Joi.string().min(2).max(100).optional().messages({
             'string.min': 'Specialization must be at least 2 characters long',
             'string.max': 'Specialization cannot exceed 100 characters'
         }),
-        licenseNumber: Joi.string().min(3).max(50).messages({
-            'string.min': 'License number must be at least 3 characters long',
+        licenseNumber: Joi.string().allow('').max(50).optional().messages({
             'string.max': 'License number cannot exceed 50 characters'
         }),
-        contactNumber: Joi.string().pattern(/^\+?[\d\s-]{10,}$/).messages({
-            'string.pattern.base': 'Invalid contact number format'
+        contactNumber: Joi.string().allow('').pattern(/^\+20\d{10}$/).optional().messages({
+            'string.pattern.base': 'Invalid contact number format. Must be +20 followed by 10 digits.'
         }),
-        // email: Joi.string().email().messages({
-        //     'string.email': 'Invalid email format'
-        // }),
         address: Joi.object({
-            street: Joi.string().min(3).max(200).messages({
-                'string.min': 'Street address must be at least 3 characters long',
+            street: Joi.string().allow('').max(200).optional().messages({
                 'string.max': 'Street address cannot exceed 200 characters'
             }),
-            city: Joi.string().min(2).max(100).messages({
-                'string.min': 'City must be at least 2 characters long',
+            city: Joi.string().allow('').max(100).optional().messages({
                 'string.max': 'City cannot exceed 100 characters'
             }),
-            state: Joi.string().min(2).max(100).messages({
-                'string.min': 'State must be at least 2 characters long',
+            state: Joi.string().allow('').max(100).optional().messages({
                 'string.max': 'State cannot exceed 100 characters'
             }),
-            country: Joi.string().min(2).max(100).messages({
+            country: Joi.string().min(2).max(100).optional().messages({
                 'string.min': 'Country must be at least 2 characters long',
                 'string.max': 'Country cannot exceed 100 characters'
-            }),
-            postalCode: Joi.string().min(3).max(20).messages({
-                'string.min': 'Postal code must be at least 3 characters long',
-                'string.max': 'Postal code cannot exceed 20 characters'
             })
-        }),
+        }).optional(),
         qualifications: Joi.array().items(
             Joi.object({
                 degree: Joi.string().required().min(2).max(100).messages({
@@ -191,13 +163,16 @@ export const doctorValidation = {
                     'number.max': 'Year cannot be in the future'
                 })
             })
-        ).min(1).messages({
+        ).optional().messages({
             'array.min': 'At least one qualification is required'
         }),
-        experience: Joi.number().integer().min(0).messages({
+        experience: Joi.number().integer().min(0).optional().messages({
             'number.min': 'Experience cannot be negative'
         }),
-        isActive: Joi.boolean()
+        isActive: Joi.boolean().optional(),
+        representative: objectId.allow(null, '').optional().messages({
+            'string.pattern.base': 'Invalid representative ID format.'
+        })
     }).min(1).messages({
         'object.min': 'At least one field must be provided for update'
     }),
@@ -271,40 +246,53 @@ export const createDoctorSchema = Joi.object({
             'string.empty': 'Specialization is required',
             'any.required': 'Specialization is required'
         }),
-    licenseNumber: Joi.string().min(3).max(50).optional().messages({
-        'string.min': 'License number must be at least 3 characters long',
+    licenseNumber: Joi.string().allow('').max(50).optional().messages({
         'string.max': 'License number cannot exceed 50 characters'
     }),
-    contactNumber: Joi.string().pattern(/^\+?[\d\s-]{10,}$/).required()
+    contactNumber: Joi.string().allow('').pattern(/^\+20\d{10}$/).optional()
         .messages({
-            'string.pattern.base': 'Please provide a valid contact number',
-            'any.required': 'Contact number is required'
+            'string.pattern.base': 'Invalid contact number format. Must be +20 followed by 10 digits.'
         }),
     address: Joi.object({
-        street: Joi.string().trim().optional(),
-        city: Joi.string().trim().optional(),
-        state: Joi.string().trim().optional(),
-        postalCode: Joi.string().trim().optional(),
+        street: Joi.string().trim().allow('').optional(),
+        city: Joi.string().trim().allow('').optional(),
+        state: Joi.string().trim().allow('').optional(),
         country: Joi.string().trim().default('egypt').optional()
     }).optional(),
     experience: Joi.number().integer().min(0).optional().messages({
         'number.min': 'Experience cannot be negative'
     }),
-    isActive: Joi.boolean().default(true).optional()
+    isActive: Joi.boolean().default(true).optional(),
+    representative: objectId.allow(null, '').optional().messages({
+        'string.pattern.base': 'Invalid representative ID format.'
+    })
 });
 
 // Validation schema for updating doctor
 export const updateDoctorSchema = Joi.object({
     name: Joi.string().trim().min(2).max(100).optional(),
     specialization: Joi.string().trim().optional(),
-    phoneNumber: Joi.string().pattern(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/).optional(),
+    licenseNumber: Joi.string().allow('').max(50).optional().messages({
+        'string.max': 'License number cannot exceed 50 characters'
+    }),
+    contactNumber: Joi.string().allow('').pattern(/^\+20\d{10}$/).optional().messages({
+        'string.pattern.base': 'Invalid contact number format. Must be +20 followed by 10 digits.'
+    }),
     address: Joi.object({
-        street: Joi.string().trim().optional(),
-        city: Joi.string().trim().optional(),
-        state: Joi.string().trim().optional(),
-        postalCode: Joi.string().trim().optional(),
-        country: Joi.string().trim().optional()
-    }).optional()
+        street: Joi.string().trim().allow('').optional(),
+        city: Joi.string().trim().allow('').optional(),
+        state: Joi.string().trim().allow('').optional(),
+        country: Joi.string().trim().allow('').optional()
+    }).optional(),
+    experience: Joi.number().integer().min(0).optional().messages({
+        'number.min': 'Experience cannot be negative'
+    }),
+    isActive: Joi.boolean().optional(),
+    representative: objectId.allow(null, '').optional().messages({
+        'string.pattern.base': 'Invalid representative ID format.'
+    })
+}).min(1).messages({
+    'object.min': 'At least one field must be provided for update'
 });
 
 // Validation schema for doctor ID parameter

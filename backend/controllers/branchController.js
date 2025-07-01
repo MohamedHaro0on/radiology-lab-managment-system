@@ -17,6 +17,9 @@ import { logAudit } from '../services/auditService.js';
 //   isActive: boolean (optional, default: true)
 // }
 export const createBranch = asyncHandler(async (req, res) => {
+    console.log('--- Create Branch: Request Body ---');
+    console.log(req.body);
+
     const { name, location, address, phone, email, manager, isActive = true } = req.body;
 
     // Check if branch with same name already exists
@@ -41,6 +44,9 @@ export const createBranch = asyncHandler(async (req, res) => {
         isActive
     });
 
+    console.log('--- Create Branch: Branch Object Created ---');
+    console.log(branch);
+
     // Log audit trail
     await logAudit({
         user: req.user._id,
@@ -52,7 +58,7 @@ export const createBranch = asyncHandler(async (req, res) => {
     res.status(StatusCodes.CREATED).json({
         status: 'success',
         message: 'Branch created successfully',
-        data: branch.info
+        data: branch
     });
 });
 
@@ -112,15 +118,17 @@ export const getAllBranches = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json({
         status: 'success',
-        data: branches.map(branch => ({
-            ...branch,
-            id: branch._id
-        })),
-        pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            pages: Math.ceil(total / parseInt(limit))
+        data: {
+            branches: branches.map(branch => ({
+                ...branch,
+                id: branch._id
+            })),
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit))
+            }
         }
     });
 });

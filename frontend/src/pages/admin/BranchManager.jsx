@@ -55,8 +55,8 @@ const BranchManager = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await branchAPI.getAllBranches();
-            setBranches(response.data.data || response.data || []);
+            const response = await branchAPI.getAll();
+            setBranches(response.data.data.branches || []);
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Failed to fetch branches';
             setError(errorMessage);

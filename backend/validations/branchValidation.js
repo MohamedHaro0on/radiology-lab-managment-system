@@ -37,11 +37,11 @@ export const createBranchSchema = Joi.object({
         }),
     phone: Joi.string()
         .required()
-        .pattern(/^[\+]?[1-9][\d]{0,15}$/)
+        .pattern(/^\\+20\d{10}$/)
         .trim()
         .messages({
             'string.empty': 'Phone number is required',
-            'string.pattern.base': 'Please enter a valid phone number',
+            'string.pattern.base': 'Phone number must be in the format +20 followed by 10 digits.',
             'any.required': 'Phone number is required'
         }),
     email: Joi.string()
@@ -102,11 +102,11 @@ export const updateBranchSchema = Joi.object({
             'string.max': 'Address cannot exceed 500 characters'
         }),
     phone: Joi.string()
-        .pattern(/^[\+]?[1-9][\d]{0,15}$/)
+        .pattern(/^\\+20\d{10}$/)
         .trim()
         .messages({
             'string.empty': 'Phone number cannot be empty',
-            'string.pattern.base': 'Please enter a valid phone number'
+            'string.pattern.base': 'Phone number must be in the format +20 followed by 10 digits.'
         }),
     email: Joi.string()
         .email({ tlds: { allow: false } })

@@ -13,6 +13,7 @@ import {
   History as HistoryIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { appointmentAPI, patientAPI, doctorAPI, userAPI, branchAPI, scanAPI } from '../../services/api';
@@ -54,7 +55,8 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
     scans: [{ scan: '', quantity: 1 }],
     referredBy: '',
     branch: '',
-    scheduledAt: '',
+    scheduledDate: null,
+    scheduledTime: null,
     notes: '',
     priority: 'routine',
     makeHugeSale: false,
@@ -65,23 +67,48 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
   const [calculatedPrice, setCalculatedPrice] = useState(0);
 
   useEffect(() => {
-    setForm(initialData || {
-      radiologistId: '',
-      patientId: '',
-      scans: [{ scan: '', quantity: 1 }],
-      referredBy: '',
-      branch: '',
-      scheduledAt: '',
-      notes: '',
-      priority: 'routine',
-      makeHugeSale: false,
-      customPrice: null
-    });
+    const initialDate = initialData?.scheduledAt ? new Date(initialData.scheduledAt) : null;
+
+    setForm(initialData ? 
+        { ...initialData, scheduledDate: initialDate, scheduledTime: initialDate } :
+        {
+            radiologistId: '',
+            patientId: '',
+            scans: [{ scan: '', quantity: 1 }],
+            referredBy: '',
+            branch: '',
+            scheduledDate: null,
+            scheduledTime: null,
+            notes: '',
+            priority: 'routine',
+            makeHugeSale: false,
+            customPrice: null
+        }
+    );
     setErrors({});
   }, [initialData, open]);
 
+  useEffect(() => {
+    if (form.patientId) {
+      const selectedPatient = patients.find(p => p._id === form.patientId);
+      if (selectedPatient && selectedPatient.doctorReferred) {
+        setForm(prev => ({ ...prev, referredBy: selectedPatient.doctorReferred._id }));
+      }
+    }
+  }, [form.patientId, patients]);
+
+  useEffect(() => {
+    const total = form.scans.reduce((acc, currentScan) => {
+      const scanDetails = scans.find(s => s._id === currentScan.scan);
+      const price = scanDetails?.minPrice || 0;
+      const quantity = currentScan.quantity || 0;
+      return acc + (price * quantity);
+    }, 0);
+    setCalculatedPrice(total);
+  }, [form.scans, scans]);
+
   // Check if user has makeHugeSale privilege
-  const hasHugeSalePrivilege = user?.privileges?.some(p => 
+  const hasHugeSalePrivilege = user?.isSuperAdmin || user?.privileges?.some(p => 
     p.module === 'appointments' && p.operation === 'makeHugeSale'
   );
 
@@ -127,8 +154,8 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
     const newErrors = {};
     if (!form.radiologistId) newErrors.radiologistId = t('appointments.radiologistRequired');
     if (!form.patientId) newErrors.patientId = t('appointments.patientRequired');
-    if (!form.referredBy) newErrors.referredBy = t('appointments.referredByRequired');
-    if (!form.scheduledAt) newErrors.scheduledAt = t('appointments.dateRequired');
+    if (!form.scheduledDate) newErrors.scheduledDate = t('appointments.dateRequired');
+    if (!form.scheduledTime) newErrors.scheduledTime = 'Time is required';
     if (!form.branch) newErrors.branch = t('appointments.branchRequired');
     
     // Validate custom price if huge sale is enabled
@@ -143,7 +170,17 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(form);
+      const { scheduledDate, scheduledTime, ...restOfForm } = form;
+      
+      const combinedDateTime = new Date(scheduledDate);
+      combinedDateTime.setHours(new Date(scheduledTime).getHours());
+      combinedDateTime.setMinutes(new Date(scheduledTime).getMinutes());
+      
+      const submissionData = {
+          ...restOfForm,
+          scheduledAt: combinedDateTime.toISOString()
+      };
+      onSubmit(submissionData);
     }
   };
 
@@ -175,34 +212,16 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
             
             <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.branch}>
-                <InputLabel>{t('appointments.branch')}</InputLabel>
+                <InputLabel>{t('appointments.branchLabel')}</InputLabel>
                 <Select
                   name="branch"
                   value={form.branch}
                   onChange={handleChange}
-                  label={t('appointments.branch')}
+                  label={t('appointments.branchLabel')}
                 >
                   {branches.map(b => (
                     <MenuItem key={b._id} value={b._id}>
                       {b.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!errors.referredBy}>
-                <InputLabel>{t('appointments.referredBy')}</InputLabel>
-                <Select
-                  name="referredBy"
-                  value={form.referredBy}
-                  onChange={handleChange}
-                  label={t('appointments.referredBy')}
-                >
-                  {doctors.map(d => (
-                    <MenuItem key={d._id} value={d._id}>
-                      {d.name} ({d.specialization})
                     </MenuItem>
                   ))}
                 </Select>
@@ -218,9 +237,9 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
                   onChange={handleChange}
                   label={t('appointments.radiologist')}
                 >
-                  {radiologists.map(r => (
+                  {(Array.isArray(radiologists) ? radiologists : []).map(r => (
                     <MenuItem key={r._id} value={r._id}>
-                      {r.name} ({r.licenseId})
+                      {r.name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -246,15 +265,35 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
             <Grid item xs={12} md={6}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
-                  label={t('appointments.dateTime')}
-                  value={form.scheduledAt ? new Date(form.scheduledAt) : null}
+                  label={t('appointments.date')}
+                  value={form.scheduledDate}
                   onChange={(newValue) => {
-                    setForm(prev => ({ ...prev, scheduledAt: newValue?.toISOString() }));
+                    setForm(prev => ({ ...prev, scheduledDate: newValue }));
                   }}
                   slotProps={{
                     textField: {
                       fullWidth: true,
-                      error: !!errors.scheduledAt
+                      error: !!errors.scheduledDate,
+                      helperText: errors.scheduledDate
+                    }
+                  }}
+                />
+              </LocalizationProvider>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <TimePicker
+                  label={t('appointments.time')}
+                  value={form.scheduledTime}
+                  onChange={(newValue) => {
+                    setForm(prev => ({ ...prev, scheduledTime: newValue }));
+                  }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      error: !!errors.scheduledTime,
+                      helperText: errors.scheduledTime
                     }
                   }}
                 />
@@ -262,9 +301,12 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
             </Grid>
 
             {/* Huge Sale Section */}
-            {hasHugeSalePrivilege && (
-              <>
-                <Grid item xs={12}>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6">
+                  Calculated Price: ${calculatedPrice.toFixed(2)}
+                </Typography>
+                {hasHugeSalePrivilege && (
                   <FormControlLabel
                     control={
                       <Switch
@@ -274,26 +316,26 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
                         color="primary"
                       />
                     }
-                    label="Make Huge Sale (Override Minimum Price)"
+                    label="Make Huge Sale (Override Price)"
                   />
-                </Grid>
-                
-                {form.makeHugeSale && (
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      name="customPrice"
-                      label="Custom Total Price"
-                      value={form.customPrice || ''}
-                      onChange={handleChange}
-                      error={!!errors.customPrice}
-                      helperText={errors.customPrice || 'Enter the total price for this appointment'}
-                      inputProps={{ min: 0, step: 0.01 }}
-                    />
-                  </Grid>
                 )}
-              </>
+              </Box>
+            </Grid>
+
+            {form.makeHugeSale && hasHugeSalePrivilege && (
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  name="customPrice"
+                  label="Custom Total Price"
+                  value={form.customPrice || ''}
+                  onChange={handleChange}
+                  error={!!errors.customPrice}
+                  helperText={errors.customPrice || 'Enter the total price for this appointment'}
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+              </Grid>
             )}
 
             <Grid item xs={12}>
@@ -412,15 +454,18 @@ export default function Appointments() {
         patientAPI.getAll({ page: 1, limit: 100 }),
         doctorAPI.getAll({ page: 1, limit: 100 }),
         userAPI.getRadiologists({ page: 1, limit: 100 }),
-        branchAPI.getActiveBranches(),
+        branchAPI.getAll({ status: 'active', limit: 100 }),
         scanAPI.getAll({ page: 1, limit: 100 }),
         representativeService.getRepresentativesForDropdown()
       ]);
       setAppointments(aptRes.data.data?.appointments || aptRes.data.appointments || aptRes.data || []);
       setPatients(patRes.data.data?.patients || []);
       setDoctors(docRes.data.data?.doctors || []);
-      setRadiologists(radRes.data.data || []);
-      setBranches(branchRes.data.data);
+      // Defensive: always set radiologists as array
+      const users = radRes?.data?.data?.data?.users;
+      const radiologistList = Array.isArray(users) ? users : [];
+      setRadiologists(radiologistList);
+      setBranches(branchRes.data.data?.branches || []);
       setScans(scansRes.data.data?.scans || []);
       setRepresentatives(repsRes.data);
       if (aptRes.data.data?.pagination || aptRes.data.pagination) {
@@ -754,9 +799,6 @@ export default function Appointments() {
                     <Box>
                       <Typography variant="body2" fontWeight="bold">
                         {apt.radiologistId?.name || 'Unknown Radiologist'}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {apt.radiologistId?.licenseId}
                       </Typography>
                     </Box>
                   </TableCell>

@@ -89,6 +89,11 @@ export const MainLayout = ({ children }) => {
   console.log('MainLayout: isSuperAdmin:', isSuperAdmin);
   console.log('MainLayout: User userType:', user?.userType);
 
+  const visibleMenuItems = menuItems.filter(item => {
+    const isAdminRoute = item.path.startsWith('/admin') || item.path === '/dashboard';
+    return isSuperAdmin ? true : !isAdminRoute;
+  });
+
   // Admin menu items (super admin only) - defined inside component to access t function
   const adminMenuItems = [
     {
@@ -297,7 +302,7 @@ export const MainLayout = ({ children }) => {
                 </Toolbar>
                 <Divider />
                 <List>
-                  {menuItems.map((item) => (
+                  {visibleMenuItems.map((item) => (
                     <ListItem key={item.text} disablePadding>
                       <ListItemButton
                         selected={location.pathname === item.path}
@@ -347,7 +352,7 @@ export const MainLayout = ({ children }) => {
               </div>
             ) : (
               <List>
-                {menuItems.map((item) => (
+                {visibleMenuItems.map((item) => (
                   <ListItem key={item.text} disablePadding>
                     <ListItemButton
                       selected={location.pathname === item.path}

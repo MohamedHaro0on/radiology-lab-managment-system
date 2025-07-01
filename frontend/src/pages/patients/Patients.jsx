@@ -30,6 +30,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -93,6 +94,7 @@ const Patients = () => {
         console.log('📝 Preparing submit data...');
         const submitData = {
           ...values,
+          phoneNumber: values.phoneNumber ? `+20${values.phoneNumber}` : '',
           // Ensure that the doctor field is only sending the ID if it's an object
           doctorReferred: values.doctor ? values.doctor._id : null,
         };
@@ -177,7 +179,7 @@ const Patients = () => {
         name: updatedPatient.name || '',
         dateOfBirth: updatedPatient.dateOfBirth ? new Date(updatedPatient.dateOfBirth) : null,
         gender: updatedPatient.gender || '',
-        phoneNumber: updatedPatient.phoneNumber || '',
+        phoneNumber: updatedPatient.phoneNumber?.startsWith('+20') ? updatedPatient.phoneNumber.substring(3) : updatedPatient.phoneNumber || '',
         socialNumber: updatedPatient.socialNumber || '',
         address: updatedPatient.address || {
           street: '',
@@ -449,6 +451,9 @@ const Patients = () => {
                   onBlur={formik.handleBlur}
                   error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
                   helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">+20</InputAdornment>,
+                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

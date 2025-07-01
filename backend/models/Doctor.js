@@ -17,23 +17,23 @@ const doctorSchema = new mongoose.Schema({
     licenseNumber: {
         type: String,
         trim: true, // Assuming it's not always required or can be optional
-        minlength: [3, 'License number must be at least 3 characters long'],
         maxlength: [50, 'License number cannot exceed 50 characters']
     },
     contactNumber: {
         type: String,
-        required: [true, 'Contact number is required'],
-        match: [/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Please provide a valid contact number']
+        match: [/^\+20\d{10}$/, 'Please provide a valid phone number (+20 followed by 10 digits)']
     },
     totalPatientsReferred: {
         type: Number,
         default: 0,
-        min: [0, 'Total patients referred cannot be negative']
+        min: [0, 'Total patients referred cannot be negative'],
+        set: v => v == null ? 0 : v
     },
     totalScansReferred: {
         type: Number,
         default: 0,
-        min: [0, 'Total scans referred cannot be negative']
+        min: [0, 'Total scans referred cannot be negative'],
+        set: v => v == null ? 0 : v
     },
     address: {
         street: {
@@ -45,10 +45,6 @@ const doctorSchema = new mongoose.Schema({
             trim: true
         },
         state: {
-            type: String,
-            trim: true
-        },
-        postalCode: {
             type: String,
             trim: true
         },
@@ -92,7 +88,6 @@ doctorSchema.index({ name: 1 });
 doctorSchema.index({ specialization: 1 });
 doctorSchema.index({ isActive: 1 });
 doctorSchema.index({ contactNumber: 1, isActive: 1 });
-doctorSchema.index({ licenseNumber: 1 }, { unique: true, sparse: true }); // Add unique index for licenseNumber
 doctorSchema.index({ representative: 1 }); // Add index for representative
 
 // Virtual for full address
@@ -101,7 +96,6 @@ doctorSchema.virtual('fullAddress').get(function () {
         this.address?.street,
         this.address?.city,
         this.address?.state,
-        this.address?.postalCode,
         this.address?.country
     ].filter(Boolean);
 

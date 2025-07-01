@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema({
     phoneNumber: {
         type: String,
         trim: true,
-        match: [/^\+?[\d\s-]{10,}$/, 'Please provide a valid phone number']
+        match: [/^\\+20\d{10}$/, 'Please provide a valid phone number (+20 followed by 10 digits)']
     },
     address: {
         street: { type: String, trim: true, maxlength: 200 },

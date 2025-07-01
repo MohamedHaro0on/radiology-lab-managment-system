@@ -25,17 +25,20 @@ export const createDoctor = asyncHandler(async (req, res) => {
     };
 
     console.log("we are here");
-    // Check for existing doctor
-    const existingDoctor = await Doctor.findOne({
-        $or: [
-            { licenseNumber },
-            { contactNumber }
-        ]
-    });
-    console.log("we are here");
+    // Check for existing doctor only if licenseNumber or contactNumber is provided
+    const orConditions = [];
+    if (licenseNumber) {
+        orConditions.push({ licenseNumber });
+    }
+    if (contactNumber) {
+        orConditions.push({ contactNumber });
+    }
 
-    if (existingDoctor) {
-        throw errors.Conflict('A doctor with this license number or contact number already exists');
+    if (orConditions.length > 0) {
+        const existingDoctor = await Doctor.findOne({ $or: orConditions });
+        if (existingDoctor) {
+            throw errors.Conflict('A doctor with this license number or contact number already exists');
+        }
     }
     console.log("this is the request.body after filtering: ", doctorData);
 

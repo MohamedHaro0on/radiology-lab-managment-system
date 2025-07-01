@@ -17,6 +17,10 @@ import {
   CircularProgress,
   Fab,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -27,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { stockAPI } from '../../services/api';
+import { stockAPI, branchAPI } from '../../services/api';
 import { stockSchema } from '../../validations/schemas';
 import SearchBar from '../../components/common/SearchBar';
 import NoContent from '../../components/common/NoContent';
@@ -42,6 +46,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 const Stock = () => {
   const { t } = useTranslation();
   const [stockItems, setStockItems] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -57,6 +63,7 @@ const Stock = () => {
   const formik = useFormik({
     initialValues: {
       name: '',
+      branch: '',
       quantity: '',
       unit: 'pcs',
       minimumThreshold: '',
@@ -89,31 +96,39 @@ const Stock = () => {
   });
 
   useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  useEffect(() => {
     fetchStockItems();
-  }, [page, rowsPerPage, searchQuery, showLowStock, showExpired]);
+  }, [page, rowsPerPage, searchQuery, showLowStock, showExpired, selectedBranch]);
+
+  const fetchBranches = async () => {
+    try {
+      const response = await branchAPI.getAll({ page: 1, limit: 100 }); // Fetch all branches
+      setBranches(response.data.data.branches || []);
+    } catch (err) {
+      toast.error(t('branches.fetchError'));
+    }
+  };
 
   const fetchStockItems = async () => {
     try {
       setLoading(true);
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage,
+        search: searchQuery,
+        branch: selectedBranch || undefined,
+      };
+
       let response;
       if (showLowStock) {
-        response = await stockAPI.getLowStock({
-          page: page + 1,
-          limit: rowsPerPage,
-          search: searchQuery,
-        });
+        response = await stockAPI.getLowStock(params);
       } else if (showExpired) {
-        response = await stockAPI.getExpired({
-          page: page + 1,
-          limit: rowsPerPage,
-          search: searchQuery,
-        });
+        response = await stockAPI.getExpired(params);
       } else {
-        response = await stockAPI.getAll({
-          page: page + 1,
-          limit: rowsPerPage,
-          search: searchQuery,
-        });
+        response = await stockAPI.getAll(params);
       }
       
       // Handle the response structure from executePaginatedQuery
@@ -142,6 +157,7 @@ const Stock = () => {
       setSelectedItem(item);
       formik.setValues({
         ...item,
+        branch: item.branch?._id || '',
         validUntil: item.validUntil ? new Date(item.validUntil) : null,
       });
     } else {
@@ -226,6 +242,27 @@ const Stock = () => {
           loading={searchLoading}
           placeholder={t('stock.searchPlaceholder')}
         />
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel id="branch-filter-label">{t('branches.title')}</InputLabel>
+          <Select
+            labelId="branch-filter-label"
+            value={selectedBranch}
+            onChange={(e) => {
+              setSelectedBranch(e.target.value);
+              setPage(0);
+            }}
+            label={t('branches.title')}
+          >
+            <MenuItem value="">
+              <em>{t('common.all')}</em>
+            </MenuItem>
+            {branches.map((branch) => (
+              <MenuItem key={branch._id} value={branch._id}>
+                {branch.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <Button
           variant={showLowStock ? 'contained' : 'outlined'}
           color="warning"
@@ -353,7 +390,31 @@ const Stock = () => {
                   onBlur={formik.handleBlur}
                   error={formik.touched.name && Boolean(formik.errors.name)}
                   helperText={formik.touched.name && formik.errors.name}
+                  required
                 />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth error={formik.touched.branch && Boolean(formik.errors.branch)}>
+                  <InputLabel id="branch-select-label" required>{t('branches.title')}</InputLabel>
+                  <Select
+                    labelId="branch-select-label"
+                    name="branch"
+                    value={formik.values.branch}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    label={t('branches.title')}
+                    required
+                  >
+                    {branches.map((branch) => (
+                      <MenuItem key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {formik.touched.branch && formik.errors.branch && (
+                    <Typography color="error" variant="caption" sx={{ pl: 2 }}>{formik.errors.branch}</Typography>
+                  )}
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
