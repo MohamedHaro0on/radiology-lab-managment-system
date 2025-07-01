@@ -47,8 +47,18 @@ const PrivilegeManager = () => {
             setLoading(true);
             setError('');
             const response = await userAPI.getAll();
-            // The API might return users without an `id` field, so we map `_id` to `id`
-            const formattedUsers = response.data.data.map(u => ({ ...u, id: u._id }));
+            // Safely extract users array from any possible API response structure, including deeply nested
+            const usersArr =
+              Array.isArray(response.data?.data)
+                ? response.data.data
+                : Array.isArray(response.data?.data?.users)
+                  ? response.data.data.users
+                  : Array.isArray(response.data?.data?.data?.users)
+                    ? response.data.data.data.users
+                    : Array.isArray(response.data?.users)
+                      ? response.data.users
+                      : [];
+            const formattedUsers = usersArr.map(u => ({ ...u, id: u._id }));
             setUsers(formattedUsers);
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Error fetching users';
@@ -145,10 +155,14 @@ const PrivilegeManager = () => {
                     <Card>
                         <CardContent>
                             <Typography color="textSecondary" gutterBottom>
-                                {t('privilegeManagement')} ({users.filter(u => u.userType === 'superAdmin' || u.isSuperAdmin).length} {t('common.superAdmins')})
+                                {t('privilegeManagement')} (
+                                    {users.filter(u => (u.userType === 'superAdmin' || u.isSuperAdmin)).length}
+                                    {' '}
+                                    {t('common.superAdmins', 'Super Admins')}
+                                )
                             </Typography>
                             <Typography variant="h4">
-                                {users.filter(u => u.userType === 'superAdmin' || u.isSuperAdmin).length}
+                                {users.filter(u => (u.userType === 'superAdmin' || u.isSuperAdmin)).length}
                             </Typography>
                         </CardContent>
                     </Card>

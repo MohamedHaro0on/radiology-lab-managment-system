@@ -465,7 +465,9 @@
     "deleteError": "Error deleting appointment",
     "deleteConfirmTitle": "Delete Appointment",
     "deleteConfirmMessage": "Are you sure you want to delete this appointment?",
-    "noAppointmentsFound": "No appointments found."
+    "noAppointmentsFound": "No appointments found.",
+    "branch": "Branch",
+    "branchLabel": "Branch"
   },
   "scans": {
     "title": "Scans",

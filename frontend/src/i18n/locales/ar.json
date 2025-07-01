@@ -519,7 +519,9 @@
     "deleteError": "خطأ في حذف الموعد",
     "deleteConfirmTitle": "حذف موعد",
     "deleteConfirmMessage": "هل أنت متأكد من حذف هذا الموعد؟",
-    "noAppointmentsFound": "لا توجد مواعيد."
+    "noAppointmentsFound": "لا توجد مواعيد.",
+    "branch": "الفرع",
+    "branchLabel": "الفرع"
   },
   "scans": {
     "title": "الفحوصات",
