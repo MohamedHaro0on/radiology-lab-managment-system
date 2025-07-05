@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 import {
     Box,
     Button,
@@ -42,6 +44,8 @@ import { branchAPI } from '../../services/api';
 import BranchDialog from '../../components/admin/BranchDialog';
 
 const BranchManager = () => {
+    const { t } = useTranslation();
+    const { isRTL, rtlProps, inputProps, cardGridProps, iconContainerProps, textContainerProps } = useRTL();
     const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -58,13 +62,13 @@ const BranchManager = () => {
             const response = await branchAPI.getAll();
             setBranches(response.data.data.branches || []);
         } catch (err) {
-            const errorMessage = err.response?.data?.message || 'Failed to fetch branches';
+            const errorMessage = err.response?.data?.message || t('branches.fetchError');
             setError(errorMessage);
             toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => {
         fetchBranches();
@@ -106,24 +110,24 @@ const BranchManager = () => {
         fetchBranches();
         setSnackbar({
             open: true,
-            message: selectedBranch ? 'Branch updated successfully' : 'Branch created successfully',
+            message: selectedBranch ? t('branches.updateSuccess') : t('branches.createSuccess'),
             severity: 'success'
         });
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this branch? This action cannot be undone.')) {
+        if (window.confirm(t('branches.deleteConfirmMessage'))) {
             try {
-                await branchAPI.deleteBranch(id);
-                toast.success('Branch deleted successfully');
+                await branchAPI.delete(id);
+                toast.success(t('branches.deleteSuccess'));
                 fetchBranches();
                 setSnackbar({
                     open: true,
-                    message: 'Branch deleted successfully',
+                    message: t('branches.deleteSuccess'),
                     severity: 'success'
                 });
             } catch (err) {
-                const errorMessage = err.response?.data?.message || 'Failed to delete branch';
+                const errorMessage = err.response?.data?.message || t('branches.deleteError');
                 toast.error(errorMessage);
                 setSnackbar({
                     open: true,
@@ -138,7 +142,7 @@ const BranchManager = () => {
         fetchBranches();
         setSnackbar({
             open: true,
-            message: 'Branches refreshed successfully',
+            message: t('branches.refreshSuccess'),
             severity: 'info'
         });
     };
@@ -162,13 +166,27 @@ const BranchManager = () => {
     return (
         <Box sx={{ p: 3 }}>
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Box>
-                    <Typography variant="h4" gutterBottom>
-                        Branch Management
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                mb: 3,
+                flexDirection: isRTL ? 'row-reverse' : 'row'
+            }}>
+                <Box sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                    <Typography 
+                        variant="h4" 
+                        gutterBottom
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                    >
+                        {t('branches.title')}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                        Manage your laboratory branches and locations
+                    <Typography 
+                        variant="body2" 
+                        color="textSecondary"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                    >
+                        {t('branches.description')}
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2 }}>
@@ -177,14 +195,14 @@ const BranchManager = () => {
                         startIcon={<RefreshIcon />}
                         onClick={handleRefresh}
                     >
-                        Refresh
+                        {t('common.refresh')}
                     </Button>
                     <Button
                         variant="contained"
                         startIcon={<AddIcon />}
                         onClick={() => handleOpenDialog()}
                     >
-                        Add Branch
+                        {t('branches.addTitle')}
                     </Button>
                 </Box>
             </Box>
@@ -194,11 +212,24 @@ const BranchManager = () => {
                 <Grid item xs={12} sm={4}>
                     <Card>
                         <CardContent>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <BusinessIcon color="primary" sx={{ mr: 2 }} />
-                                <Box>
-                                    <Typography color="textSecondary" gutterBottom>Total Branches</Typography>
-                                    <Typography variant="h4">{stats.total}</Typography>
+                            <Box sx={cardGridProps}>
+                                <Box sx={textContainerProps}>
+                                    <Typography 
+                                        color="textSecondary" 
+                                        gutterBottom
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {t('branches.totalBranches')}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h4"
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {stats.total}
+                                    </Typography>
+                                </Box>
+                                <Box sx={iconContainerProps}>
+                                    <BusinessIcon />
                                 </Box>
                             </Box>
                         </CardContent>
@@ -207,11 +238,24 @@ const BranchManager = () => {
                 <Grid item xs={12} sm={4}>
                     <Card>
                         <CardContent>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <CheckCircleIcon color="success" sx={{ mr: 2 }} />
-                                <Box>
-                                    <Typography color="textSecondary" gutterBottom>Active Branches</Typography>
-                                    <Typography variant="h4">{stats.active}</Typography>
+                            <Box sx={cardGridProps}>
+                                <Box sx={textContainerProps}>
+                                    <Typography 
+                                        color="textSecondary" 
+                                        gutterBottom
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {t('branches.activeBranches')}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h4"
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {stats.active}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ ...iconContainerProps, color: 'success.main' }}>
+                                    <CheckCircleIcon />
                                 </Box>
                             </Box>
                         </CardContent>
@@ -220,11 +264,24 @@ const BranchManager = () => {
                 <Grid item xs={12} sm={4}>
                     <Card>
                         <CardContent>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <CancelIcon color="error" sx={{ mr: 2 }} />
-                                <Box>
-                                    <Typography color="textSecondary" gutterBottom>Inactive Branches</Typography>
-                                    <Typography variant="h4">{stats.inactive}</Typography>
+                            <Box sx={cardGridProps}>
+                                <Box sx={textContainerProps}>
+                                    <Typography 
+                                        color="textSecondary" 
+                                        gutterBottom
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {t('branches.inactiveBranches')}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h4"
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {stats.inactive}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ ...iconContainerProps, color: 'error.main' }}>
+                                    <CancelIcon />
                                 </Box>
                             </Box>
                         </CardContent>
@@ -238,7 +295,7 @@ const BranchManager = () => {
                     <Grid item xs={12} md={6}>
                         <TextField
                             fullWidth
-                            placeholder="Search branches by name, location, address, or manager..."
+                            placeholder={t('branches.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             InputProps={{
@@ -248,25 +305,49 @@ const BranchManager = () => {
                                     </InputAdornment>
                                 ),
                             }}
+                            sx={{
+                                '& .MuiInputBase-input': {
+                                    textAlign: isRTL ? 'right' : 'left',
+                                    direction: isRTL ? 'rtl' : 'ltr'
+                                }
+                            }}
                         />
                     </Grid>
                     <Grid item xs={12} md={3}>
                         <FormControl fullWidth>
-                            <InputLabel>Status</InputLabel>
+                            <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                {t('common.status')}
+                            </InputLabel>
                             <Select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                label="Status"
+                                label={t('common.status')}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    }
+                                }}
                             >
-                                <MenuItem value="all">All Branches</MenuItem>
-                                <MenuItem value="active">Active Only</MenuItem>
-                                <MenuItem value="inactive">Inactive Only</MenuItem>
+                                <MenuItem value="all" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('branches.allBranches')}
+                                </MenuItem>
+                                <MenuItem value="active" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('branches.activeOnly')}
+                                </MenuItem>
+                                <MenuItem value="inactive" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('branches.inactiveOnly')}
+                                </MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
                     <Grid item xs={12} md={3}>
-                        <Typography variant="body2" color="textSecondary">
-                            Showing {filteredBranches.length} of {branches.length} branches
+                        <Typography 
+                            variant="body2" 
+                            color="textSecondary"
+                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                        >
+                            {t('branches.showingResults', { showing: filteredBranches.length, total: branches.length })}
                         </Typography>
                     </Grid>
                 </Grid>
@@ -285,105 +366,142 @@ const BranchManager = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Branch Name</TableCell>
-                                <TableCell>Location</TableCell>
-                                <TableCell>Contact Info</TableCell>
-                                <TableCell>Manager</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Created</TableCell>
-                                <TableCell align="right">Actions</TableCell>
+                                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('branches.branchName')}
+                                </TableCell>
+                                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('branches.location')}
+                                </TableCell>
+                                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('branches.contactInfo')}
+                                </TableCell>
+                                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('branches.manager')}
+                                </TableCell>
+                                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('common.status')}
+                                </TableCell>
+                                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('common.createdAt')}
+                                </TableCell>
+                                <TableCell align={isRTL ? "left" : "right"}>
+                                    {t('common.actions')}
+                                </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {filteredBranches.map((branch) => (
-                                <TableRow key={branch._id} hover>
-                                    <TableCell>
-                                        <Box>
-                                            <Typography variant="body1" fontWeight="bold">
-                                                {branch.name}
-                                            </Typography>
-                                            <Typography variant="caption" color="textSecondary">
-                                                ID: {branch._id}
-                                            </Typography>
-                                        </Box>
+                                <TableRow key={branch._id}>
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        <Typography 
+                                            variant="subtitle2" 
+                                            fontWeight="bold"
+                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                        >
+                                            {branch.name}
+                                        </Typography>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                         <Box>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                                <LocationIcon sx={{ mr: 1, fontSize: 'small' }} />
-                                                <Typography variant="body2">
-                                                    {branch.location}
-                                                </Typography>
-                                            </Box>
+                                            <Typography 
+                                                variant="body2" 
+                                                display="block"
+                                                sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                            >
+                                                📍 {branch.location}
+                                            </Typography>
                                             {branch.address && (
-                                                <Typography variant="caption" color="textSecondary">
+                                                <Typography 
+                                                    variant="caption" 
+                                                    color="textSecondary" 
+                                                    display="block"
+                                                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                >
                                                     {branch.address}
                                                 </Typography>
                                             )}
                                         </Box>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                         <Box>
                                             {branch.phone && (
-                                                <Typography variant="body2" display="block">
+                                                <Typography 
+                                                    variant="body2" 
+                                                    display="block"
+                                                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                >
                                                     📞 {branch.phone}
-                                                </Typography>
-                                            )}
-                                            {branch.email && (
-                                                <Typography variant="body2" display="block">
-                                                    ✉️ {branch.email}
                                                 </Typography>
                                             )}
                                         </Box>
                                     </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2">
-                                            {branch.manager || 'Not assigned'}
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        <Typography 
+                                            variant="body2"
+                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                        >
+                                            {branch.manager || t('branches.notAssigned')}
                                         </Typography>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                         <Chip
                                             icon={getStatusIcon(branch.isActive)}
-                                            label={branch.isActive ? 'Active' : 'Inactive'}
+                                            label={branch.isActive ? t('branches.active') : t('branches.inactive')}
                                             color={getStatusColor(branch.isActive)}
                                             size="small"
                                             variant={branch.isActive ? 'filled' : 'outlined'}
                                         />
                                     </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2">
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        <Typography 
+                                            variant="body2"
+                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                        >
                                             {new Date(branch.createdAt).toLocaleDateString()}
                                         </Typography>
                                     </TableCell>
-                                    <TableCell align="right">
-                                        <Tooltip title="Edit Branch">
-                                            <IconButton
-                                                onClick={() => handleOpenDialog(branch)}
-                                                color="primary"
-                                                size="small"
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Delete Branch">
-                                            <IconButton 
-                                                onClick={() => handleDelete(branch._id)}
-                                                color="error"
-                                                size="small"
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </Tooltip>
+                                    <TableCell align={isRTL ? "left" : "right"}>
+                                        <Box sx={{ 
+                                            display: 'flex', 
+                                            gap: 1, 
+                                            justifyContent: isRTL ? 'flex-start' : 'flex-end' 
+                                        }}>
+                                            <Tooltip title={t('common.edit')}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleOpenDialog(branch)}
+                                                    color="primary"
+                                                >
+                                                    <EditIcon />
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title={t('common.delete')}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleDelete(branch._id)}
+                                                    color="error"
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             ))}
                             {filteredBranches.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={7} align="center">
-                                        <Typography variant="body1" color="textSecondary" sx={{ py: 3 }}>
+                                        <Typography 
+                                            variant="body1" 
+                                            color="textSecondary" 
+                                            sx={{ 
+                                                py: 3,
+                                                textAlign: isRTL ? 'right' : 'left'
+                                            }}
+                                        >
                                             {searchTerm || statusFilter !== 'all' 
-                                                ? 'No branches match your search criteria' 
-                                                : 'No branches found. Create your first branch to get started.'}
+                                                ? t('branches.noBranchesMatchSearch') 
+                                                : t('branches.noBranchesFound')}
                                         </Typography>
                                     </TableCell>
                                 </TableRow>

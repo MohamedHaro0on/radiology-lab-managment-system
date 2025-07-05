@@ -29,7 +29,8 @@ import {
     DialogActions,
     Accordion,
     AccordionSummary,
-    AccordionDetails
+    AccordionDetails,
+    Divider
 } from '@mui/material';
 import {
     Refresh as RefreshIcon,
@@ -44,9 +45,11 @@ import {
 import { auditAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 
 const AuditLog = () => {
     const { t } = useTranslation();
+    const { isRTL, cardGridProps, iconContainerProps, textContainerProps } = useRTL();
     const [logs, setLogs] = useState([]);
     const [stats, setStats] = useState({});
     const [loading, setLoading] = useState(false);
@@ -191,9 +194,13 @@ const AuditLog = () => {
     }
 
     return (
-        <Box>
-            <Typography variant="h4" gutterBottom>
-                Appointment Audit Log
+        <Box sx={{ p: 3 }}>
+            <Typography 
+                variant="h4" 
+                gutterBottom
+                sx={{ textAlign: isRTL ? 'right' : 'left' }}
+            >
+                {t('appointmentAuditLog')}
             </Typography>
             
             {error && (
@@ -203,55 +210,111 @@ const AuditLog = () => {
             )}
 
             {/* Statistics Cards */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12} sm={6} md={3}>
                     <Card>
                         <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Total Logs
-                            </Typography>
-                            <Typography variant="h4">
-                                {statsLoading ? <CircularProgress size={24} /> : stats.totalLogs || 0}
-                            </Typography>
+                            <Box sx={cardGridProps}>
+                                <Box sx={textContainerProps}>
+                                    <Typography 
+                                        color="textSecondary" 
+                                        gutterBottom
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {t('totalLogs')}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h4"
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {statsLoading ? <CircularProgress size={24} /> : stats.totalLogs || 0}
+                                    </Typography>
+                                </Box>
+                                <Box sx={iconContainerProps}>
+                                    <TimelineIcon />
+                                </Box>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <Card>
                         <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Most Active User
-                            </Typography>
-                            <Typography variant="h6">
-                                {statsLoading ? <CircularProgress size={20} /> : 
-                                    stats.userStats?.[0]?.username || 'N/A'}
-                            </Typography>
+                            <Box sx={cardGridProps}>
+                                <Box sx={textContainerProps}>
+                                    <Typography 
+                                        color="textSecondary" 
+                                        gutterBottom
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {t('mostActiveUser')}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h6"
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {statsLoading ? <CircularProgress size={20} /> : 
+                                            stats.userStats?.[0]?.username || 'N/A'}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                                    <PersonIcon />
+                                </Box>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <Card>
                         <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Most Common Action
-                            </Typography>
-                            <Typography variant="h6">
-                                {statsLoading ? <CircularProgress size={20} /> : 
-                                    stats.actionStats?.[0]?._id || 'N/A'}
-                            </Typography>
+                            <Box sx={cardGridProps}>
+                                <Box sx={textContainerProps}>
+                                    <Typography 
+                                        color="textSecondary" 
+                                        gutterBottom
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {t('mostCommonAction')}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h6"
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {statsLoading ? <CircularProgress size={20} /> : 
+                                            stats.actionStats?.[0]?._id || 'N/A'}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ ...iconContainerProps, color: 'secondary.main' }}>
+                                    <AssignmentIcon />
+                                </Box>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <Card>
                         <CardContent>
-                            <Typography color="textSecondary" gutterBottom>
-                                Date Range
-                            </Typography>
-                            <Typography variant="h6">
-                                {filters.startDate && filters.endDate ? 
-                                    `${filters.startDate} to ${filters.endDate}` : 'All Time'}
-                            </Typography>
+                            <Box sx={cardGridProps}>
+                                <Box sx={textContainerProps}>
+                                    <Typography 
+                                        color="textSecondary" 
+                                        gutterBottom
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {t('dateRange')}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h6"
+                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                    >
+                                        {filters.startDate && filters.endDate ? 
+                                            `${filters.startDate} to ${filters.endDate}` : t('allTime')}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ ...iconContainerProps, color: 'info.main' }}>
+                                    <CalendarIcon />
+                                </Box>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Grid>
@@ -259,24 +322,46 @@ const AuditLog = () => {
 
             {/* Filters */}
             <Paper sx={{ p: 2, mb: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                    <FilterIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Filters
+                <Typography 
+                    variant="h6" 
+                    gutterBottom
+                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                >
+                    <FilterIcon sx={{ mr: isRTL ? 0 : 1, ml: isRTL ? 1 : 0, verticalAlign: 'middle' }} />
+                    {t('filters')}
                 </Typography>
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} sm={6} md={2}>
                         <FormControl fullWidth size="small">
-                            <InputLabel>Action</InputLabel>
+                            <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                {t('action')}
+                            </InputLabel>
                             <Select
                                 value={filters.action}
                                 onChange={(e) => handleFilterChange('action', e.target.value)}
-                                label="Action"
+                                label={t('action')}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    }
+                                }}
                             >
-                                <MenuItem value="">All Actions</MenuItem>
-                                <MenuItem value="CREATE">Create</MenuItem>
-                                <MenuItem value="UPDATE">Update</MenuItem>
-                                <MenuItem value="DELETE">Delete</MenuItem>
-                                <MenuItem value="STATUS_CHANGE">Status Change</MenuItem>
+                                <MenuItem value="" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('allActions')}
+                                </MenuItem>
+                                <MenuItem value="CREATE" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('create')}
+                                </MenuItem>
+                                <MenuItem value="UPDATE" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('update')}
+                                </MenuItem>
+                                <MenuItem value="DELETE" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('delete')}
+                                </MenuItem>
+                                <MenuItem value="STATUS_CHANGE" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('statusChange')}
+                                </MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
@@ -285,10 +370,19 @@ const AuditLog = () => {
                             fullWidth
                             size="small"
                             type="date"
-                            label="Start Date"
+                            label={t('startDate')}
                             value={filters.startDate}
                             onChange={(e) => handleFilterChange('startDate', e.target.value)}
                             InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiInputBase-input': {
+                                    textAlign: isRTL ? 'right' : 'left',
+                                    direction: isRTL ? 'rtl' : 'ltr'
+                                },
+                                '& .MuiInputLabel-root': {
+                                    textAlign: isRTL ? 'right' : 'left'
+                                }
+                            }}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={2}>
@@ -296,36 +390,71 @@ const AuditLog = () => {
                             fullWidth
                             size="small"
                             type="date"
-                            label="End Date"
+                            label={t('endDate')}
                             value={filters.endDate}
                             onChange={(e) => handleFilterChange('endDate', e.target.value)}
                             InputLabelProps={{ shrink: true }}
+                            sx={{
+                                '& .MuiInputBase-input': {
+                                    textAlign: isRTL ? 'right' : 'left',
+                                    direction: isRTL ? 'rtl' : 'ltr'
+                                },
+                                '& .MuiInputLabel-root': {
+                                    textAlign: isRTL ? 'right' : 'left'
+                                }
+                            }}
                         />
                     </Grid>
                     <Grid item xs={12} sm={6} md={2}>
                         <FormControl fullWidth size="small">
-                            <InputLabel>Sort By</InputLabel>
+                            <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                {t('sortBy')}
+                            </InputLabel>
                             <Select
                                 value={filters.sortBy}
                                 onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                                label="Sort By"
+                                label={t('sortBy')}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    }
+                                }}
                             >
-                                <MenuItem value="createdAt">Date</MenuItem>
-                                <MenuItem value="action">Action</MenuItem>
-                                <MenuItem value="user">User</MenuItem>
+                                <MenuItem value="createdAt" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('timestamp')}
+                                </MenuItem>
+                                <MenuItem value="action" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('action')}
+                                </MenuItem>
+                                <MenuItem value="user" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('user')}
+                                </MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
                     <Grid item xs={12} sm={6} md={2}>
                         <FormControl fullWidth size="small">
-                            <InputLabel>Order</InputLabel>
+                            <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                {t('order')}
+                            </InputLabel>
                             <Select
                                 value={filters.sortOrder}
                                 onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
-                                label="Order"
+                                label={t('order')}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    }
+                                }}
                             >
-                                <MenuItem value="desc">Newest First</MenuItem>
-                                <MenuItem value="asc">Oldest First</MenuItem>
+                                <MenuItem value="desc" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('newestFirst')}
+                                </MenuItem>
+                                <MenuItem value="asc" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('oldestFirst')}
+                                </MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
@@ -345,8 +474,9 @@ const AuditLog = () => {
                                 });
                             }}
                             fullWidth
+                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
                         >
-                            Reset
+                            {t('reset')}
                         </Button>
                     </Grid>
                 </Grid>
@@ -358,72 +488,153 @@ const AuditLog = () => {
                     <Table>
                         <TableHead>
                             <TableRow sx={{ backgroundColor: 'primary.main' }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Action</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>User</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Appointment</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Changes</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Timestamp</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('action')}
+                                </TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('user')}
+                                </TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('appointment')}
+                                </TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('changes')}
+                                </TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('timestamp')}
+                                </TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', textAlign: isRTL ? 'left' : 'right' }}>
+                                    {t('actions')}
+                                </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {logs.map((log) => (
                                 <TableRow key={log.id} hover>
-                                    <TableCell>
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                         {getActionChip(log.action)}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                         {log.user ? (
                                             <Box>
-                                                <Typography variant="subtitle2" fontWeight="bold">
+                                                <Typography 
+                                                    variant="subtitle2" 
+                                                    fontWeight="bold"
+                                                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                >
                                                     {log.user.username}
                                                 </Typography>
-                                                <Typography variant="body2" color="textSecondary">
+                                                <Typography 
+                                                    variant="body2" 
+                                                    color="textSecondary"
+                                                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                >
                                                     {log.user.email}
                                                 </Typography>
                                             </Box>
                                         ) : (
-                                            <Typography variant="body2" color="textSecondary">
-                                                Unknown User
+                                            <Typography 
+                                                variant="body2" 
+                                                color="textSecondary"
+                                                sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                            >
+                                                {t('unknownUser')}
                                             </Typography>
                                         )}
                                     </TableCell>
-                                    <TableCell>
-                                        {log.appointment ? (
-                                            <Box>
-                                                <Typography variant="subtitle2" fontWeight="bold">
-                                                    ID: {log.appointment.id.slice(-8)}
-                                                </Typography>
-                                                <Typography variant="body2" color="textSecondary">
-                                                    {log.appointment.scheduledAt ? 
-                                                        new Date(log.appointment.scheduledAt).toLocaleDateString() : 
-                                                        'N/A'
-                                                    }
-                                                </Typography>
-                                                <Chip 
-                                                    label={log.appointment.status} 
-                                                    size="small" 
-                                                    variant="outlined"
-                                                />
-                                            </Box>
-                                        ) : (
-                                            <Typography variant="body2" color="textSecondary">
-                                                Appointment Deleted
-                                            </Typography>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" noWrap>
-                                            {formatChanges(log.changes)}
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        <Typography 
+                                            variant="body2"
+                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                        >
+                                            {log.appointment ? (
+                                                <Box>
+                                                    <Typography 
+                                                        variant="body2"
+                                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                    >
+                                                        {t('appointment')} #{log.appointment.id.slice(-6)}
+                                                    </Typography>
+                                                    <Typography 
+                                                        variant="caption" 
+                                                        color="textSecondary"
+                                                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                    >
+                                                        {log.appointment.scheduledAt ? 
+                                                            new Date(log.appointment.scheduledAt).toLocaleDateString() : 
+                                                            t('noDate')}
+                                                    </Typography>
+                                                </Box>
+                                            ) : (
+                                                t('appointmentDeleted')
+                                            )}
                                         </Typography>
                                     </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2">
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        <Typography 
+                                            variant="body2"
+                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                        >
+                                            {log.changes ? (
+                                                <Box>
+                                                    {log.action === 'CREATE' && (
+                                                        <Typography 
+                                                            variant="caption" 
+                                                            color="success.main"
+                                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                        >
+                                                            {t('appointmentCreated')}
+                                                        </Typography>
+                                                    )}
+                                                    {log.action === 'DELETE' && (
+                                                        <Typography 
+                                                            variant="caption" 
+                                                            color="error.main"
+                                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                        >
+                                                            {t('appointmentDeleted')}
+                                                        </Typography>
+                                                    )}
+                                                    {log.action === 'UPDATE' && (
+                                                        <Typography 
+                                                            variant="caption" 
+                                                            color="info.main"
+                                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                        >
+                                                            {t('updatedAppointmentDetails')}
+                                                        </Typography>
+                                                    )}
+                                                    {log.action === 'STATUS_CHANGE' && (
+                                                        <Typography 
+                                                            variant="caption" 
+                                                            color="warning.main"
+                                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                        >
+                                                            {t('statusChange')}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            ) : (
+                                                <Typography 
+                                                    variant="caption" 
+                                                    color="textSecondary"
+                                                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                >
+                                                    {t('noChangesRecorded')}
+                                                </Typography>
+                                            )}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        <Typography 
+                                            variant="body2"
+                                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                        >
                                             {log.formattedTimestamp}
                                         </Typography>
                                     </TableCell>
-                                    <TableCell>
-                                        <Tooltip title="View Details">
+                                    <TableCell sx={{ textAlign: isRTL ? 'left' : 'right' }}>
+                                        <Tooltip title={t('viewDetails')}>
                                             <IconButton
                                                 color="primary"
                                                 onClick={() => handleOpenDialog(log)}
@@ -448,17 +659,17 @@ const AuditLog = () => {
                         onClick={() => handlePageChange(filters.page - 1)}
                         sx={{ mr: 1 }}
                     >
-                        Previous
+                        {t('previous')}
                     </Button>
                     <Typography variant="body2" sx={{ alignSelf: 'center', mx: 2 }}>
-                        Page {filters.page}
+                        {t('page')} {filters.page}
                     </Typography>
                     <Button
                         disabled={logs.length < filters.limit}
                         onClick={() => handlePageChange(filters.page + 1)}
                         sx={{ ml: 1 }}
                     >
-                        Next
+                        {t('next')}
                     </Button>
                 </Box>
             )}
@@ -468,24 +679,24 @@ const AuditLog = () => {
                 <Dialog open={isDialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
                     <DialogTitle>
                         <Typography variant="h6">
-                            Audit Log Details
+                            {t('auditLogDetails')}
                         </Typography>
                     </DialogTitle>
                     <DialogContent>
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={6}>
                                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                    Action Information
+                                    {t('actionInformation')}
                                 </Typography>
                                 <Box sx={{ mb: 2 }}>
                                     <Typography variant="body2" color="textSecondary">
-                                        Action Type
+                                        {t('actionType')}
                                     </Typography>
                                     {getActionChip(selectedLog.action)}
                                 </Box>
                                 <Box sx={{ mb: 2 }}>
                                     <Typography variant="body2" color="textSecondary">
-                                        Timestamp
+                                        {t('timestamp')}
                                     </Typography>
                                     <Typography variant="body1">
                                         {selectedLog.formattedTimestamp}
@@ -494,18 +705,18 @@ const AuditLog = () => {
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                    User Information
+                                    {t('userInformation')}
                                 </Typography>
                                 {selectedLog.user ? (
                                     <Box>
                                         <Typography variant="body2" color="textSecondary">
-                                            Username
+                                            {t('username')}
                                         </Typography>
                                         <Typography variant="body1" gutterBottom>
                                             {selectedLog.user.username}
                                         </Typography>
                                         <Typography variant="body2" color="textSecondary">
-                                            Email
+                                            {t('email')}
                                         </Typography>
                                         <Typography variant="body1">
                                             {selectedLog.user.email}
@@ -513,35 +724,34 @@ const AuditLog = () => {
                                     </Box>
                                 ) : (
                                     <Typography variant="body2" color="textSecondary">
-                                        User information not available
+                                        {t('userInfoNotAvailable')}
                                     </Typography>
                                 )}
                             </Grid>
                             <Grid item xs={12}>
+                                <Divider sx={{ my: 2 }} />
                                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                                    Changes Details
+                                    {t('changesDetails')}
                                 </Typography>
-                                <Accordion>
-                                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                        <Typography>View Changes</Typography>
-                                    </AccordionSummary>
-                                    <AccordionDetails>
-                                        <pre style={{ 
-                                            backgroundColor: '#f5f5f5', 
-                                            padding: '10px', 
-                                            borderRadius: '4px',
-                                            overflow: 'auto',
-                                            fontSize: '12px'
-                                        }}>
-                                            {JSON.stringify(selectedLog.changes, null, 2)}
-                                        </pre>
-                                    </AccordionDetails>
-                                </Accordion>
+                                <Box>
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<ViewIcon />}
+                                        onClick={() => {
+                                            console.log('Changes:', selectedLog.changes);
+                                            // You can implement a more detailed view here
+                                        }}
+                                    >
+                                        {t('viewChanges')}
+                                    </Button>
+                                </Box>
                             </Grid>
                         </Grid>
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={handleCloseDialog}>Close</Button>
+                        <Button onClick={handleCloseDialog}>
+                            {t('close')}
+                        </Button>
                     </DialogActions>
                 </Dialog>
             )}

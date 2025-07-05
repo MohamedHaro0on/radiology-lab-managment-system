@@ -21,6 +21,7 @@ import { representativeService } from '../../services/representativeService';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useRTL } from '../../hooks/useRTL';
 
 // Status color mapping
 const statusColors = {
@@ -402,6 +403,7 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
 // Main Appointments Component
 export default function Appointments() {
   const { t } = useTranslation();
+  const { isRTL, cardGridProps, iconContainerProps, textContainerProps, containerProps } = useRTL();
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -557,10 +559,20 @@ export default function Appointments() {
   }
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ ...containerProps }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">{t('appointments.title')}</Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3,
+        flexDirection: isRTL ? 'row-reverse' : 'row'
+      }}>
+        <Typography 
+          variant="h4"
+        >
+          {t('appointments.title')}
+        </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="outlined"
@@ -580,15 +592,26 @@ export default function Appointments() {
       </Box>
 
       {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid container spacing={3} sx={{ mb: 3, ...containerProps }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Schedule color="primary" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>{t('common.total')}</Typography>
-                  <Typography variant="h4">{stats.total}</Typography>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
+                    {t('common.total')}
+                  </Typography>
+                  <Typography 
+                    variant="h4"
+                  >
+                    {stats.total}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                  <Schedule />
                 </Box>
               </Box>
             </CardContent>
@@ -597,11 +620,22 @@ export default function Appointments() {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <CheckCircle color="success" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>{t('appointments.status.completed')}</Typography>
-                  <Typography variant="h4">{stats.completed}</Typography>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
+                    {t('appointments.status.completed')}
+                  </Typography>
+                  <Typography 
+                    variant="h4"
+                  >
+                    {stats.completed}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...iconContainerProps, color: 'success.main' }}>
+                  <CheckCircle />
                 </Box>
               </Box>
             </CardContent>
@@ -610,11 +644,22 @@ export default function Appointments() {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Pending color="warning" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>{t('appointments.status.pending')}</Typography>
-                  <Typography variant="h4">{stats.pending}</Typography>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
+                    {t('appointments.status.pending')}
+                  </Typography>
+                  <Typography 
+                    variant="h4"
+                  >
+                    {stats.pending}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...iconContainerProps, color: 'warning.main' }}>
+                  <Pending />
                 </Box>
               </Box>
             </CardContent>
@@ -623,11 +668,22 @@ export default function Appointments() {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Cancel color="error" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>{t('appointments.status.cancelled')}</Typography>
-                  <Typography variant="h4">{stats.cancelled}</Typography>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
+                    {t('appointments.status.cancelled')}
+                  </Typography>
+                  <Typography 
+                    variant="h4"
+                  >
+                    {stats.cancelled}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...iconContainerProps, color: 'error.main' }}>
+                  <Cancel />
                 </Box>
               </Box>
             </CardContent>
@@ -651,36 +707,72 @@ export default function Appointments() {
                   </InputAdornment>
                 ),
               }}
+              sx={{
+                '& .MuiInputBase-input': {
+                  textAlign: isRTL ? 'right' : 'left',
+                  direction: isRTL ? 'rtl' : 'ltr'
+                }
+              }}
             />
           </Grid>
           <Grid item xs={12} md={2}>
             <FormControl fullWidth>
-              <InputLabel>{t('common.status')}</InputLabel>
+              <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                {t('common.status')}
+              </InputLabel>
               <Select
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
                 label={t('common.status')}
+                sx={{
+                  '& .MuiSelect-select': {
+                    textAlign: isRTL ? 'right' : 'left',
+                    direction: isRTL ? 'rtl' : 'ltr'
+                  }
+                }}
               >
-                <MenuItem value="">{t('common.all')}</MenuItem>
-                <MenuItem value="scheduled">{t('appointments.status.scheduled')}</MenuItem>
-                <MenuItem value="confirmed">{t('appointments.status.confirmed')}</MenuItem>
-                <MenuItem value="in-progress">{t('appointments.status.inProgress')}</MenuItem>
-                <MenuItem value="completed">{t('appointments.status.completed')}</MenuItem>
-                <MenuItem value="cancelled">{t('appointments.status.cancelled')}</MenuItem>
+                <MenuItem value="" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('common.all')}
+                </MenuItem>
+                <MenuItem value="scheduled" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.status.scheduled')}
+                </MenuItem>
+                <MenuItem value="confirmed" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.status.confirmed')}
+                </MenuItem>
+                <MenuItem value="in-progress" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.status.inProgress')}
+                </MenuItem>
+                <MenuItem value="completed" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.status.completed')}
+                </MenuItem>
+                <MenuItem value="cancelled" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.status.cancelled')}
+                </MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} md={2}>
             <FormControl fullWidth>
-              <InputLabel>{t('appointments.patient')}</InputLabel>
+              <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                {t('appointments.patient')}
+              </InputLabel>
               <Select
                 value={filters.patientId}
                 onChange={(e) => handleFilterChange('patientId', e.target.value)}
                 label={t('appointments.patient')}
+                sx={{
+                  '& .MuiSelect-select': {
+                    textAlign: isRTL ? 'right' : 'left',
+                    direction: isRTL ? 'rtl' : 'ltr'
+                  }
+                }}
               >
-                <MenuItem value="">{t('appointments.allPatients')}</MenuItem>
+                <MenuItem value="" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.allPatients')}
+                </MenuItem>
                 {patients.map(p => (
-                  <MenuItem key={p._id} value={p._id}>
+                  <MenuItem key={p._id} value={p._id} sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     {p.name} - {p.phoneNumber}
                   </MenuItem>
                 ))}
@@ -689,15 +781,25 @@ export default function Appointments() {
           </Grid>
           <Grid item xs={12} md={2}>
             <FormControl fullWidth>
-              <InputLabel>{t('appointments.doctor')}</InputLabel>
+              <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                {t('appointments.doctor')}
+              </InputLabel>
               <Select
                 value={filters.doctorId}
                 onChange={(e) => handleFilterChange('doctorId', e.target.value)}
                 label={t('appointments.doctor')}
+                sx={{
+                  '& .MuiSelect-select': {
+                    textAlign: isRTL ? 'right' : 'left',
+                    direction: isRTL ? 'rtl' : 'ltr'
+                  }
+                }}
               >
-                <MenuItem value="">{t('appointments.allDoctors')}</MenuItem>
+                <MenuItem value="" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.allDoctors')}
+                </MenuItem>
                 {doctors.map(d => (
-                  <MenuItem key={d._id} value={d._id}>
+                  <MenuItem key={d._id} value={d._id} sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     {d.name} ({d.specialization})
                   </MenuItem>
                 ))}
@@ -706,15 +808,25 @@ export default function Appointments() {
           </Grid>
           <Grid item xs={12} md={2}>
             <FormControl fullWidth>
-              <InputLabel>{t('representatives.title')}</InputLabel>
+              <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                {t('representatives.title')}
+              </InputLabel>
               <Select
                 value={filters.representativeId}
                 onChange={(e) => handleFilterChange('representativeId', e.target.value)}
                 label={t('representatives.title')}
+                sx={{
+                  '& .MuiSelect-select': {
+                    textAlign: isRTL ? 'right' : 'left',
+                    direction: isRTL ? 'rtl' : 'ltr'
+                  }
+                }}
               >
-                <MenuItem value="">{t('representatives.allRepresentatives')}</MenuItem>
+                <MenuItem value="" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('representatives.allRepresentatives')}
+                </MenuItem>
                 {representatives.map(r => (
-                  <MenuItem key={r._id} value={r._id}>
+                  <MenuItem key={r._id} value={r._id} sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     {r.name} ({r.id})
                   </MenuItem>
                 ))}
@@ -729,7 +841,18 @@ export default function Appointments() {
                   value={filters.startDate}
                   onChange={(newValue) => handleFilterChange('startDate', newValue)}
                   slotProps={{
-                    textField: { size: "small" }
+                    textField: { 
+                      size: "small",
+                      sx: {
+                        '& .MuiInputBase-input': {
+                          textAlign: isRTL ? 'right' : 'left',
+                          direction: isRTL ? 'rtl' : 'ltr'
+                        },
+                        '& .MuiInputLabel-root': {
+                          textAlign: isRTL ? 'right' : 'left'
+                        }
+                      }
+                    }
                   }}
                 />
                 <DatePicker
@@ -737,7 +860,18 @@ export default function Appointments() {
                   value={filters.endDate}
                   onChange={(newValue) => handleFilterChange('endDate', newValue)}
                   slotProps={{
-                    textField: { size: "small" }
+                    textField: { 
+                      size: "small",
+                      sx: {
+                        '& .MuiInputBase-input': {
+                          textAlign: isRTL ? 'right' : 'left',
+                          direction: isRTL ? 'rtl' : 'ltr'
+                        },
+                        '& .MuiInputLabel-root': {
+                          textAlign: isRTL ? 'right' : 'left'
+                        }
+                      }
+                    }
                   }}
                 />
               </LocalizationProvider>
@@ -749,8 +883,18 @@ export default function Appointments() {
       {/* View Mode Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={viewMode} onChange={(e, newValue) => setViewMode(newValue)}>
-          <Tab value="table" label={t('appointments.tableView')} icon={<FilterList />} />
-          <Tab value="calendar" label={t('appointments.calendarView')} icon={<CalendarMonth />} />
+          <Tab 
+            value="table" 
+            label={t('appointments.tableView')} 
+            icon={<FilterList />} 
+            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+          />
+          <Tab 
+            value="calendar" 
+            label={t('appointments.calendarView')} 
+            icon={<CalendarMonth />} 
+            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+          />
         </Tabs>
       </Box>
 
@@ -760,74 +904,123 @@ export default function Appointments() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>{t('appointments.patient')}</TableCell>
-                <TableCell>{t('appointments.doctor')}</TableCell>
-                <TableCell>{t('appointments.radiologist')}</TableCell>
-                <TableCell>{t('appointments.branch')}</TableCell>
-                <TableCell>{t('appointments.dateTime')}</TableCell>
-                <TableCell>{t('common.status')}</TableCell>
-                <TableCell>{t('appointments.priorityLabel')}</TableCell>
-                <TableCell>{t('common.price')}</TableCell>
-                <TableCell>{t('navigation.scans')}</TableCell>
-                <TableCell align="right">{t('common.actions')}</TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.patient')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.doctor')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.radiologist')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.branch')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.dateTime')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('common.status')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('appointments.priorityLabel')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('common.price')}
+                </TableCell>
+                <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                  {t('navigation.scans')}
+                </TableCell>
+                <TableCell align={isRTL ? "left" : "right"}>
+                  {t('common.actions')}
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {appointments.map((apt) => (
                 <TableRow key={apt._id} hover>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="bold">
+                      <Typography 
+                        variant="body2" 
+                        fontWeight="bold"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                      >
                         {apt.patientId?.name || 'Unknown Patient'}
                       </Typography>
-                      <Typography variant="caption" color="textSecondary">
+                      <Typography 
+                        variant="caption" 
+                        color="textSecondary"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                      >
                         {apt.patientId?.phoneNumber}
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="bold">
+                      <Typography 
+                        variant="body2" 
+                        fontWeight="bold"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                      >
                         {apt.referredBy?.name || 'Unknown Doctor'}
                       </Typography>
-                      <Typography variant="caption" color="textSecondary">
+                      <Typography 
+                        variant="caption" 
+                        color="textSecondary"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                      >
                         {apt.referredBy?.specialization}
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="bold">
+                      <Typography 
+                        variant="body2" 
+                        fontWeight="bold"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                      >
                         {apt.radiologistId?.name || 'Unknown Radiologist'}
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                    <Typography 
+                      variant="body2"
+                      sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                    >
                       {apt.branch?.name || 'Unknown Branch'}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     {apt.scheduledAt ? new Date(apt.scheduledAt).toLocaleString() : ''}
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     <Chip
                       icon={statusIcons[apt.status] || <Warning />}
                       label={t(`appointments.status.${apt.status}`) || apt.status}
                       color={statusColors[apt.status] || 'default'}
                       size="small"
+                      sx={{ textAlign: isRTL ? 'right' : 'left' }}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     <Chip
                       label={t(`appointments.priority.${apt.priority}`) || apt.priority}
                       color={apt.priority === 'emergency' ? 'error' : apt.priority === 'urgent' ? 'warning' : 'default'}
                       size="small"
+                      sx={{ textAlign: isRTL ? 'right' : 'left' }}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="bold">
+                      <Typography 
+                        variant="body2" 
+                        fontWeight="bold"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                      >
                         ${apt.price?.toFixed(2) || '0.00'}
                       </Typography>
                       {apt.makeHugeSale && (
@@ -836,56 +1029,74 @@ export default function Appointments() {
                           color="secondary"
                           size="small"
                           variant="outlined"
-                          sx={{ mt: 0.5 }}
+                          sx={{ 
+                            mt: 0.5,
+                            textAlign: isRTL ? 'right' : 'left'
+                          }}
                         />
                       )}
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     <Box>
                       {apt.scans?.map((scanItem, index) => {
                         const scanData = scans.find(s => s._id === scanItem.scan);
                         return (
-                          <Typography key={index} variant="caption" display="block">
+                          <Typography 
+                            key={index} 
+                            variant="caption" 
+                            display="block"
+                            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                          >
                             {scanData?.name || 'Unknown Scan'} (x{scanItem.quantity})
                           </Typography>
                         );
                       })}
                     </Box>
                   </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title={t('common.edit')}>
-                      <IconButton 
-                        onClick={() => handleEdit(apt)}
-                        size="small"
-                      >
-                        <Edit />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={t('common.delete')}>
-                      <IconButton 
-                        color="error" 
-                        onClick={() => setDeleteId(apt._id)}
-                        size="small"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={t('appointments.viewHistory')}>
-                      <IconButton 
-                        onClick={() => handleViewHistory(apt._id)}
-                        size="small"
-                      >
-                        <HistoryIcon />
-                      </IconButton>
-                    </Tooltip>
+                  <TableCell align={isRTL ? "left" : "right"}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      gap: 1,
+                      justifyContent: isRTL ? 'flex-start' : 'flex-end'
+                    }}>
+                      <Tooltip title={t('common.edit')}>
+                        <IconButton 
+                          onClick={() => handleEdit(apt)}
+                          size="small"
+                        >
+                          <Edit />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={t('common.delete')}>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => setDeleteId(apt._id)}
+                          size="small"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={t('appointments.viewHistory')}>
+                        <IconButton 
+                          onClick={() => handleViewHistory(apt._id)}
+                          size="small"
+                        >
+                          <HistoryIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
               {appointments.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={10} align="center">
-                    <Typography variant="body1" color="textSecondary">
+                    <Typography 
+                      variant="body1" 
+                      color="textSecondary"
+                      sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                    >
                       {t('appointments.noAppointmentsFound')}
                     </Typography>
                   </TableCell>
@@ -899,8 +1110,17 @@ export default function Appointments() {
       {/* Calendar View */}
       {viewMode === 'calendar' && (
         <Paper sx={{ p: 3, minHeight: 400 }}>
-          <Typography variant="h6" gutterBottom>{t('appointments.calendarView')}</Typography>
-          <Typography color="textSecondary">
+          <Typography 
+            variant="h6" 
+            gutterBottom
+            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+          >
+            {t('appointments.calendarView')}
+          </Typography>
+          <Typography 
+            color="textSecondary"
+            sx={{ textAlign: isRTL ? 'right' : 'left' }}
+          >
             {t('appointments.calendarViewDescription')}
           </Typography>
         </Paper>
@@ -908,7 +1128,12 @@ export default function Appointments() {
 
       {/* Pagination */}
       {pagination.total > pagination.limit && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          mt: 3,
+          flexDirection: isRTL ? 'row-reverse' : 'row'
+        }}>
           <Pagination
             count={Math.ceil(pagination.total / pagination.limit)}
             page={pagination.page}

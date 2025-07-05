@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRTL } from '../hooks/useRTL';
 import {
     Box,
     Button,
@@ -47,6 +48,7 @@ import { toast } from 'react-toastify';
 
 const RepresentativeManager = () => {
     const { t } = useTranslation();
+    const { isRTL } = useRTL();
     const [representatives, setRepresentatives] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -181,14 +183,25 @@ const RepresentativeManager = () => {
     return (
         <Box sx={{ p: 3 }}>
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h4" component="h1">
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                mb: 3,
+                flexDirection: isRTL ? 'row-reverse' : 'row'
+            }}>
+                <Typography 
+                    variant="h4" 
+                    component="h1"
+                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                >
                     {t('representatives.title')}
                 </Typography>
                 <Button
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={handleCreate}
+                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
                 >
                     {t('representatives.addNew')}
                 </Button>
@@ -205,36 +218,75 @@ const RepresentativeManager = () => {
                                 value={searchTerm}
                                 onChange={handleSearch}
                                 InputProps={{
-                                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                    startAdornment: <SearchIcon sx={{ mr: isRTL ? 0 : 1, ml: isRTL ? 1 : 0, color: 'text.secondary' }} />
+                                }}
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        textAlign: isRTL ? 'right' : 'left'
+                                    }
                                 }}
                             />
                         </Grid>
                         <Grid item xs={12} md={3}>
                             <FormControl fullWidth>
-                                <InputLabel>{t('common.status')}</InputLabel>
+                                <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('common.status')}
+                                </InputLabel>
                                 <Select
                                     value={statusFilter}
                                     onChange={handleStatusFilterChange}
                                     label={t('common.status')}
+                                    sx={{
+                                        '& .MuiSelect-select': {
+                                            textAlign: isRTL ? 'right' : 'left',
+                                            direction: isRTL ? 'rtl' : 'ltr'
+                                        }
+                                    }}
                                 >
-                                    <MenuItem value="all">{t('common.all')}</MenuItem>
-                                    <MenuItem value="active">{t('status.active')}</MenuItem>
-                                    <MenuItem value="inactive">{t('status.inactive')}</MenuItem>
+                                    <MenuItem value="all" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        {t('common.all')}
+                                    </MenuItem>
+                                    <MenuItem value="active" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        {t('status.active')}
+                                    </MenuItem>
+                                    <MenuItem value="inactive" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        {t('status.inactive')}
+                                    </MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
                         <Grid item xs={12} md={3}>
                             <FormControl fullWidth>
-                                <InputLabel>{t('common.sortBy')}</InputLabel>
+                                <InputLabel sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                    {t('common.sortBy')}
+                                </InputLabel>
                                 <Select
                                     value={sortBy}
                                     onChange={(e) => handleSortChange(e.target.value)}
                                     label={t('common.sortBy')}
+                                    sx={{
+                                        '& .MuiSelect-select': {
+                                            textAlign: isRTL ? 'right' : 'left',
+                                            direction: isRTL ? 'rtl' : 'ltr'
+                                        }
+                                    }}
                                 >
-                                    <MenuItem value="name">{t('representatives.name')}</MenuItem>
-                                    <MenuItem value="patientsCount">{t('representatives.patientsCount')}</MenuItem>
-                                    <MenuItem value="doctorsCount">{t('representatives.doctorsCount')}</MenuItem>
-                                    <MenuItem value="createdAt">{t('common.createdAt')}</MenuItem>
+                                    <MenuItem value="name" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        {t('representatives.name')}
+                                    </MenuItem>
+                                    <MenuItem value="patientsCount" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        {t('representatives.patientsCount')}
+                                    </MenuItem>
+                                    <MenuItem value="doctorsCount" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        {t('representatives.doctorsCount')}
+                                    </MenuItem>
+                                    <MenuItem value="createdAt" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                        {t('common.createdAt')}
+                                    </MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -245,6 +297,7 @@ const RepresentativeManager = () => {
                                 startIcon={<RefreshIcon />}
                                 onClick={fetchRepresentatives}
                                 disabled={loading}
+                                sx={{ textAlign: isRTL ? 'right' : 'left' }}
                             >
                                 {t('common.refresh')}
                             </Button>
@@ -265,28 +318,53 @@ const RepresentativeManager = () => {
                             <Table>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>{t('representatives.name')}</TableCell>
-                                        <TableCell>{t('representatives.id')}</TableCell>
-                                        <TableCell>{t('representatives.phoneNumber')}</TableCell>
-                                        <TableCell>{t('representatives.age')}</TableCell>
-                                        <TableCell>{t('representatives.patientsCount')}</TableCell>
-                                        <TableCell>{t('representatives.doctorsCount')}</TableCell>
-                                        <TableCell>{t('common.status')}</TableCell>
-                                        <TableCell>{t('common.actions')}</TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                            {t('representatives.name')}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                            {t('representatives.id')}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                            {t('representatives.phoneNumber')}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                            {t('representatives.age')}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                            {t('representatives.patientsCount')}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                            {t('representatives.doctorsCount')}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                            {t('common.status')}
+                                        </TableCell>
+                                        <TableCell sx={{ textAlign: isRTL ? 'left' : 'right' }}>
+                                            {t('common.actions')}
+                                        </TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {representatives.map((representative) => (
                                         <TableRow key={representative._id} hover>
-                                            <TableCell>
-                                                <Typography variant="subtitle2">
+                                            <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                                <Typography 
+                                                    variant="subtitle2"
+                                                    sx={{ textAlign: isRTL ? 'right' : 'left' }}
+                                                >
                                                     {representative.name}
                                                 </Typography>
                                             </TableCell>
-                                            <TableCell>{representative.id}</TableCell>
-                                            <TableCell>{representative.phoneNumber}</TableCell>
-                                            <TableCell>{representative.age}</TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                                {representative.id}
+                                            </TableCell>
+                                            <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                                {representative.phoneNumber}
+                                            </TableCell>
+                                            <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                                                {representative.age}
+                                            </TableCell>
+                                            <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                                 <Badge badgeContent={representative.patientsCount} color="primary">
                                                     <Chip
                                                         label={representative.patientsCount}
@@ -296,7 +374,7 @@ const RepresentativeManager = () => {
                                                     />
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                                 <Badge badgeContent={representative.doctorsCount} color="secondary">
                                                     <Chip
                                                         label={representative.doctorsCount}
@@ -306,15 +384,19 @@ const RepresentativeManager = () => {
                                                     />
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                                                 <Chip
                                                     label={getStatusText(representative.isActive)}
                                                     color={getStatusColor(representative.isActive)}
                                                     size="small"
                                                 />
                                             </TableCell>
-                                            <TableCell>
-                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                            <TableCell sx={{ textAlign: isRTL ? 'left' : 'right' }}>
+                                                <Box sx={{ 
+                                                    display: 'flex', 
+                                                    gap: 1,
+                                                    justifyContent: isRTL ? 'flex-start' : 'flex-end'
+                                                }}>
                                                     <Tooltip title={t('common.viewStats')}>
                                                         <IconButton
                                                             size="small"
@@ -353,19 +435,40 @@ const RepresentativeManager = () => {
 
                     {/* Pagination */}
                     {pagination.totalPages > 1 && (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                        <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            mt: 2,
+                            flexDirection: isRTL ? 'row-reverse' : 'row'
+                        }}>
                             <Button
                                 disabled={pagination.page === 1}
                                 onClick={() => handlePageChange(pagination.page - 1)}
+                                sx={{ 
+                                    mr: isRTL ? 0 : 2, 
+                                    ml: isRTL ? 2 : 0,
+                                    textAlign: isRTL ? 'right' : 'left'
+                                }}
                             >
                                 {t('common.previous')}
                             </Button>
-                            <Typography sx={{ mx: 2, alignSelf: 'center' }}>
+                            <Typography 
+                                sx={{ 
+                                    mx: 2, 
+                                    alignSelf: 'center',
+                                    textAlign: isRTL ? 'right' : 'left'
+                                }}
+                            >
                                 {t('common.pageInfo', { current: pagination.page, total: pagination.totalPages })}
                             </Typography>
                             <Button
                                 disabled={pagination.page === pagination.totalPages}
                                 onClick={() => handlePageChange(pagination.page + 1)}
+                                sx={{ 
+                                    ml: isRTL ? 0 : 2, 
+                                    mr: isRTL ? 2 : 0,
+                                    textAlign: isRTL ? 'right' : 'left'
+                                }}
                             >
                                 {t('common.next')}
                             </Button>

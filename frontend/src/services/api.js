@@ -11,13 +11,18 @@ const axiosInstance = axios.create({
     },
 });
 
-// Add request interceptor for auth token (temporarily disabled for all calls)
+// Add request interceptor for auth token and language
 axiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Add Accept-Language header based on current language
+        const currentLanguage = localStorage.getItem('i18nextLng') || 'en';
+        config.headers['Accept-Language'] = currentLanguage;
+
         return config;
     },
     (error) => Promise.reject(error)

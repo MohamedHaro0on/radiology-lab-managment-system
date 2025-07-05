@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 import {
     Dialog,
     DialogTitle,
@@ -20,35 +22,34 @@ import * as Yup from 'yup';
 import { toast } from 'react-toastify';
 import { branchAPI } from '../../services/api';
 
-const validationSchema = Yup.object({
-    name: Yup.string()
-        .required('Branch name is required')
-        .min(3, 'Name must be at least 3 characters')
-        .max(100, 'Name cannot exceed 100 characters'),
-    location: Yup.string()
-        .required('Location is required')
-        .min(5, 'Location must be at least 5 characters')
-        .max(200, 'Location cannot exceed 200 characters'),
-    address: Yup.string()
-        .required('Address is required')
-        .min(10, 'Address must be at least 10 characters')
-        .max(500, 'Address cannot exceed 500 characters'),
-    phone: Yup.string()
-        .required('Phone number is required')
-        .matches(/^\\d{10}$/, 'Please enter a valid 10-digit phone number'),
-    email: Yup.string()
-        .email('Please enter a valid email address')
-        .required('Email is required'),
-    manager: Yup.string()
-        .required('Manager name is required')
-        .min(2, 'Manager name must be at least 2 characters')
-        .max(100, 'Manager name cannot exceed 100 characters'),
-});
-
 const BranchDialog = ({ open, onClose, branch, onSave }) => {
+    const { t } = useTranslation();
+    const { isRTL, rtlProps, inputProps } = useRTL();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const isEditing = Boolean(branch);
+
+    const validationSchema = Yup.object({
+        name: Yup.string()
+            .required(t('validation.required', { field: t('branches.name') }))
+            .min(3, t('validation.minLength', { field: t('branches.name'), min: 3 }))
+            .max(100, t('validation.maxLength', { field: t('branches.name'), max: 100 })),
+        location: Yup.string()
+            .required(t('validation.required', { field: t('branches.location') }))
+            .min(5, t('validation.minLength', { field: t('branches.location'), min: 5 }))
+            .max(200, t('validation.maxLength', { field: t('branches.location'), max: 200 })),
+        address: Yup.string()
+            .required(t('validation.required', { field: t('branches.address') }))
+            .min(10, t('validation.minLength', { field: t('branches.address'), min: 10 }))
+            .max(500, t('validation.maxLength', { field: t('branches.address'), max: 500 })),
+        phone: Yup.string()
+            .required(t('validation.required', { field: t('branches.phone') }))
+            .matches(/^\d{10}$/, t('validation.phoneNumber')),
+        manager: Yup.string()
+            .required(t('validation.required', { field: t('branches.manager') }))
+            .min(2, t('validation.minLength', { field: t('branches.manager'), min: 2 }))
+            .max(100, t('validation.maxLength', { field: t('branches.manager'), max: 100 })),
+    });
 
     const formik = useFormik({
         initialValues: {
@@ -56,7 +57,6 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
             location: branch?.location || '',
             address: branch?.address || '',
             phone: branch?.phone?.startsWith('+20') ? branch.phone.substring(3) : branch?.phone || '',
-            email: branch?.email || '',
             manager: branch?.manager || '',
             isActive: branch?.isActive ?? true,
         },
@@ -70,10 +70,10 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
             try {
                 if (isEditing) {
                     await branchAPI.update(branch._id, submissionValues);
-                    toast.success('Branch updated successfully');
+                    toast.success(t('branches.updateSuccess'));
                 } else {
                     await branchAPI.create(submissionValues);
-                    toast.success('Branch created successfully');
+                    toast.success(t('branches.createSuccess'));
                 }
                 onSave();
                 onClose();
@@ -81,7 +81,7 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                 console.log('--- Create/Update Branch: API Error ---');
                 console.error(err);
                 const errorMessage = err.response?.data?.message || 
-                    (isEditing ? 'Failed to update branch' : 'Failed to create branch');
+                    (isEditing ? t('branches.updateError') : t('branches.createError'));
                 setError(errorMessage);
                 toast.error(errorMessage);
             } finally {
@@ -101,14 +101,22 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
 
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
-            <DialogTitle>
-                {isEditing ? 'Edit Branch' : 'Add New Branch'}
+            <DialogTitle sx={{ textAlign: isRTL ? 'right' : 'left' }}>
+                {isEditing ? t('branches.editTitle') : t('branches.addTitle')}
             </DialogTitle>
             
             <form onSubmit={formik.handleSubmit}>
                 <DialogContent>
-                    <Typography variant="body2" color="textSecondary" sx={{ mt: -2, mb: 2 }}>
-                        {isEditing ? 'Update branch information' : 'Create a new laboratory branch'}
+                    <Typography 
+                        variant="body2" 
+                        color="textSecondary" 
+                        sx={{ 
+                            mt: -2, 
+                            mb: 2,
+                            textAlign: isRTL ? 'right' : 'left'
+                        }}
+                    >
+                        {isEditing ? t('branches.updateInfo') : t('branches.createInfo')}
                     </Typography>
                     {error && (
                         <Alert severity="error" sx={{ mb: 2 }}>
@@ -122,7 +130,7 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 fullWidth
                                 id="name"
                                 name="name"
-                                label="Branch Name"
+                                label={t('branches.nameLabel')}
                                 value={formik.values.name}
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
@@ -130,7 +138,16 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 helperText={formik.touched.name && formik.errors.name}
                                 margin="normal"
                                 disabled={loading}
-                                placeholder="Enter branch name"
+                                placeholder={t('branches.namePlaceholder')}
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        textAlign: isRTL ? 'right' : 'left'
+                                    }
+                                }}
                             />
                         </Grid>
                         
@@ -139,7 +156,7 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 fullWidth
                                 id="location"
                                 name="location"
-                                label="Location/City"
+                                label={t('branches.locationLabel')}
                                 value={formik.values.location}
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
@@ -147,7 +164,16 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 helperText={formik.touched.location && formik.errors.location}
                                 margin="normal"
                                 disabled={loading}
-                                placeholder="Enter city or location"
+                                placeholder={t('branches.locationPlaceholder')}
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        textAlign: isRTL ? 'right' : 'left'
+                                    }
+                                }}
                             />
                         </Grid>
                         
@@ -156,7 +182,7 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 fullWidth
                                 id="address"
                                 name="address"
-                                label="Full Address"
+                                label={t('branches.addressLabel')}
                                 value={formik.values.address}
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
@@ -164,9 +190,18 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 helperText={formik.touched.address && formik.errors.address}
                                 margin="normal"
                                 disabled={loading}
-                                placeholder="Enter complete address"
+                                placeholder={t('branches.addressPlaceholder')}
                                 multiline
                                 rows={2}
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        textAlign: isRTL ? 'right' : 'left'
+                                    }
+                                }}
                             />
                         </Grid>
                         
@@ -175,7 +210,7 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 fullWidth
                                 id="phone"
                                 name="phone"
-                                label="Phone Number"
+                                label={t('branches.phoneLabel')}
                                 value={formik.values.phone}
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
@@ -183,28 +218,19 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 helperText={formik.touched.phone && formik.errors.phone}
                                 margin="normal"
                                 disabled={loading}
-                                placeholder="Enter 10-digit number"
+                                placeholder={t('branches.phonePlaceholder')}
                                 InputProps={{
                                     startAdornment: <InputAdornment position="start">+20</InputAdornment>,
                                 }}
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                id="email"
-                                name="email"
-                                label="Email Address"
-                                type="email"
-                                value={formik.values.email}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.email && Boolean(formik.errors.email)}
-                                helperText={formik.touched.email && formik.errors.email}
-                                margin="normal"
-                                disabled={loading}
-                                placeholder="Enter email address"
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        textAlign: isRTL ? 'right' : 'left'
+                                    }
+                                }}
                             />
                         </Grid>
                         
@@ -213,7 +239,7 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 fullWidth
                                 id="manager"
                                 name="manager"
-                                label="Branch Manager"
+                                label={t('branches.managerLabel')}
                                 value={formik.values.manager}
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
@@ -221,7 +247,16 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                 helperText={formik.touched.manager && formik.errors.manager}
                                 margin="normal"
                                 disabled={loading}
-                                placeholder="Enter manager name"
+                                placeholder={t('branches.managerPlaceholder')}
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        direction: isRTL ? 'rtl' : 'ltr'
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        textAlign: isRTL ? 'right' : 'left'
+                                    }
+                                }}
                             />
                         </Grid>
                         
@@ -237,12 +272,26 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                                             disabled={loading}
                                         />
                                     }
-                                    label="Branch Active"
+                                    label={t('branches.isActiveLabel')}
+                                    sx={{
+                                        flexDirection: isRTL ? 'row-reverse' : 'row',
+                                        '& .MuiFormControlLabel-label': {
+                                            textAlign: isRTL ? 'right' : 'left'
+                                        }
+                                    }}
                                 />
-                                <Typography variant="caption" display="block" color="textSecondary">
+                                <Typography 
+                                    variant="caption" 
+                                    display="block" 
+                                    color="textSecondary"
+                                    sx={{ 
+                                        textAlign: isRTL ? 'right' : 'left',
+                                        mt: 1
+                                    }}
+                                >
                                     {isEditing 
-                                        ? 'Toggle to activate or deactivate this branch'
-                                        : 'New branches are active by default'
+                                        ? t('branches.isActiveDescriptionEdit')
+                                        : t('branches.isActiveDescriptionAdd')
                                     }
                                 </Typography>
                             </Box>
@@ -250,21 +299,27 @@ const BranchDialog = ({ open, onClose, branch, onSave }) => {
                     </Grid>
                 </DialogContent>
                 
-                <DialogActions sx={{ p: 3, pt: 1 }}>
+                <DialogActions sx={{ 
+                    p: 3, 
+                    pt: 1,
+                    flexDirection: isRTL ? 'row-reverse' : 'row'
+                }}>
                     <Button 
                         onClick={handleClose} 
                         disabled={loading}
                         variant="outlined"
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
                     >
-                        Cancel
+                        {t('branches.cancelButton')}
                     </Button>
                     <Button 
                         type="submit" 
                         variant="contained" 
                         disabled={loading || !formik.isValid}
                         startIcon={loading ? <CircularProgress size={20} /> : null}
+                        sx={{ textAlign: isRTL ? 'right' : 'left' }}
                     >
-                        {loading ? 'Saving...' : (isEditing ? 'Update Branch' : 'Create Branch')}
+                        {loading ? t('branches.savingButton') : (isEditing ? t('branches.updateButton') : t('branches.createButton'))}
                     </Button>
                 </DialogActions>
             </form>

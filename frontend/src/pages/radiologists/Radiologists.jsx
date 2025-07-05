@@ -21,6 +21,8 @@ const Radiologists = () => {
   const [otpAuthUrl, setOtpAuthUrl] = useState('');
   const [secret, setSecret] = useState('');
   const [userId, setUserId] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [radiologistToDelete, setRadiologistToDelete] = useState(null);
 
   const editFormik = useFormik({
     initialValues: {
@@ -135,18 +137,24 @@ const Radiologists = () => {
     registerFormik.resetForm();
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (radiologistId) => {
     try {
       setLoading(true);
-      await userAPI.delete(selectedRadiologist._id);
+      await userAPI.delete(radiologistId);
       toast.success(t('radiologists.deleteSuccess'));
-      setOpenDialog(false);
+      setDeleteConfirmOpen(false);
+      setRadiologistToDelete(null);
       fetchRadiologists();
     } catch (err) {
       toast.error(err.response?.data?.message || t('radiologists.deleteError'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteClick = (radiologist) => {
+    setRadiologistToDelete(radiologist);
+    setDeleteConfirmOpen(true);
   };
 
   return (
@@ -231,7 +239,7 @@ const Radiologists = () => {
                 <Button size="small" startIcon={<EditIcon />} onClick={() => handleOpenDialog(radiologist)}>
                   {t('common.edit')}
                 </Button>
-                <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={handleDelete}>
+                <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDeleteClick(radiologist)}>
                   {t('common.delete')}
                 </Button>
               </CardActions>
@@ -434,6 +442,33 @@ const Radiologists = () => {
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>{t('radiologists.deleteConfirmTitle') || 'Delete Radiologist'}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {t('radiologists.deleteConfirmMessage') || 'Are you sure you want to delete this radiologist?'}
+            {radiologistToDelete && (
+              <Typography component="span" fontWeight="bold">
+                {' '}{radiologistToDelete.name}?
+              </Typography>
+            )}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            {t('common.cancel') || 'Cancel'}
+          </Button>
+          <Button 
+            color="error" 
+            onClick={() => handleDelete(radiologistToDelete._id)}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={20} /> : (t('common.delete') || 'Delete')}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

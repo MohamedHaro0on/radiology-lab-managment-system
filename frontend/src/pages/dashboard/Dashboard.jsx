@@ -46,11 +46,13 @@ import {
 } from '@mui/icons-material';
 import { dashboardAPI } from '../../services/api';
 import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const Dashboard = () => {
   const { t } = useTranslation();
+  const { isRTL, cardGridProps, iconContainerProps, textContainerProps, containerProps } = useRTL();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -139,26 +141,38 @@ const Dashboard = () => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 3, mb: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Container maxWidth="xl" sx={{ mt: 3, mb: 3, ...containerProps }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+      >
         {t('navigation.dashboard')}
       </Typography>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4, ...containerProps }} dir={isRTL ? 'rtl' : 'ltr'}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center">
-                <AttachMoney color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
                     {t('dashboard.dailyIncome')}
                   </Typography>
-                  <Typography variant="h5" component="div">
+                  <Typography 
+                    variant="h5" 
+                    component="div"
+                  >
                     {formatCurrency(analytics.daily.income)}
                   </Typography>
                 </Box>
+                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                  <AttachMoney />
+                </Box>
               </Box>
             </CardContent>
           </Card>
@@ -167,33 +181,23 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center">
-                <Schedule color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
                     {t('dashboard.dailyAppointments')}
                   </Typography>
-                  <Typography variant="h5" component="div">
+                  <Typography 
+                    variant="h5" 
+                    component="div"
+                  >
                     {analytics.daily.appointments}
                   </Typography>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <TrendingUp color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    {t('dashboard.weeklyIncome')}
-                  </Typography>
-                  <Typography variant="h5" component="div">
-                    {formatCurrency(analytics.weekly.income)}
-                  </Typography>
+                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                  <Schedule />
                 </Box>
               </Box>
             </CardContent>
@@ -203,15 +207,49 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center">
-                <People color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
+                    {t('dashboard.weeklyIncome')}
+                  </Typography>
+                  <Typography 
+                    variant="h5" 
+                    component="div"
+                  >
+                    {formatCurrency(analytics.weekly.income)}
+                  </Typography>
+                </Box>
+                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                  <TrendingUp />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
                     {t('dashboard.weeklyAppointments')}
                   </Typography>
-                  <Typography variant="h5" component="div">
+                  <Typography 
+                    variant="h5" 
+                    component="div"
+                  >
                     {analytics.weekly.appointments}
                   </Typography>
+                </Box>
+                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                  <People />
                 </Box>
               </Box>
             </CardContent>
@@ -220,11 +258,14 @@ const Dashboard = () => {
       </Grid>
 
       {/* Charts Row */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4, ...containerProps }}>
         {/* Monthly Income Trend */}
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 3, ...containerProps }}>
+            <Typography 
+              variant="h6" 
+              gutterBottom
+            >
               {t('dashboard.monthlyIncomeTrend')}
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -249,8 +290,11 @@ const Dashboard = () => {
 
         {/* Most Requested Scans */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 3, ...containerProps }}>
+            <Typography 
+              variant="h6" 
+              gutterBottom
+            >
               {t('dashboard.mostRequestedScans')}
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -267,11 +311,14 @@ const Dashboard = () => {
       </Grid>
 
       {/* Second Row */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4, ...containerProps }}>
         {/* Appointment Status Distribution */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 3, ...containerProps }}>
+            <Typography 
+              variant="h6" 
+              gutterBottom
+            >
               {t('dashboard.appointmentStatus')}
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -298,8 +345,11 @@ const Dashboard = () => {
 
         {/* Top Rated Doctors */}
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 3, ...containerProps }}>
+            <Typography 
+              variant="h6" 
+              gutterBottom
+            >
               {t('dashboard.topRatedDoctors')}
             </Typography>
             <List>
@@ -314,14 +364,34 @@ const Dashboard = () => {
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                        primary={doctorName}
+                        primary={
+                          <Typography>
+                            {doctorName}
+                          </Typography>
+                        }
                         secondary={
                           <React.Fragment>
-                            <Typography variant="body2" color="textSecondary" component="span" display="block">
+                            <Typography 
+                              variant="body2" 
+                              color="textSecondary" 
+                              component="span" 
+                              display="block"
+                            >
                               {doctor.specialization}
                             </Typography>
-                            <Typography variant="body2" component="span" display="block" sx={{ mt: 1 }}>
-                              <Star sx={{ color: '#FFD700', fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                            <Typography 
+                              variant="body2" 
+                              component="span" 
+                              display="block" 
+                              sx={{ mt: 1 }}
+                            >
+                              <Star sx={{ 
+                                color: '#FFD700', 
+                                fontSize: 16, 
+                                verticalAlign: 'middle', 
+                                mr: isRTL ? 0 : 0.5,
+                                ml: isRTL ? 0.5 : 0
+                              }} />
                               {t('common.rating')}: {(doctor.rating * 100).toFixed(1)}%
                             </Typography>
                             <Chip
@@ -345,10 +415,13 @@ const Dashboard = () => {
       </Grid>
 
       {/* Third Row - Top Representatives */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4, ...containerProps }}>
         <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 3, ...containerProps }}>
+            <Typography 
+              variant="h6" 
+              gutterBottom
+            >
               {t('dashboard.topRepresentatives')}
             </Typography>
             <Grid container spacing={2}>
@@ -357,14 +430,24 @@ const Dashboard = () => {
                   <Card variant="outlined">
                     <CardContent>
                       <Box display="flex" alignItems="center" mb={2}>
-                        <Avatar sx={{ bgcolor: COLORS[index % COLORS.length], mr: 2 }}>
+                        <Avatar sx={{ 
+                          bgcolor: COLORS[index % COLORS.length], 
+                          mr: isRTL ? 0 : 2,
+                          ml: isRTL ? 2 : 0
+                        }}>
                           {representative.name.charAt(0)}
                         </Avatar>
                         <Box>
-                          <Typography variant="subtitle1" fontWeight="bold">
+                          <Typography 
+                            variant="subtitle1" 
+                            fontWeight="bold"
+                          >
                             {representative.name}
                           </Typography>
-                          <Typography variant="body2" color="textSecondary">
+                          <Typography 
+                            variant="body2" 
+                            color="textSecondary"
+                          >
                             ID: {representative.id}
                           </Typography>
                         </Box>
@@ -376,7 +459,10 @@ const Dashboard = () => {
                             label={`${representative.patientsCount} ${t('representatives.patients')}`}
                             color="primary"
                             variant="outlined"
-                            sx={{ mr: 1 }}
+                            sx={{ 
+                              mr: isRTL ? 0 : 1,
+                              ml: isRTL ? 1 : 0,
+                            }}
                           />
                           <Chip
                             size="small"
@@ -396,20 +482,29 @@ const Dashboard = () => {
       </Grid>
 
       {/* Total Statistics */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4, ...containerProps }}>
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
                     {t('dashboard.totalIncome')}
                   </Typography>
-                  <Typography variant="h4" component="div" color="primary">
+                  <Typography 
+                    variant="h4" 
+                    component="div" 
+                    color="primary"
+                  >
                     {formatCurrency(analytics.total.income)}
                   </Typography>
                 </Box>
-                <AttachMoney color="primary" sx={{ fontSize: 60 }} />
+                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                  <AttachMoney />
+                </Box>
               </Box>
             </CardContent>
           </Card>
@@ -418,16 +513,25 @@ const Dashboard = () => {
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
+              <Box sx={cardGridProps}>
+                <Box sx={textContainerProps}>
+                  <Typography 
+                    color="textSecondary" 
+                    gutterBottom
+                  >
                     {t('dashboard.totalAppointments')}
                   </Typography>
-                  <Typography variant="h4" component="div" color="primary">
+                  <Typography 
+                    variant="h4" 
+                    component="div" 
+                    color="primary"
+                  >
                     {analytics.total.appointments}
                   </Typography>
                 </Box>
-                <People color="primary" sx={{ fontSize: 60 }} />
+                <Box sx={{ ...iconContainerProps, color: 'primary.main' }}>
+                  <People />
+                </Box>
               </Box>
             </CardContent>
           </Card>
@@ -435,8 +539,11 @@ const Dashboard = () => {
       </Grid>
 
       {/* Recent Appointments */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper sx={{ p: 3, ...containerProps }}>
+        <Typography 
+          variant="h6" 
+          gutterBottom
+        >
           {t('dashboard.recentAppointments')}
         </Typography>
         <List>
@@ -449,16 +556,36 @@ const Dashboard = () => {
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  primary={appointment.patient?.name || t('patients.title')}
+                  primary={
+                    <Typography>
+                      {appointment.patient?.name || t('patients.title')}
+                    </Typography>
+                  }
                   secondary={
                     <React.Fragment>
-                      <Typography variant="body2" color="textSecondary" component="span" display="block">
+                      <Typography 
+                        variant="body2" 
+                        color="textSecondary" 
+                        component="span" 
+                        display="block"
+                      >
                         {t('appointments.doctor')}: {appointment.doctor?.name || t('common.unknown')} ({appointment.doctor?.specialization})
                       </Typography>
-                      <Typography variant="body2" color="textSecondary" component="span" display="block">
+                      <Typography 
+                        variant="body2" 
+                        color="textSecondary" 
+                        component="span" 
+                        display="block"
+                      >
                         {t('navigation.scans')}: {appointment.scan?.category?.name} - {formatCurrency(appointment.scan?.category?.price)}
                       </Typography>
-                      <Typography variant="body2" color="textSecondary" component="span" display="block" sx={{ mt: 1 }}>
+                      <Typography 
+                        variant="body2" 
+                        color="textSecondary" 
+                        component="span" 
+                        display="block" 
+                        sx={{ mt: 1 }}
+                      >
                         <Chip
                           size="small"
                           label={t(`appointments.status.${appointment.status}`)}
@@ -466,7 +593,10 @@ const Dashboard = () => {
                             appointment.status === 'completed' ? 'success' :
                             appointment.status === 'scheduled' ? 'primary' : 'error'
                           }
-                          sx={{ mr: 1 }}
+                          sx={{ 
+                            mr: isRTL ? 0 : 1,
+                            ml: isRTL ? 1 : 0,
+                          }}
                         />
                         {formatDate(appointment.appointmentDate)}
                       </Typography>

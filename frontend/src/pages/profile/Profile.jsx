@@ -15,11 +15,13 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { authAPI } from '../../services/api';
 import { toast } from 'react-toastify';
+import { useRTL } from '../../hooks/useRTL';
 
 const Profile = () => {
   const { t } = useTranslation();
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
+  const { isRTL, rtlProps, inputProps, cardProps } = useRTL();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -195,7 +197,7 @@ const Profile = () => {
 
               <Divider sx={{ my: 4 }} />
 
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                 {t('auth.changePassword')}
               </Typography>
               <form onSubmit={handlePasswordChange}>

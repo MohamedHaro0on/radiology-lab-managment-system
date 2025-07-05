@@ -24,14 +24,7 @@ const branchSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Phone number is required'],
         trim: true,
-        match: [/^\\+20\d{10}$/, 'Please provide a valid phone number (+20 followed by 10 digits)']
-    },
-    email: {
-        type: String,
-        required: [true, 'Email address is required'],
-        trim: true,
-        lowercase: true,
-        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
+        match: [/^\+20\d{10}$/, 'Please provide a valid phone number (+20 followed by 10 digits)']
     },
     manager: {
         type: String,
@@ -57,7 +50,6 @@ branchSchema.virtual('info').get(function () {
         location: this.location,
         address: this.address,
         phone: this.phone,
-        email: this.email,
         manager: this.manager,
         isActive: this.isActive,
         createdAt: this.createdAt,

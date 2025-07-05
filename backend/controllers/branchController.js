@@ -4,6 +4,31 @@ import Branch from '../models/Branch.js';
 import { errors } from '../utils/errorHandler.js';
 import { logAudit } from '../services/auditService.js';
 
+// Helper function to get localized messages
+const getLocalizedMessage = (req, key) => {
+    const acceptLanguage = req.headers['accept-language'] || 'en';
+    const isArabic = acceptLanguage.includes('ar');
+
+    const messages = {
+        en: {
+            'branch.exists': 'A branch with this name already exists',
+            'branch.notFound': 'Branch not found',
+            'branch.created': 'Branch created successfully',
+            'branch.updated': 'Branch updated successfully',
+            'branch.deleted': 'Branch deleted successfully'
+        },
+        ar: {
+            'branch.exists': 'يوجد فرع بهذا الاسم بالفعل',
+            'branch.notFound': 'الفرع غير موجود',
+            'branch.created': 'تم إنشاء الفرع بنجاح',
+            'branch.updated': 'تم تحديث الفرع بنجاح',
+            'branch.deleted': 'تم حذف الفرع بنجاح'
+        }
+    };
+
+    return isArabic ? messages.ar[key] : messages.en[key];
+};
+
 // @desc    Create a new branch
 // @route   POST /api/branches
 // @access  Private (Admin/Manager)
@@ -12,7 +37,6 @@ import { logAudit } from '../services/auditService.js';
 //   location: string (required),
 //   address: string (required),
 //   phone: string (required),
-//   email: string (required),
 //   manager: string (required),
 //   isActive: boolean (optional, default: true)
 // }
@@ -20,18 +44,12 @@ export const createBranch = asyncHandler(async (req, res) => {
     console.log('--- Create Branch: Request Body ---');
     console.log(req.body);
 
-    const { name, location, address, phone, email, manager, isActive = true } = req.body;
+    const { name, location, address, phone, manager, isActive = true } = req.body;
 
     // Check if branch with same name already exists
     const existingBranch = await Branch.findOne({ name });
     if (existingBranch) {
-        throw errors.Conflict('A branch with this name already exists');
-    }
-
-    // Check if branch with same email already exists
-    const existingEmail = await Branch.findOne({ email });
-    if (existingEmail) {
-        throw errors.Conflict('A branch with this email already exists');
+        throw errors.Conflict(getLocalizedMessage(req, 'branch.exists'));
     }
 
     const branch = await Branch.create({
@@ -39,7 +57,6 @@ export const createBranch = asyncHandler(async (req, res) => {
         location,
         address,
         phone,
-        email,
         manager,
         isActive
     });
@@ -57,7 +74,7 @@ export const createBranch = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.CREATED).json({
         status: 'success',
-        message: 'Branch created successfully',
+        message: getLocalizedMessage(req, 'branch.created'),
         data: branch
     });
 });
@@ -138,7 +155,7 @@ export const getAllBranches = asyncHandler(async (req, res) => {
 // @access  Public
 export const getActiveBranches = asyncHandler(async (req, res) => {
     const branches = await Branch.find({ isActive: true })
-        .select('name location address phone email manager')
+        .select('name location address phone manager')
         .sort({ name: 1 });
 
     res.status(StatusCodes.OK).json({
@@ -158,7 +175,7 @@ export const getBranchById = asyncHandler(async (req, res) => {
     const branch = await Branch.findById(req.params.id);
 
     if (!branch) {
-        throw errors.NotFound('Branch not found');
+        throw errors.NotFound(getLocalizedMessage(req, 'branch.notFound'));
     }
 
     res.status(StatusCodes.OK).json({
@@ -180,11 +197,11 @@ export const getBranchById = asyncHandler(async (req, res) => {
 //   isActive: boolean (optional)
 // }
 export const updateBranch = asyncHandler(async (req, res) => {
-    const { name, location, address, phone, email, manager, isActive } = req.body;
+    const { name, location, address, phone, manager, isActive } = req.body;
 
     const branch = await Branch.findById(req.params.id);
     if (!branch) {
-        throw errors.NotFound('Branch not found');
+        throw errors.NotFound(getLocalizedMessage(req, 'branch.notFound'));
     }
 
     // Store original document for comparison
@@ -194,15 +211,7 @@ export const updateBranch = asyncHandler(async (req, res) => {
     if (name && name !== branch.name) {
         const existingBranch = await Branch.findOne({ name });
         if (existingBranch) {
-            throw errors.Conflict('A branch with this name already exists');
-        }
-    }
-
-    // Check if another branch with the new email already exists
-    if (email && email !== branch.email) {
-        const existingEmail = await Branch.findOne({ email });
-        if (existingEmail) {
-            throw errors.Conflict('A branch with this email already exists');
+            throw errors.Conflict(getLocalizedMessage(req, 'branch.exists'));
         }
     }
 
@@ -211,7 +220,6 @@ export const updateBranch = asyncHandler(async (req, res) => {
     if (location !== undefined) branch.location = location;
     if (address !== undefined) branch.address = address;
     if (phone !== undefined) branch.phone = phone;
-    if (email !== undefined) branch.email = email;
     if (manager !== undefined) branch.manager = manager;
     if (isActive !== undefined) branch.isActive = isActive;
 
@@ -230,7 +238,7 @@ export const updateBranch = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json({
         status: 'success',
-        message: 'Branch updated successfully',
+        message: getLocalizedMessage(req, 'branch.updated'),
         data: updatedBranch.info
     });
 });
@@ -242,7 +250,7 @@ export const deleteBranch = asyncHandler(async (req, res) => {
     const branch = await Branch.findById(req.params.id);
 
     if (!branch) {
-        throw errors.NotFound('Branch not found');
+        throw errors.NotFound(getLocalizedMessage(req, 'branch.notFound'));
     }
 
     // TODO: Add check to see if the branch is being used by appointments or stock
@@ -263,6 +271,6 @@ export const deleteBranch = asyncHandler(async (req, res) => {
 
     res.status(StatusCodes.OK).json({
         status: 'success',
-        message: 'Branch deleted successfully'
+        message: getLocalizedMessage(req, 'branch.deleted')
     });
 }); 

@@ -28,7 +28,7 @@ router.use(auth);
 router.route('/')
     .post(
         checkPrivilege('branches', 'create'),
-        validateBranchBody(createBranchSchema),
+        validateBranchBody('create'),
         createBranch
     )
     .get(
@@ -46,7 +46,7 @@ router.route('/:id')
     .patch(
         checkPrivilege('branches', 'update'),
         validateBranchParams,
-        validateBranchBody(updateBranchSchema),
+        validateBranchBody('update'),
         updateBranch
     )
     .delete(
