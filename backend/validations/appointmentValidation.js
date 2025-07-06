@@ -7,12 +7,20 @@ const appointmentScanSchema = Joi.object({
             'string.pattern.base': 'Invalid scan ID format',
             'any.required': 'Scan is required'
         }),
+    _id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     quantity: Joi.number().integer().min(1).default(1)
         .messages({
             'number.base': 'Quantity must be a number',
             'number.integer': 'Quantity must be an integer',
             'number.min': 'Quantity must be at least 1'
         })
+}).custom((value, helpers) => {
+    // If scan is not provided but _id or id is, use that as scan
+    if (!value.scan && (value._id || value.id)) {
+        value.scan = value._id || value.id;
+    }
+    return value;
 });
 
 // Validation schema for creating appointment
@@ -95,7 +103,7 @@ export const appointmentQuerySchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
     search: Joi.string().trim().optional(),
-    status: Joi.string().valid('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show').optional(),
+    status: Joi.string().valid('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show', 'no-show').optional(),
     patientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     radiologistId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     doctorId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
@@ -107,7 +115,7 @@ export const appointmentQuerySchema = Joi.object({
 
 // Validation schema for appointment status update
 export const updateAppointmentStatusSchema = Joi.object({
-    status: Joi.string().valid('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show').required()
+    status: Joi.string().valid('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show', 'no-show').required()
         .messages({
             'any.only': 'Invalid appointment status',
             'any.required': 'Status is required'

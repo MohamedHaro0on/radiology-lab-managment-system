@@ -4,13 +4,14 @@ import {
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, CircularProgress, IconButton, Snackbar, Alert, Box, Chip,
   FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent,
-  Tabs, Tab, Pagination, InputAdornment, Tooltip, Fab, FormControlLabel, Switch
+  Tabs, Tab, Pagination, InputAdornment, Tooltip, Fab, FormControlLabel, Switch,
+  ToggleButtonGroup, ToggleButton
 } from '@mui/material';
 import {
   Add, Edit, Delete, Search, FilterList, CalendarMonth, 
   Schedule, Refresh,
   CheckCircle, Cancel, Pending, Warning,
-  History as HistoryIcon
+  History as HistoryIcon, CloudUpload as UploadIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -171,16 +172,27 @@ function AppointmentForm({ open, onClose, onSubmit, initialData, patients, docto
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      const { scheduledDate, scheduledTime, ...restOfForm } = form;
-      
+      const { scheduledDate, scheduledTime, patientId, radiologistId, branch, scans, notes } = form;
+      if (!scheduledDate || isNaN(new Date(scheduledDate).getTime()) || !scheduledTime || isNaN(new Date(scheduledTime).getTime())) {
+        setErrors(prev => ({ ...prev, scheduledDate: t('validation.required', { field: t('appointments.date') }), scheduledTime: t('validation.required', { field: t('appointments.time') }) }));
+        return;
+      }
       const combinedDateTime = new Date(scheduledDate);
       combinedDateTime.setHours(new Date(scheduledTime).getHours());
       combinedDateTime.setMinutes(new Date(scheduledTime).getMinutes());
-      
+      if (combinedDateTime < new Date()) {
+        setErrors(prev => ({ ...prev, scheduledDate: t('appointments.dateRequired'), scheduledTime: t('appointments.time') + ' ' + t('validation.required', { field: t('appointments.time') }) }));
+        return;
+      }
+      // Only send allowed fields
       const submissionData = {
-          ...restOfForm,
-          scheduledAt: combinedDateTime.toISOString()
+        patientId,
+        radiologistId,
+        branch,
+        scans,
+        scheduledAt: combinedDateTime.toISOString(),
       };
+      if (notes && notes.trim() !== '') submissionData.notes = notes;
       onSubmit(submissionData);
     }
   };
@@ -418,6 +430,16 @@ export default function Appointments() {
   const [deleteId, setDeleteId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
+  // Status change functionality
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [statusForm, setStatusForm] = useState({
+    status: '',
+    notes: '',
+    pdfFile: null
+  });
+  const [statusLoading, setStatusLoading] = useState(false);
+
   // Advanced filtering and pagination
   const [filters, setFilters] = useState({
     search: '',
@@ -487,6 +509,7 @@ export default function Appointments() {
 
   // Create or update appointment
   const handleFormSubmit = async (form) => {
+    console.log('Submitting appointment:', form); // Debug log
     try {
       if (editData) {
         await appointmentAPI.updateAppointment(editData._id, form);
@@ -499,11 +522,21 @@ export default function Appointments() {
       setEditData(null);
       fetchData();
     } catch (err) {
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || t('appointments.saveError'), 
-        severity: 'error' 
-      });
+      // Show all backend validation errors if present
+      const apiErrors = err.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        setSnackbar({
+          open: true,
+          message: apiErrors.map(e => e.message).join(' | '),
+          severity: 'error'
+        });
+      } else {
+        setSnackbar({ 
+          open: true, 
+          message: err.response?.data?.message || t('appointments.saveError'), 
+          severity: 'error' 
+        });
+      }
     }
   };
 
@@ -546,6 +579,56 @@ export default function Appointments() {
 
   const handleViewHistory = (id) => {
     navigate(`/appointments/${id}/history`);
+  };
+
+  // Status change handlers
+  const handleStatusChange = (appointment) => {
+    setSelectedAppointment(appointment);
+    setStatusForm({
+      status: appointment.status,
+      notes: appointment.notes || '',
+      pdfFile: null
+    });
+    setStatusDialogOpen(true);
+  };
+
+  const handleStatusSubmit = async () => {
+    if (!selectedAppointment) return;
+
+    setStatusLoading(true);
+    try {
+      await appointmentAPI.updateAppointmentStatus(selectedAppointment._id, statusForm);
+      setSnackbar({ 
+        open: true, 
+        message: t('appointments.statusUpdateSuccess'), 
+        severity: 'success' 
+      });
+      setStatusDialogOpen(false);
+      setSelectedAppointment(null);
+      setStatusForm({ status: '', notes: '', pdfFile: null });
+      fetchData();
+    } catch (err) {
+      setSnackbar({ 
+        open: true, 
+        message: err.response?.data?.message || t('appointments.statusUpdateError'), 
+        severity: 'error' 
+      });
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setStatusForm(prev => ({ ...prev, pdfFile: file }));
+    } else {
+      setSnackbar({ 
+        open: true, 
+        message: t('appointments.pdfFileRequired'), 
+        severity: 'error' 
+      });
+    }
   };
 
   if (loading && appointments.length === 0) {
@@ -1068,6 +1151,15 @@ export default function Appointments() {
                           <Edit />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title={t('appointments.changeStatus')}>
+                        <IconButton 
+                          onClick={() => handleStatusChange(apt)}
+                          size="small"
+                          color="primary"
+                        >
+                          <Schedule />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title={t('common.delete')}>
                         <IconButton 
                           color="error" 
@@ -1167,6 +1259,81 @@ export default function Appointments() {
         <DialogActions>
           <Button onClick={() => setDeleteId(null)}>{t('common.cancel')}</Button>
           <Button color="error" onClick={handleDelete}>{t('common.delete')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Status Change Dialog */}
+      <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('appointments.changeStatus')}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusForm.status}
+                onChange={(e) => setStatusForm(prev => ({ ...prev, status: e.target.value }))}
+                label="Status"
+              >
+                <MenuItem value="scheduled">{t('appointments.status.scheduled')}</MenuItem>
+                <MenuItem value="in_progress">{t('appointments.status.inProgress')}</MenuItem>
+                <MenuItem value="completed">{t('appointments.status.completed')}</MenuItem>
+                <MenuItem value="cancelled">{t('appointments.status.cancelled')}</MenuItem>
+                <MenuItem value="no-show">{t('appointments.status.no-show')}</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label={t('appointments.notes')}
+              value={statusForm.notes}
+              onChange={(e) => setStatusForm(prev => ({ ...prev, notes: e.target.value }))}
+              sx={{ mb: 2 }}
+            />
+
+            {statusForm.status === 'completed' && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  {t('appointments.uploadPDF')} *
+                </Typography>
+                <input
+                  accept="application/pdf"
+                  style={{ display: 'none' }}
+                  id="pdf-file-input"
+                  type="file"
+                  onChange={handleFileChange}
+                />
+                <label htmlFor="pdf-file-input">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<UploadIcon />}
+                    fullWidth
+                  >
+                    {statusForm.pdfFile ? statusForm.pdfFile.name : t('appointments.selectPDF')}
+                  </Button>
+                </label>
+                {statusForm.pdfFile && (
+                  <Typography variant="caption" color="success.main" display="block" sx={{ mt: 1 }}>
+                    {t('appointments.pdfSelected')}: {statusForm.pdfFile.name}
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStatusDialogOpen(false)} disabled={statusLoading}>
+            {t('common.cancel')}
+          </Button>
+          <Button 
+            onClick={handleStatusSubmit} 
+            variant="contained" 
+            disabled={statusLoading || (statusForm.status === 'completed' && !statusForm.pdfFile)}
+          >
+            {statusLoading ? <CircularProgress size={24} /> : t('common.update')}
+          </Button>
         </DialogActions>
       </Dialog>
 

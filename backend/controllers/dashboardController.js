@@ -25,7 +25,7 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
     try {
         // Daily analytics
         const dailyAppointments = await Appointment.countDocuments({
-            appointmentDate: {
+            scheduledAt: {
                 $gte: startOfDay,
                 $lte: endOfDay
             }
@@ -34,7 +34,7 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
         const dailyIncome = await Appointment.aggregate([
             {
                 $match: {
-                    appointmentDate: {
+                    scheduledAt: {
                         $gte: startOfDay,
                         $lte: endOfDay
                     },
@@ -42,9 +42,12 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
                 }
             },
             {
+                $unwind: '$scans'
+            },
+            {
                 $lookup: {
                     from: 'scans',
-                    localField: 'scan',
+                    localField: 'scans.scan',
                     foreignField: '_id',
                     as: 'scanDetails'
                 }
@@ -73,7 +76,7 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
 
         // Weekly analytics
         const weeklyAppointments = await Appointment.countDocuments({
-            appointmentDate: {
+            scheduledAt: {
                 $gte: startOfWeek,
                 $lte: endOfWeek
             }
@@ -82,7 +85,7 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
         const weeklyIncome = await Appointment.aggregate([
             {
                 $match: {
-                    appointmentDate: {
+                    scheduledAt: {
                         $gte: startOfWeek,
                         $lte: endOfWeek
                     },
@@ -90,9 +93,12 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
                 }
             },
             {
+                $unwind: '$scans'
+            },
+            {
                 $lookup: {
                     from: 'scans',
-                    localField: 'scan',
+                    localField: 'scans.scan',
                     foreignField: '_id',
                     as: 'scanDetails'
                 }
@@ -129,9 +135,12 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
                 }
             },
             {
+                $unwind: '$scans'
+            },
+            {
                 $lookup: {
                     from: 'scans',
-                    localField: 'scan',
+                    localField: 'scans.scan',
                     foreignField: '_id',
                     as: 'scanDetails'
                 }
@@ -243,16 +252,16 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
 
         // Recent appointments
         const recentAppointments = await Appointment.find()
-            .populate('patient', 'name')
-            .populate('doctor', 'name specialization')
+            .populate('patientId', 'name')
+            .populate('referredBy', 'name specialization')
             .populate({
-                path: 'scan',
+                path: 'scans.scan',
                 populate: {
                     path: 'category',
                     select: 'name price'
                 }
             })
-            .sort({ appointmentDate: -1 })
+            .sort({ scheduledAt: -1 })
             .limit(10);
 
         // Top representatives
@@ -263,15 +272,18 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
             {
                 $match: {
                     status: 'completed',
-                    appointmentDate: {
+                    scheduledAt: {
                         $gte: new Date(today.getFullYear(), today.getMonth() - 5, 1)
                     }
                 }
             },
             {
+                $unwind: '$scans'
+            },
+            {
                 $lookup: {
                     from: 'scans',
-                    localField: 'scan',
+                    localField: 'scans.scan',
                     foreignField: '_id',
                     as: 'scanDetails'
                 }
@@ -293,8 +305,8 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
             {
                 $group: {
                     _id: {
-                        year: { $year: '$appointmentDate' },
-                        month: { $month: '$appointmentDate' }
+                        year: { $year: '$scheduledAt' },
+                        month: { $month: '$scheduledAt' }
                     },
                     totalIncome: { $sum: '$categoryDetails.price' },
                     appointmentCount: { $sum: 1 }
@@ -370,7 +382,7 @@ export const getAppointmentStats = asyncHandler(async (req, res) => {
         const stats = await Appointment.aggregate([
             {
                 $match: {
-                    appointmentDate: {
+                    scheduledAt: {
                         $gte: startDate,
                         $lte: endDate
                     }
@@ -385,7 +397,7 @@ export const getAppointmentStats = asyncHandler(async (req, res) => {
         ]);
 
         const totalAppointments = await Appointment.countDocuments({
-            appointmentDate: {
+            scheduledAt: {
                 $gte: startDate,
                 $lte: endDate
             }

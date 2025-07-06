@@ -4,7 +4,7 @@ import { errors } from '../utils/errorHandler.js';
 const appointmentSchema = new mongoose.Schema({
     radiologistId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Radiologist',
+        ref: 'User',
         required: [true, 'Radiologist is required']
     },
     branch: {
@@ -98,6 +98,10 @@ const appointmentSchema = new mongoose.Schema({
         type: Number,
         min: [0, 'Custom price cannot be negative']
     },
+    pdfReport: {
+        type: String,
+        trim: true
+    },
     isActive: {
         type: Boolean,
         default: true
@@ -171,7 +175,8 @@ appointmentSchema.methods.calculateFinancials = async function () {
     this.price = totalPrice;
     this.profit = totalPrice - totalCost;
 
-    await this.save();
+    // Remove the save() call to prevent circular save operations
+    // The pre-save middleware will handle saving
     return this;
 };
 

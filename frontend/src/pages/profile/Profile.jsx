@@ -116,7 +116,7 @@ const Profile = () => {
       <Typography variant="h4" gutterBottom>
         {t('auth.profile')}
       </Typography>
-      <Grid container spacing={3}>
+      <Grid container spacing={3} dir={isRTL ? 'rtl' : 'ltr'} sx={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start', textAlign: isRTL ? 'right' : 'left' }}>
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>

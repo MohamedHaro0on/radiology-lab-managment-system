@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 import { useFormik } from 'formik';
 import {
   Box,
@@ -57,6 +58,7 @@ import { useNavigate } from 'react-router-dom';
  */
 const Patients = () => {
   const { t } = useTranslation();
+  const { isRTL } = useRTL();
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ const Patients = () => {
         city: '',
         state: '',
         postalCode: '',
-        country: 'India',
+        country: 'Egypt',
       },
       medicalHistory: [],
       doctor: null,
@@ -186,7 +188,7 @@ const Patients = () => {
           city: '',
           state: '',
           postalCode: '',
-          country: 'India',
+          country: 'Egypt',
         },
         medicalHistory: updatedPatient.medicalHistory || [],
         // Map doctorReferred to the 'doctor' field that DoctorSearchAndRegister expects
@@ -264,7 +266,7 @@ const Patients = () => {
       {patients.length === 0 ? (
         <NoContent message={t('patients.noPatientsFound')} />
       ) : (
-      <Grid container spacing={3}>
+      <Grid container spacing={3} dir={isRTL ? 'rtl' : 'ltr'} sx={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start', textAlign: isRTL ? 'right' : 'left' }}>
         {patients.map((patient) => (
           <Grid item xs={12} sm={6} md={4} key={patient._id}>
             <Card
@@ -294,43 +296,43 @@ const Patients = () => {
                   />
                 </Box>
                 
-                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }} dir={isRTL ? 'rtl' : 'ltr'}>
                   <Table size="small">
                     <TableBody>
                       <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold', width: '40%' }}>
+                        <TableCell component="th" sx={{ fontWeight: 'bold', width: '40%' }} align={isRTL ? 'right' : 'left'}>
                           {t('patients.phone')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell align={isRTL ? 'left' : 'right'}>
                           {patient.phoneNumber}
                         </TableCell>
                       </TableRow>
                       {patient.socialNumber && (
                         <TableRow>
-                          <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                          <TableCell component="th" sx={{ fontWeight: 'bold' }} align={isRTL ? 'right' : 'left'}>
                             {t('patients.socialNumber')}
                           </TableCell>
-                          <TableCell>
+                          <TableCell align={isRTL ? 'left' : 'right'}>
                             {patient.socialNumber}
                           </TableCell>
                         </TableRow>
                       )}
                       {patient.address?.city && (
                         <TableRow>
-                          <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                          <TableCell component="th" sx={{ fontWeight: 'bold' }} align={isRTL ? 'right' : 'left'}>
                             {t('patients.address')}
                           </TableCell>
-                          <TableCell>
+                          <TableCell align={isRTL ? 'left' : 'right'}>
                             {`${patient.address.city}, ${patient.address.state}`}
                           </TableCell>
                         </TableRow>
                       )}
                       {patient.doctorReferred && (
                         <TableRow>
-                          <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                          <TableCell component="th" sx={{ fontWeight: 'bold' }} align={isRTL ? 'right' : 'left'}>
                             {t('patients.doctor')}
                           </TableCell>
-                          <TableCell>
+                          <TableCell align={isRTL ? 'left' : 'right'}>
                             {patient.doctorReferred.name}
                           </TableCell>
                         </TableRow>

@@ -39,12 +39,14 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { useRTL } from '../../hooks/useRTL';
 
 /**
  * Stock component for managing inventory items
  */
 const Stock = () => {
   const { t } = useTranslation();
+  const { isRTL } = useRTL();
   const [stockItems, setStockItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState('');
@@ -292,7 +294,7 @@ const Stock = () => {
       {(stockItems || []).length === 0 ? (
         <NoContent message={t('stock.noItemsFound')} />
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={3} dir={isRTL ? 'rtl' : 'ltr'} sx={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start', textAlign: isRTL ? 'right' : 'left' }}>
           {(stockItems || []).map((item) => (
             <Grid item xs={12} sm={6} md={4} key={item._id}>
               <Card>

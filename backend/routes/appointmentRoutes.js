@@ -15,6 +15,7 @@ import {
 } from '../validations/appointmentValidation.js';
 import * as appointmentController from '../controllers/appointmentController.js';
 import { checkPrivilege } from '../middleware/privilege.js';
+import { uploadPDF } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -64,6 +65,7 @@ router.patch(
 router.patch(
     '/:id/status',
     validateAppointmentParams,
+    uploadPDF,
     validateAppointmentBody(updateAppointmentStatusSchema),
     appointmentController.updateAppointmentStatus
 );

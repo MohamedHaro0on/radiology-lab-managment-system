@@ -47,12 +47,14 @@ import SearchBar from '../../components/common/SearchBar';
 import NoContent from '../../components/common/NoContent';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { representativeService } from '../../services/representativeService';
+import { useRTL } from '../../hooks/useRTL';
 
 /**
  * Doctors component for managing doctors
  */
 const Doctors = () => {
   const { t } = useTranslation();
+  const { isRTL } = useRTL();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -320,7 +322,7 @@ const Doctors = () => {
       {!doctors || doctors.length === 0 ? (
         <NoContent message={t('doctors.noDoctorsFound')} />
       ) : (
-      <Grid container spacing={3}>
+      <Grid container spacing={3} dir={isRTL ? 'rtl' : 'ltr'} sx={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: isRTL ? 'flex-end' : 'flex-start', textAlign: isRTL ? 'right' : 'left' }}>
         {doctors.map((doctor) => (
             <Grid item xs={12} sm={6} md={4} key={doctor._id}>
             <Card>

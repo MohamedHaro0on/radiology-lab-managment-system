@@ -90,7 +90,7 @@ const patientSchema = new mongoose.Schema({
         country: {
             type: String,
             trim: true,
-            default: 'India'
+            default: 'Egypt'
         }
     },
     isActive: {

@@ -6,7 +6,7 @@ import { executePaginatedQuery } from '../utils/pagination.js';
 
 // Get all users with pagination and filtering
 export const getAllUsers = asyncHandler(async (req, res) => {
-    const { page, limit, sortBy, sortOrder, search, isActive, isSuperAdmin, role } = req.query;
+    const { page, limit, sortBy, sortOrder, search, isActive, isSuperAdmin, role, userType } = req.query;
 
     // Build query
     const query = {};
@@ -18,7 +18,9 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     }
     if (typeof isActive === 'boolean') query.isActive = isActive;
     if (typeof isSuperAdmin === 'boolean') query.isSuperAdmin = isSuperAdmin;
+    // Support both 'role' and 'userType' parameters for filtering
     if (role) query.userType = role;
+    if (userType) query.userType = userType;
 
     // Execute paginated query
     const result = await executePaginatedQuery(User, query, {

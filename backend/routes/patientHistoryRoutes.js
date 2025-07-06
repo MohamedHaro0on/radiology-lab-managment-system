@@ -27,6 +27,12 @@ router.get(
     patientHistoryController.getAllPatientHistories
 );
 
+// Get patient history by patient ID
+router.get(
+    '/patient/:patientId',
+    patientHistoryController.getPatientHistoryByPatientId
+);
+
 // Get single patient history
 router.get(
     '/:id',

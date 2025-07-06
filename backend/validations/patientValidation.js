@@ -42,7 +42,7 @@ export const createPatientSchema = Joi.object({
         city: Joi.string().trim().optional().allow(''),
         state: Joi.string().trim().optional().allow(''),
         postalCode: Joi.string().trim().optional().allow(''),
-        country: Joi.string().trim().default('India')
+        country: Joi.string().trim().default('Egypt')
     }).optional()
 });
 

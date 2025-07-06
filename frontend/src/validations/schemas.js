@@ -81,7 +81,7 @@ export const doctorSchema = yup.object({
         street: yup.string().optional(),
         city: yup.string().optional(),
         state: yup.string().optional(),
-        country: yup.string().default('India'),
+        country: yup.string().default('Egypt'),
     }).optional(),
     experience: yup.number().min(0, 'Experience cannot be negative'),
     isActive: yup.boolean().default(true),

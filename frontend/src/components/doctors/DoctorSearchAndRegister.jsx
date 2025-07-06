@@ -42,7 +42,7 @@ const DoctorSearchAndRegister = ({ value, onChange, error, helperText }) => {
         city: '',
         state: '',
         postalCode: '',
-        country: 'India',
+        country: 'Egypt',
       },
       active: true,
       experience: 0,

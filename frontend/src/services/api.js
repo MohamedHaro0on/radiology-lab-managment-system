@@ -113,8 +113,24 @@ export const appointmentAPI = {
     getAppointmentById: (id) => axiosInstance.get(`/appointments/${id}`),
     createAppointment: (appointmentData) => axiosInstance.post('/appointments', appointmentData),
     updateAppointment: (id, appointmentData) => axiosInstance.patch(`/appointments/${id}`, appointmentData),
+    updateAppointmentStatus: (id, statusData) => {
+        // Handle file upload for status updates
+        const formData = new FormData();
+        formData.append('status', statusData.status);
+        if (statusData.notes) {
+            formData.append('notes', statusData.notes);
+        }
+        if (statusData.pdfFile) {
+            formData.append('pdfFile', statusData.pdfFile);
+        }
+
+        return axiosInstance.patch(`/appointments/${id}/status`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
     deleteAppointment: (id) => axiosInstance.delete(`/appointments/${id}`),
-    updateAppointmentStatus: (id, statusData) => axiosInstance.patch(`/appointments/${id}/status`, statusData),
     getAppointmentHistory: (id) => axiosInstance.get(`/appointments/${id}/history`),
     getByDateRange: (startDate, endDate) =>
         axiosInstance.get('/appointments/date-range', { params: { startDate, endDate } }),
@@ -157,7 +173,10 @@ export const scanCategoryAPI = {
 };
 
 // Patient History service
-export const patientHistoryAPI = createCrudService('patient-history');
+export const patientHistoryAPI = {
+    ...createCrudService('patient-history'),
+    getByPatientId: (patientId) => axiosInstance.get(`/patient-history/patient/${patientId}`),
+};
 
 // Export axios instance for custom requests
 export { axiosInstance };

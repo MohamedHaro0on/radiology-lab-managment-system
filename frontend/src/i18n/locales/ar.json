@@ -446,6 +446,17 @@
     "address.postalCode": "الرمز البريدي",
     "address.country": "البلد",
     "medicalHistory": "التاريخ الطبي",
+    "patientDetails": "تفاصيل المريض",
+    "referringDoctor": "الطبيب المحيل",
+    "date": "التاريخ",
+    "diagnosis": "التشخيص",
+    "treatment": "العلاج",
+    "notes": "ملاحظات",
+    "scans": "الفحوصات",
+    "pdfReport": "تقرير PDF",
+    "noHistoryFound": "لا يوجد تاريخ طبي.",
+    "noScans": "لا توجد فحوصات",
+    "noPDF": "لا يوجد تقرير PDF",
     "fetchError": "خطأ في جلب بيانات المرضى",
     "createSuccess": "تم إضافة المريض بنجاح",
     "updateSuccess": "تم تحديث بيانات المريض بنجاح",
@@ -479,7 +490,8 @@
     "minLength": "يجب أن يكون {{field}} على الأقل {{min}} أحرف",
     "maxLength": "لا يمكن أن يتجاوز {{field}} {{max}} حرف",
     "minAge": "يجب أن يكون العمر على الأقل {{age}} سنة",
-    "maxAge": "لا يمكن أن يتجاوز العمر {{age}} سنة"
+    "maxAge": "لا يمكن أن يتجاوز العمر {{age}} سنة",
+    "unitRequired": "الوحدة مطلوبة"
   },
   "status": {
     "active": "نشط",
@@ -511,6 +523,7 @@
     "patientRequired": "المريض مطلوب",
     "referredByRequired": "الطبيب المحيل مطلوب",
     "dateRequired": "تاريخ الموعد مطلوب",
+    "branchRequired": "الفرع مطلوب",
     "searchPlaceholder": "البحث في المواعيد...",
     "allPatients": "جميع المرضى",
     "allDoctors": "جميع الأطباء",
@@ -530,8 +543,10 @@
       "confirmed": "مؤكد",
       "pending": "قيد الانتظار",
       "inProgress": "قيد التنفيذ",
+      "in_progress": "قيد التنفيذ",
       "completed": "مكتمل",
-      "cancelled": "ملغي"
+      "cancelled": "ملغي",
+      "no-show": "لم يحضر"
     },
     "priority": {
       "routine": "روتيني",
@@ -547,8 +562,17 @@
     "deleteConfirmTitle": "حذف موعد",
     "deleteConfirmMessage": "هل أنت متأكد من حذف هذا الموعد؟",
     "noAppointmentsFound": "لا توجد مواعيد.",
+    "changeStatus": "تغيير الحالة",
+    "statusUpdateSuccess": "تم تحديث حالة الموعد بنجاح",
+    "statusUpdateError": "خطأ في تحديث حالة الموعد",
+    "uploadPDF": "رفع تقرير PDF",
+    "selectPDF": "اختر ملف PDF",
+    "pdfSelected": "تم اختيار PDF",
+    "pdfFileRequired": "يرجى اختيار ملف PDF",
+    "viewHistory": "عرض التاريخ",
     "branch": "الفرع",
-    "branchLabel": "الفرع"
+    "branchLabel": "الفرع",
+    "notes": "ملاحظات"
   },
   "scans": {
     "title": "الفحوصات",
@@ -780,7 +804,9 @@
       "male": "ذكر",
       "female": "أنثى",
       "other": "آخر"
-    }
+    },
+    "totalPatientsReferred": "إجمالي المرضى المحالين",
+    "totalScansReferred": "إجمالي الفحوصات المحالة"
   },
   "payments": {
     "new": "دفعة جديدة",

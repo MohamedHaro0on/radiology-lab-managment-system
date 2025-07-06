@@ -1,7 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import { StatusCodes } from 'http-status-codes';
 import { errors } from '../utils/errorHandler.js';
-import PatientHistory from '../models/PatientHistory.js';
+import Appointment from '../models/Appointment.js';
 import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
 import { executePaginatedQuery } from '../utils/pagination.js';
@@ -32,13 +32,13 @@ export const getAllPatientHistories = asyncHandler(async (req, res) => {
     const query = {};
     if (search) {
         query.$or = [
-            { 'patient.name': { $regex: search, $options: 'i' } },
-            { 'patient.phone': { $regex: search, $options: 'i' } },
+            { 'patientId.name': { $regex: search, $options: 'i' } },
+            { 'patientId.phoneNumber': { $regex: search, $options: 'i' } },
             { diagnosis: { $regex: search, $options: 'i' } }
         ];
     }
     if (patientId) {
-        query['patient._id'] = patientId;
+        query.patientId = patientId;
     }
     if (scanType) {
         query.scanType = scanType;
@@ -49,40 +49,162 @@ export const getAllPatientHistories = asyncHandler(async (req, res) => {
         query,
         paginationOptions,
         [
-            { path: 'patient', select: 'name phone gender dateOfBirth' },
-            { path: 'doctor', select: 'name specialization' },
-            { path: 'radiologist', select: 'name specialization' }
+            { path: 'patientId', select: 'name phoneNumber gender dateOfBirth' },
+            { path: 'doctorId', select: 'name specialization' },
+            { path: 'appointmentId', select: 'scheduledAt status scans' }
         ]
     );
 
     res.status(StatusCodes.OK).json(result);
 });
 
-// Get a single patient history record by id
+// Get patient history by patient ID (from appointments collection)
+export const getPatientHistoryByPatientId = asyncHandler(async (req, res) => {
+    const { patientId } = req.params;
+
+    console.log('--- [getPatientHistoryByPatientId] Fetching history for patient:', patientId);
+
+    // Find all completed appointments for this patient
+    const appointments = await Appointment.find({
+        patientId: patientId,
+        status: 'completed'
+    })
+        .populate([
+            { path: 'patientId', select: 'name phoneNumber gender dateOfBirth' },
+            { path: 'referredBy', select: 'name specialization' },
+            { path: 'radiologistId', select: 'name licenseId' },
+            { path: 'branch', select: 'name location' }
+        ])
+        .sort({ scheduledAt: -1 });
+
+    console.log('--- [getPatientHistoryByPatientId] Found appointments:', appointments.length);
+
+    // Transform appointments into patient history format
+    const patientHistory = appointments.map(appointment => ({
+        id: appointment._id,
+        patientId: appointment.patientId,
+        doctorId: appointment.referredBy,
+        appointmentId: appointment._id,
+        date: appointment.scheduledAt,
+        diagnosis: 'Radiology scan completed',
+        treatment: 'Scan results available',
+        notes: appointment.notes || 'Appointment completed',
+        pdfReport: appointment.pdfReport,
+        scans: appointment.scans,
+        price: appointment.price,
+        status: appointment.status,
+        createdAt: appointment.createdAt,
+        updatedAt: appointment.updatedAt
+    }));
+
+    res.status(StatusCodes.OK).json({
+        status: "success",
+        data: patientHistory
+    });
+});
+
+// Get a single patient history record by id (from appointments collection)
 export const getPatientHistoryById = asyncHandler(async (req, res) => {
-    const history = await PatientHistory.findById(req.params.id);
-    if (!history) throw errors.NotFound("Patient history record not found");
-    res.status(StatusCodes.OK).json({ status: "success", data: history });
+    const { id } = req.params;
+
+    console.log('--- [getPatientHistoryById] Fetching history for appointment:', id);
+
+    const appointment = await Appointment.findOne({
+        _id: id,
+        status: 'completed'
+    })
+        .populate([
+            { path: 'patientId', select: 'name phoneNumber gender dateOfBirth' },
+            { path: 'referredBy', select: 'name specialization' },
+            { path: 'radiologistId', select: 'name licenseId' },
+            { path: 'branch', select: 'name location' }
+        ]);
+
+    if (!appointment) {
+        throw errors.NotFound("Patient history record not found");
+    }
+
+    // Transform appointment to patient history format
+    const patientHistory = {
+        id: appointment._id,
+        patientId: appointment.patientId,
+        doctorId: appointment.referredBy,
+        appointmentId: appointment._id,
+        date: appointment.scheduledAt,
+        diagnosis: 'Radiology scan completed',
+        treatment: 'Scan results available',
+        notes: appointment.notes || 'Appointment completed',
+        pdfReport: appointment.pdfReport,
+        scans: appointment.scans,
+        price: appointment.price,
+        status: appointment.status,
+        createdAt: appointment.createdAt,
+        updatedAt: appointment.updatedAt
+    };
+
+    res.status(StatusCodes.OK).json({
+        status: "success",
+        data: patientHistory
+    });
 });
 
-// Update a patient history record (only update diagnosis, treatment, and notes)
+// Update a patient history record (update appointment notes)
 export const updatePatientHistory = asyncHandler(async (req, res) => {
-    const { diagnosis, treatment, notes } = req.body;
-    const history = await PatientHistory.findById(req.params.id);
-    if (!history) throw errors.NotFound("Patient history record not found");
-    if (diagnosis) history.diagnosis = diagnosis;
-    if (treatment) history.treatment = treatment;
-    if (notes) history.notes = notes;
-    await history.save();
-    res.status(StatusCodes.OK).json({ status: "success", data: history });
+    const { notes } = req.body;
+    const { id } = req.params;
+
+    console.log('--- [updatePatientHistory] Updating notes for appointment:', id);
+
+    const appointment = await Appointment.findOne({
+        _id: id,
+        status: 'completed'
+    });
+
+    if (!appointment) {
+        throw errors.NotFound("Patient history record not found");
+    }
+
+    if (notes) {
+        appointment.notes = notes;
+    }
+
+    await appointment.save();
+
+    res.status(StatusCodes.OK).json({
+        status: "success",
+        message: "Patient history updated successfully",
+        data: appointment
+    });
 });
 
-// Delete a patient history record
+// Delete a patient history record (delete completed appointment)
 export const deletePatientHistory = asyncHandler(async (req, res) => {
-    const history = await PatientHistory.findById(req.params.id);
-    if (!history) throw errors.NotFound("Patient history record not found");
-    await history.deleteOne();
-    res.status(StatusCodes.OK).json({ status: "success", message: "Patient history deleted successfully" });
+    const { id } = req.params;
+
+    console.log('--- [deletePatientHistory] Deleting completed appointment:', id);
+
+    const appointment = await Appointment.findOne({
+        _id: id,
+        status: 'completed'
+    });
+
+    if (!appointment) {
+        throw errors.NotFound("Patient history record not found");
+    }
+
+    await appointment.deleteOne();
+
+    res.status(StatusCodes.OK).json({
+        status: "success",
+        message: "Patient history deleted successfully"
+    });
 });
 
-export default { createPatientHistory, getAllPatientHistories, getPatientHistoryById, updatePatientHistory, deletePatientHistory }; 
+export default {
+    createPatientHistory,
+    getAllPatientHistories,
+    getPatientHistoryById,
+    updatePatientHistory,
+    deletePatientHistory,
+    getPatientHistoryByPatientId
+}; 

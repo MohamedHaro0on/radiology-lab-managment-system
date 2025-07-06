@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 import { useFormik } from 'formik';
 import {
   Box, Grid, Card, CardContent, CardActions, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress, Fab, Chip, FormControl, InputLabel, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
@@ -12,6 +13,7 @@ import { radiologistSchema, registerSchema, twoFactorSchema } from '../../valida
 
 const Radiologists = () => {
   const { t } = useTranslation();
+  const { isRTL } = useRTL();
   const [radiologists, setRadiologists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -186,47 +188,47 @@ const Radiologists = () => {
                   </Box>
                 </Box>
                 
-                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }} dir={isRTL ? 'rtl' : 'ltr'}>
                   <Table size="small">
                     <TableBody>
                        {radiologist?.gender && <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold', width: '40%' }}>
+                        <TableCell component="th" sx={{ fontWeight: 'bold', width: '40%' }} align={isRTL ? 'right' : 'left'}>
                           {t('radiologists.gender')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell align={isRTL ? 'left' : 'right'}>
                           {t(`genders.${radiologist.gender}`)}
                         </TableCell>
                       </TableRow>}
                       {radiologist?.age && <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                        <TableCell component="th" sx={{ fontWeight: 'bold' }} align={isRTL ? 'right' : 'left'}>
                           {t('radiologists.age')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell align={isRTL ? 'left' : 'right'}>
                           {radiologist.age} {t('patients.years')}
                         </TableCell>
                       </TableRow>}
                       {radiologist?.phoneNumber && <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                        <TableCell component="th" sx={{ fontWeight: 'bold' }} align={isRTL ? 'right' : 'left'}>
                           {t('radiologists.phoneNumber')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell align={isRTL ? 'left' : 'right'}>
                           {radiologist.phoneNumber}
                         </TableCell>
                       </TableRow>}
                       {radiologist?.licenseId && <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                        <TableCell component="th" sx={{ fontWeight: 'bold' }} align={isRTL ? 'right' : 'left'}>
                           {t('radiologists.licenseId')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell align={isRTL ? 'left' : 'right'}>
                           {radiologist.licenseId}
                         </TableCell>
                       </TableRow>}
                       {radiologist?.totalScansPerformed !== undefined && (
                         <TableRow>
-                          <TableCell component="th" sx={{ fontWeight: 'bold' }}>
+                          <TableCell component="th" sx={{ fontWeight: 'bold' }} align={isRTL ? 'right' : 'left'}>
                             {t('radiologists.totalScans')}
                           </TableCell>
-                          <TableCell>
+                          <TableCell align={isRTL ? 'left' : 'right'}>
                             {radiologist.totalScansPerformed}
                           </TableCell>
                         </TableRow>

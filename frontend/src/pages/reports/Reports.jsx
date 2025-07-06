@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 import {
   Box,
   Typography,
@@ -22,7 +24,6 @@ import {
   Download as DownloadIcon,
   Visibility as ViewIcon,
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { authAPI } from '../../services/api';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -33,6 +34,7 @@ import NoContent from '../../components/common/NoContent';
  */
 const Reports = () => {
   const { t } = useTranslation();
+  const { isRTL } = useRTL();
   const [reports, setReports] = useState([]);
   const [doctors, setDoctors] = useState([]); // Kept for potential future use in dialog
   const [patients, setPatients] = useState([]); // Kept for potential future use in dialog
@@ -121,35 +123,35 @@ const Reports = () => {
             />
             <Divider />
             <CardContent>
-              <TableContainer component={Paper}>
+              <TableContainer component={Paper} dir={isRTL ? 'rtl' : 'ltr'}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>{t('reports.patientName')}</TableCell>
-                      <TableCell>{t('reports.date')}</TableCell>
-                      <TableCell>{t('reports.type')}</TableCell>
-                      <TableCell>{t('reports.status')}</TableCell>
-                      <TableCell align="right">{t('reports.actions')}</TableCell>
+                      <TableCell align={isRTL ? 'right' : 'left'}>{t('reports.patientName')}</TableCell>
+                      <TableCell align={isRTL ? 'right' : 'left'}>{t('reports.date')}</TableCell>
+                      <TableCell align={isRTL ? 'right' : 'left'}>{t('reports.type')}</TableCell>
+                      <TableCell align={isRTL ? 'right' : 'left'}>{t('reports.status')}</TableCell>
+                      <TableCell align={isRTL ? 'right' : 'left'}>{t('reports.actions')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {reports.map((report) => (
                       <TableRow key={report.id}>
                         {/* Using optional chaining as patient might be null if not fetched */}
-                        <TableCell>{report.patient?.name || '-'}</TableCell>
-                        <TableCell>
+                        <TableCell align={isRTL ? 'right' : 'left'}>{report.patient?.name || '-'}</TableCell>
+                        <TableCell align={isRTL ? 'right' : 'left'}>
                           {/* Assuming createdAt is available and a valid date string */}
                           {new Date(report.createdAt).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>{report.type || '-'}</TableCell>
-                        <TableCell>
+                        <TableCell align={isRTL ? 'right' : 'left'}>{report.type || '-'}</TableCell>
+                        <TableCell align={isRTL ? 'right' : 'left'}>
                           <Chip
                             label={t(`reports.status.${report.status}`) || report.status}
                             color={getStatusColor(report.status)}
                             size="small"
                           />
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell align={isRTL ? 'right' : 'left'}>
                           <IconButton
                             size="small"
                             color="primary"

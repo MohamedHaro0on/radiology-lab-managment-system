@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRTL } from '../../hooks/useRTL';
 import { useFormik } from 'formik';
 import {
   Box,
@@ -57,6 +58,7 @@ import * as Yup from 'yup';
  */
 const Scans = () => {
   const { t } = useTranslation();
+  const { isRTL } = useRTL();
   const navigate = useNavigate();
   const [scans, setScans] = useState([]);
   const [stockItems, setStockItems] = useState([]);
@@ -345,33 +347,33 @@ const Scans = () => {
           }
         />
       ) : (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
+        <TableContainer component={Paper} sx={{ mt: 2 }} dir={isRTL ? 'rtl' : 'ltr'}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>{t('scans.name')}</TableCell>
-                <TableCell>{t('scans.actualCost')}</TableCell>
-                <TableCell>{t('scans.minPrice')}</TableCell>
-                <TableCell>{t('scans.items')}</TableCell>
-                <TableCell>{t('common.status')}</TableCell>
-                <TableCell>{t('scans.created')}</TableCell>
-                <TableCell>{t('scans.actions')}</TableCell>
+                <TableCell align={isRTL ? 'right' : 'left'}>{t('scans.name')}</TableCell>
+                <TableCell align={isRTL ? 'right' : 'left'}>{t('scans.actualCost')}</TableCell>
+                <TableCell align={isRTL ? 'right' : 'left'}>{t('scans.minPrice')}</TableCell>
+                <TableCell align={isRTL ? 'right' : 'left'}>{t('scans.items')}</TableCell>
+                <TableCell align={isRTL ? 'right' : 'left'}>{t('common.status')}</TableCell>
+                <TableCell align={isRTL ? 'right' : 'left'}>{t('scans.created')}</TableCell>
+                <TableCell align={isRTL ? 'right' : 'left'}>{t('scans.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {scans.map((scan) => (
                 <TableRow key={scan._id} hover>
-                  <TableCell>
-                    <Typography variant="subtitle2">{scan.name}</Typography>
+                  <TableCell align={isRTL ? 'right' : 'left'}>
+                    <Typography variant="subtitle2" sx={{ textAlign: isRTL ? 'right' : 'left' }}>{scan.name}</Typography>
                     {scan.description && (
-                      <Typography variant="caption" color="textSecondary">
+                      <Typography variant="caption" color="textSecondary" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                         {scan.description}
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell>{formatCurrency(scan.actualCost)}</TableCell>
-                  <TableCell>{formatCurrency(scan.minPrice)}</TableCell>
-                  <TableCell>
+                  <TableCell align={isRTL ? 'right' : 'left'}>{formatCurrency(scan.actualCost)}</TableCell>
+                  <TableCell align={isRTL ? 'right' : 'left'}>{formatCurrency(scan.minPrice)}</TableCell>
+                  <TableCell align={isRTL ? 'right' : 'left'}>
                     <Box>
                       {scan.items?.slice(0, 2).map((item, index) => (
                         <Chip
@@ -390,15 +392,15 @@ const Scans = () => {
                       )}
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell align={isRTL ? 'right' : 'left'}>
                     <Chip
                       label={scan.isActive ? t('common.active') : t('common.inactive')}
                       color={scan.isActive ? 'success' : 'default'}
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>{formatDate(scan.createdAt)}</TableCell>
-                  <TableCell>
+                  <TableCell align={isRTL ? 'right' : 'left'}>{formatDate(scan.createdAt)}</TableCell>
+                  <TableCell align={isRTL ? 'right' : 'left'}>
                     <IconButton
                       size="small"
                       onClick={() => navigate(`/scans/${scan._id}`)}
